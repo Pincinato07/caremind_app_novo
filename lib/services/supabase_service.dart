@@ -1,0 +1,94 @@
+  import 'package:supabase_flutter/supabase_flutter.dart';
+  import '../models/perfil.dart';
+
+  class SupabaseService {
+    static final SupabaseClient _client = Supabase.instance.client;
+
+    // Authentication methods
+    static Future<AuthResponse> signUp({
+      required String email,
+      required String password,
+      required String nome,
+      required String tipo,
+    }) async {
+      final response = await _client.auth.signUp(
+        email: email,
+        password: password,
+        data: {
+          'nome': nome,
+          'tipo': tipo,
+          'display_name': nome,
+        },
+      );
+
+      return response;
+    }
+
+    static Future<AuthResponse> signIn({
+      required String email,
+      required String password,
+    }) async {
+      return await _client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+    }
+
+    static Future<void> signOut() async {
+      await _client.auth.signOut();
+    }
+
+    static User? get currentUser => _client.auth.currentUser;
+
+    static Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
+
+    // Profile methods
+    static Future<void> createProfile({
+      required String userId,
+      required String nome,
+      required String tipo,
+    }) async {
+      await _client.from('perfis').insert({
+        'id': userId,
+        'nome': nome,
+        'tipo': tipo,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    }
+
+    static Future<Perfil?> getProfile(String userId) async {
+      final response = await _client
+          .from('perfis')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (response != null) {
+        return Perfil.fromMap(response);
+      }
+      return null;
+    }
+
+    static Future<void> updateProfile({
+      required String userId,
+      String? nome,
+      String? tipo,
+      String? codigoVinculacao,
+      String? fotoUsuario,
+      DateTime? codigoVinculacaoExpiraEm,
+    }) async {
+      final Map<String, dynamic> updates = {};
+      
+      if (nome != null) updates['nome'] = nome;
+      if (tipo != null) updates['tipo'] = tipo;
+      if (codigoVinculacao != null) updates['codigo_vinculacao'] = codigoVinculacao;
+      if (fotoUsuario != null) updates['foto_usuario'] = fotoUsuario;
+      if (codigoVinculacaoExpiraEm != null) {
+        updates['codigo_vinculacao_expira_em'] = codigoVinculacaoExpiraEm.toIso8601String();
+      }
+
+      if (updates.isNotEmpty) {
+        await _client.from('perfis').update(updates).eq('id', userId);
+      }
+    }
+  }
