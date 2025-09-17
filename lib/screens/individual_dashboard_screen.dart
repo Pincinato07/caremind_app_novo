@@ -36,12 +36,8 @@ class IndividualDashboardScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0400B9).withOpacity(0.1),
+                  color: const Color(0xFF0400B9).withOpacity(0.05),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFF0400B9),
-                    width: 1,
-                  ),
                 ),
                 child: const Column(
                   children: [
@@ -88,12 +84,44 @@ class IndividualDashboardScreen extends StatelessWidget {
               
               // Card Gerenciamento de Medicamentos
               Card(
-                elevation: 2,
+                elevation: 4.0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(20),
+                  leading: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0400B9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.medication,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  title: const Text(
+                    'Gerenciar Medicamentos',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'Organize seus medicamentos e horários',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.grey,
+                    size: 16,
+                  ),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -102,54 +130,6 @@ class IndividualDashboardScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0400B9),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.medication,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Gerenciar Medicamentos',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Organize seus medicamentos e horários',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(
-                          Icons.arrow_forward_ios,
-                          color: Colors.grey,
-                          size: 16,
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
               

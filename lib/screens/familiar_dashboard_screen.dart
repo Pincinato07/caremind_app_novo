@@ -35,29 +35,18 @@ class FamiliarDashboardScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFF0400B9).withOpacity(0.1),
-                      const Color(0xFF0400B9).withOpacity(0.05),
-                    ],
-                  ),
+                  color: const Color(0xFF0400B9).withOpacity(0.05),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFF0400B9),
-                    width: 1,
-                  ),
                 ),
-                child: Column(
+                child: const Column(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.family_restroom,
                       size: 48,
                       color: Color(0xFF0400B9),
                     ),
-                    const SizedBox(height: 12),
-                    const Text(
+                    SizedBox(height: 12),
+                    Text(
                       'Bem-vindo ao CareMind!',
                       style: TextStyle(
                         fontSize: 24,
@@ -65,12 +54,12 @@ class FamiliarDashboardScreen extends StatelessWidget {
                         color: Color(0xFF0400B9),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Text(
                       'Cuidando com amor e dedicação',
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.grey[600],
+                        color: Colors.grey,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -94,12 +83,44 @@ class FamiliarDashboardScreen extends StatelessWidget {
 
               // Card Gerenciar Familiares
               Card(
-                elevation: 2,
+                elevation: 4.0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(20),
+                  leading: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0400B9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.people,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  title: const Text(
+                    'Gerenciar Familiares',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'Visualize e gerencie os membros da família',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.grey,
+                    size: 16,
+                  ),
                   onTap: () {
                     // Temporariamente placeholder
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -109,67 +130,51 @@ class FamiliarDashboardScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0400B9),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.people,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Gerenciar Familiares',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Visualize e gerencie os membros da família',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(
-                          Icons.arrow_forward_ios,
-                          color: Colors.grey,
-                          size: 16,
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
               // Card Medicamentos dos Familiares
               Card(
-                elevation: 2,
+                elevation: 4.0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(20),
+                  leading: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0400B9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.medication,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  title: const Text(
+                    'Medicamentos dos Familiares',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'Acompanhe os medicamentos de quem você cuida',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.grey,
+                    size: 16,
+                  ),
                   onTap: () {
                     // Temporariamente placeholder
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -179,54 +184,6 @@ class FamiliarDashboardScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0400B9),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.medication,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Medicamentos dos Familiares',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Acompanhe os medicamentos de quem você cuida',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(
-                          Icons.arrow_forward_ios,
-                          color: Colors.grey,
-                          size: 16,
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
 

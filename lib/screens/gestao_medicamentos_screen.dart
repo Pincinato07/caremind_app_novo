@@ -151,9 +151,22 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF0400B9),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(
+              color: Color(0xFF0400B9),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Carregando medicamentos...',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 16,
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -198,74 +211,32 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
 
     if (_medicamentos.isEmpty) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0400B9).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Icon(
-                  Icons.medication_outlined,
-                  size: 64,
-                  color: Color(0xFF0400B9),
-                ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.medication_outlined,
+              size: 80,
+              color: Colors.grey.shade300,
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Nenhum medicamento encontrado',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'Nenhum medicamento cadastrado',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-                textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Toque em \'+\' para adicionar seu primeiro medicamento',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 16,
               ),
-              const SizedBox(height: 12),
-              const Text(
-                'Comece organizando seus medicamentos para ter um melhor controle da sua saúde',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 32),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0400B9).withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFF0400B9).withOpacity(0.2),
-                  ),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.add_circle_outline,
-                      color: Color(0xFF0400B9),
-                      size: 20,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Toque no botão + para começar',
-                      style: TextStyle(
-                        color: Color(0xFF0400B9),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
