@@ -69,9 +69,22 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
               Column(
                 children: [
                   // Botão Familiar/Cuidador
-                  SizedBox(
+                  Container(
                     width: double.infinity,
-                    height: 72,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF0400B9).withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.push(
@@ -82,67 +95,138 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0400B9),
-                        foregroundColor: Colors.white,
-                        elevation: 2,
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Column(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.family_restroom,
-                            size: 24,
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Sou o Familiar / Cuidador',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
                             ),
+                            child: const Icon(
+                              Icons.family_restroom,
+                              size: 28,
+                              color: Color(0xFF0400B9),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          const Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Sou o Familiar / Cuidador',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Vou cuidar de um familiar',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.arrow_forward_ios,
+                            color: Colors.white,
+                            size: 20,
                           ),
                         ],
                       ),
                     ),
                   ),
-                  
-                  const SizedBox(height: 16),
-                  
+
+                  const SizedBox(height: 20),
+
                   // Botão Idoso
-                  SizedBox(
+                  Container(
                     width: double.infinity,
-                    height: 72,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF0400B9),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 15,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
                     child: OutlinedButton(
                       onPressed: () {
                         Navigator.pushNamed(context, '/link-account');
                       },
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF0400B9),
-                        side: const BorderSide(
-                          color: Color(0xFF0400B9),
-                          width: 2,
-                        ),
+                        backgroundColor: Colors.transparent,
+                        side: BorderSide.none,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Column(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.elderly,
-                            size: 24,
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Sou o Idoso',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0400B9).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
                             ),
+                            child: const Icon(
+                              Icons.elderly,
+                              size: 28,
+                              color: Color(0xFF0400B9),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          const Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Sou o Idoso',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF0400B9),
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Preciso me conectar a um familiar',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.arrow_forward_ios,
+                            color: Color(0xFF0400B9),
+                            size: 20,
                           ),
                         ],
                       ),

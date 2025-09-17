@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
+import 'gestao_medicamentos_screen.dart';
 
 class IndividualDashboardScreen extends StatelessWidget {
   const IndividualDashboardScreen({super.key});
@@ -25,50 +26,42 @@ class IndividualDashboardScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Center(
+      body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Header de boas-vindas
               Container(
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: const Color(0xFF0400B9).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: const Color(0xFF0400B9),
-                    width: 2,
+                    width: 1,
                   ),
                 ),
                 child: const Column(
                   children: [
                     Icon(
                       Icons.person,
-                      size: 80,
+                      size: 48,
                       color: Color(0xFF0400B9),
                     ),
-                    SizedBox(height: 16),
+                    SizedBox(height: 12),
                     Text(
-                      '🎉 Sucesso!',
+                      'Bem-vindo ao CareMind!',
                       style: TextStyle(
-                        fontSize: 28,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF0400B9),
                       ),
                     ),
-                    SizedBox(height: 12),
-                    Text(
-                      'Redirecionamento Individual realizado com sucesso!',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.black87,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
                     SizedBox(height: 8),
                     Text(
-                      'Você está logado como usuário Individual no CareMind.',
+                      'Gerencie sua saúde de forma inteligente',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.grey,
@@ -78,16 +71,146 @@ class IndividualDashboardScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 40),
+              
+              const SizedBox(height: 32),
+              
+              // Menu de funcionalidades
               const Text(
-                'Esta é uma tela placeholder. As funcionalidades específicas do usuário individual serão implementadas nas próximas fases do projeto.',
+                'Funcionalidades',
                 style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                  fontStyle: FontStyle.italic,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
-                textAlign: TextAlign.center,
               ),
+              
+              const SizedBox(height: 16),
+              
+              // Card Gerenciamento de Medicamentos
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const GestaoMedicamentosScreen(),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0400B9),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.medication,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Gerenciar Medicamentos',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Organize seus medicamentos e horários',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.grey,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Placeholder para futuras funcionalidades
+              Card(
+                elevation: 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.grey.shade50,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.more_horiz,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Mais funcionalidades',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Em breve...',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const Spacer(),
             ],
           ),
         ),

@@ -40,6 +40,12 @@ dependencies:
   
   # Environment variables
   flutter_dotenv: ^5.1.0
+  
+  # QR Code scanner
+  mobile_scanner: ^5.2.3
+  
+  # Permissions
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:

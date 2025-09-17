@@ -21,27 +21,41 @@ class WelcomeScreen extends StatelessWidget {
               Center(
                 child: Column(
                   children: [
-                    // Placeholder para o logo - será substituído quando o logo for adicionado
+                    // Logo do CareMind
                     Container(
                       width: 200,
                       height: 120,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0400B9).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0xFF0400B9),
-                          width: 2,
-                        ),
                       ),
-                      child: const Center(
-                        child: Text(
-                          'CareMind\nLogo',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0400B9),
-                          ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset(
+                          'assets/images/caremind.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0400B9).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFF0400B9),
+                                  width: 2,
+                                ),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'CareMind',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF0400B9),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -73,9 +87,22 @@ class WelcomeScreen extends StatelessWidget {
               Column(
                 children: [
                   // Botão Uso Individual
-                  SizedBox(
+                  Container(
                     width: double.infinity,
-                    height: 56,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF0400B9).withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.push(
@@ -86,49 +113,98 @@ class WelcomeScreen extends StatelessWidget {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0400B9),
-                        foregroundColor: Colors.white,
-                        elevation: 2,
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
-                        'Uso Individual',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.person,
+                              size: 24,
+                              color: Color(0xFF0400B9),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Uso Individual',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                   
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   
                   // Botão Plano Família
-                  SizedBox(
+                  Container(
                     width: double.infinity,
-                    height: 56,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF0400B9),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 15,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
                     child: OutlinedButton(
                       onPressed: () {
                         Navigator.pushNamed(context, '/family-role-selection');
                       },
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF0400B9),
-                        side: const BorderSide(
-                          color: Color(0xFF0400B9),
-                          width: 2,
-                        ),
+                        backgroundColor: Colors.transparent,
+                        side: BorderSide.none,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
-                        'Plano Família',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0400B9).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.family_restroom,
+                              size: 24,
+                              color: Color(0xFF0400B9),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Plano Família',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0400B9),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
