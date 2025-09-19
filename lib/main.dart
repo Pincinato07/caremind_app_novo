@@ -39,6 +39,12 @@ class CareMindApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFFFFAFA),
         useMaterial3: true,
         fontFamily: 'Roboto',
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          },
+        ),
       ),
       initialRoute: '/welcome',
       routes: {

@@ -1,5 +1,5 @@
 name: caremind
-description: "A new Flutter project."
+description: "Caremind - Aplicativo de gerenciamento de medicamentos para toda a família"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -46,6 +46,9 @@ dependencies:
   
   # Permissions
   permission_handler: ^11.3.1
+  
+  # URL Launcher
+  url_launcher: ^6.2.5
 
 dev_dependencies:
   flutter_test:
@@ -57,6 +60,12 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  
+  # Flutter Launcher Icons - Para gerar ícones automaticamente
+  flutter_launcher_icons: ^0.13.1
+  
+  # Flutter Native Splash - Para configurar a splash screen
+  flutter_native_splash: ^2.3.8
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -99,3 +108,35 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Configuração para gerar ícones de launcher automaticamente
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/caremind_logo.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  web:
+    generate: true
+    image_path: "assets/images/caremind_logo.png"
+    background_color: "#FFFFFF"
+    theme_color: "#0400B9"
+  windows:
+    generate: true
+    image_path: "assets/images/caremind_logo.png"
+    icon_size: 48 # min:48, max:256, default: 48
+  macos:
+    generate: true
+    image_path: "assets/images/caremind_logo.png"
+
+# Configuração da Splash Screen
+flutter_native_splash:
+  color: "#F8F9FA"
+  image: assets/images/caremind.png
+  android_12:
+    image: assets/images/caremind.png
+    icon_background_color: "#F8F9FA"
+  # Configurações para evitar corte da logo
+  fullscreen: true
+  android_gravity: center
+  ios_content_mode: scaleAspectFit
+  web_image_mode: center
