@@ -12,6 +12,12 @@ class IndividualDashboardScreen extends StatefulWidget {
 class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
   String _userName = 'Usuário';
   bool _isLoading = true;
+  
+  // Dados reais
+  int _totalMedicamentos = 0;
+  int _totalRotinas = 0;
+  int _totalCompromissos = 0;
+  int _totalMetricas = 0;
 
   @override
   void initState() {
@@ -25,6 +31,9 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
       if (user != null) {
         final perfil = await SupabaseService.getProfile(user.id);
         if (perfil != null && mounted) {
+          // Buscar dados reais das tabelas
+          await _loadDashboardData(user.id);
+          
           setState(() {
             _userName = perfil.nome ?? 'Usuário';
             _isLoading = false;
@@ -35,6 +44,48 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _loadDashboardData(String userId) async {
+    try {
+      // Buscar medicamentos
+      final medicamentosResponse = await SupabaseService.client
+          .from('medicamentos')
+          .select('id')
+          .eq('user_id', userId);
+      _totalMedicamentos = medicamentosResponse.length;
+
+      // Buscar rotinas
+      final rotinasResponse = await SupabaseService.client
+          .from('rotinas')
+          .select('id')
+          .eq('perfil_id', userId);
+      _totalRotinas = rotinasResponse.length;
+
+      // Buscar compromissos de hoje
+      final hoje = DateTime.now();
+      final inicioDia = DateTime(hoje.year, hoje.month, hoje.day);
+      final fimDia = DateTime(hoje.year, hoje.month, hoje.day, 23, 59, 59);
+      
+      final compromissosResponse = await SupabaseService.client
+          .from('compromissos')
+          .select('id')
+          .eq('perfil_id', userId)
+          .gte('data_hora', inicioDia.toIso8601String())
+          .lte('data_hora', fimDia.toIso8601String());
+      _totalCompromissos = compromissosResponse.length;
+
+      // Buscar métricas de hoje
+      final metricasResponse = await SupabaseService.client
+          .from('metricas_saude')
+          .select('id')
+          .eq('perfil_id', userId)
+          .gte('data_hora', inicioDia.toIso8601String())
+          .lte('data_hora', fimDia.toIso8601String());
+      _totalMetricas = metricasResponse.length;
+    } catch (e) {
+      print('Erro ao carregar dados do dashboard: $e');
     }
   }
 
@@ -151,7 +202,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       delegate: SliverChildListDelegate([
                         _buildImportantCard(
                           title: 'Próximos Medicamentos',
-                          subtitle: '3 doses em breve',
+                          subtitle: '$_totalMedicamentos medicamentos',
                           icon: Icons.medication_liquid,
                           color: const Color(0xFFE91E63),
                           onTap: () {
@@ -165,21 +216,21 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                         ),
                         _buildImportantCard(
                           title: 'Rotinas de Hoje',
-                          subtitle: '2 atividades',
+                          subtitle: '$_totalRotinas rotinas',
                           icon: Icons.schedule,
                           color: const Color(0xFF4CAF50),
                           onTap: () {},
                         ),
                         _buildImportantCard(
                           title: 'Compromissos',
-                          subtitle: '1 consulta hoje',
+                          subtitle: '$_totalCompromissos hoje',
                           icon: Icons.event,
                           color: const Color(0xFF2196F3),
                           onTap: () {},
                         ),
                         _buildImportantCard(
                           title: 'Métricas de Saúde',
-                          subtitle: 'Registrar hoje',
+                          subtitle: '$_totalMetricas registradas',
                           icon: Icons.monitor_heart,
                           color: const Color(0xFFFF9800),
                           onTap: () {},
@@ -357,21 +408,21 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                 Expanded(
                                   child: _buildSummaryItem(
                                     'Medicamentos',
-                                    '3/5',
+                                    '$_totalMedicamentos',
                                     const Color(0xFFE91E63),
                                   ),
                                 ),
                                 Expanded(
                                   child: _buildSummaryItem(
                                     'Rotinas',
-                                    '2/3',
+                                    '$_totalRotinas',
                                     const Color(0xFF4CAF50),
                                   ),
                                 ),
                                 Expanded(
                                   child: _buildSummaryItem(
                                     'Métricas',
-                                    '1/2',
+                                    '$_totalMetricas',
                                     const Color(0xFF2196F3),
                                   ),
                                 ),
@@ -457,7 +508,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),

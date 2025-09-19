@@ -115,171 +115,466 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFFFAFA),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0400B9),
-        foregroundColor: Colors.white,
-        title: const Text(
-          'Gerenciar Medicamentos',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadMedicamentos,
+      body: CustomScrollView(
+        slivers: [
+          // Header moderno
+          SliverAppBar(
+            expandedHeight: 120,
+            floating: false,
+            pinned: true,
+            backgroundColor: const Color(0xFF0400B9),
+            foregroundColor: Colors.white,
+            flexibleSpace: FlexibleSpaceBar(
+              title: const Text(
+                'Medicamentos',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+                  ),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.medication_liquid,
+                    size: 48,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: _loadMedicamentos,
+              ),
+            ],
+          ),
+
+          // Conteúdo principal
+          SliverToBoxAdapter(
+            child: _buildBody(),
           ),
         ],
       ),
-      body: _buildBody(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddEditMedicamentoForm(),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0400B9).withOpacity(0.4),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
-          );
-          if (result == true) {
-            _loadMedicamentos(); // Recarrega a lista se um medicamento foi adicionado
-          }
-        },
-        backgroundColor: const Color(0xFF0400B9),
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AddEditMedicamentoForm(),
+              ),
+            );
+            if (result == true) {
+              _loadMedicamentos(); // Recarrega a lista se um medicamento foi adicionado
+            }
+          },
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
   }
 
   Widget _buildBody() {
     if (_isLoading) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(
-              color: Color(0xFF0400B9),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Carregando medicamentos...',
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 16,
+      return Container(
+        height: 300,
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                color: Color(0xFF0400B9),
               ),
-            ),
-          ],
+              SizedBox(height: 16),
+              Text(
+                'Carregando medicamentos...',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Erro ao carregar medicamentos',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+      return Container(
+        height: 300,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: Colors.red.shade600,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Erro ao carregar medicamentos',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.red.shade600),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _loadMedicamentos,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0400B9),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Tentar novamente'),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _error!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadMedicamentos,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0400B9),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Tentar novamente'),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
 
     if (_medicamentos.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.medication_outlined,
-              size: 80,
-              color: Colors.grey.shade300,
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Nenhum medicamento encontrado',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+      return Container(
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFF0400B9).withOpacity(0.1),
+                      const Color(0xFF0600E0).withOpacity(0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: const Color(0xFF0400B9).withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0400B9).withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.medication_outlined,
+                        size: 48,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Nenhum medicamento encontrado',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0400B9),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Toque no botão "+" para adicionar seu primeiro medicamento e começar a organizar sua saúde',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 16,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Toque em \'+\' para adicionar seu primeiro medicamento',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 16,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadMedicamentos,
-      color: const Color(0xFF0400B9),
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _medicamentos.length,
-        itemBuilder: (context, index) {
-          final medicamento = _medicamentos[index];
-          return _buildMedicamentoCard(medicamento);
-        },
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Resumo dos medicamentos
+        Padding(
+          padding: const EdgeInsets.all(24),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white,
+                  const Color(0xFF0400B9).withOpacity(0.02),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: const Color(0xFF0400B9).withOpacity(0.1),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0400B9).withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0400B9).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.analytics_outlined,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Resumo dos Medicamentos',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Acompanhe seu tratamento',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSummaryItem(
+                        'Total',
+                        '${_medicamentos.length}',
+                        const Color(0xFF0400B9),
+                        Icons.medication_liquid,
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildSummaryItem(
+                        'Concluídos',
+                        '${_medicamentos.where((m) => m.concluido).length}',
+                        const Color(0xFF4CAF50),
+                        Icons.check_circle,
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildSummaryItem(
+                        'Pendentes',
+                        '${_medicamentos.where((m) => !m.concluido).length}',
+                        const Color(0xFFFF9800),
+                        Icons.schedule,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Lista de medicamentos
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            children: [
+              const Text(
+                'Seus Medicamentos',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: _loadMedicamentos,
+                child: Text(
+                  'Atualizar',
+                  style: TextStyle(
+                    color: const Color(0xFF0400B9),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Cards dos medicamentos
+        ...(_medicamentos.map((medicamento) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: _buildMedicamentoCard(medicamento),
+            ))),
+
+        const SizedBox(height: 100), // Espaço para o FAB
+      ],
+    );
+  }
+
+  Widget _buildSummaryItem(String label, String value, Color color, IconData icon) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            color: color,
+            size: 20,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildMedicamentoCard(Medicamento medicamento) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
             Colors.white,
-            Colors.grey.shade50,
+            const Color(0xFF0400B9).withOpacity(0.02),
           ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF0400B9).withOpacity(0.1),
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF0400B9).withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           onTap: () async {
             final result = await Navigator.push(
               context,
@@ -330,7 +625,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                           Text(
                             medicamento.nome,
                             style: TextStyle(
-                              fontSize: 20,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: medicamento.concluido ? Colors.grey.shade600 : Colors.black87,
                               decoration: medicamento.concluido ? TextDecoration.lineThrough : null,
@@ -346,7 +641,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                             child: Text(
                               medicamento.dosagem,
                               style: const TextStyle(
-                                fontSize: 14,
+                                fontSize: 12,
                                 color: Color(0xFF0400B9),
                                 fontWeight: FontWeight.w500,
                               ),
@@ -456,6 +751,8 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                                     color: Colors.black87,
                                     fontWeight: FontWeight.w500,
                                   ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),

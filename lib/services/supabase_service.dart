@@ -3,6 +3,9 @@
 
   class SupabaseService {
     static final SupabaseClient _client = Supabase.instance.client;
+    
+    // Getter público para acessar o cliente
+    static SupabaseClient get client => _client;
 
     // Authentication methods
     static Future<AuthResponse> signUp({
