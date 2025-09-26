@@ -156,12 +156,10 @@ class AppTheme {
   
   static ThemeData get themeData {
     return ThemeData(
-      useMaterial3: true,
       colorScheme: ColorScheme.light(
         primary: AppColors.primary,
         primaryContainer: AppColors.primaryLight,
         secondary: AppColors.accent,
-        secondaryContainer: AppColors.accent.withOpacity(0.1),
         surface: AppColors.surface,
         background: AppColors.background,
         error: AppColors.error,
@@ -355,8 +353,8 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surface,
         disabledColor: AppColors.disabled,
-        selectedColor: AppColors.primary.withOpacity(0.1),
-        secondarySelectedColor: AppColors.primary,
+        selectedColor: AppColors.primary.withValues(alpha: 0.1),
+        checkmarkColor: AppColors.primary,
         padding: EdgeInsets.symmetric(
           horizontal: AppSpacing.small,
           vertical: 4.0,

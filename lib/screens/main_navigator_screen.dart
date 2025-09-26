@@ -1,14 +1,14 @@
 // lib/screens/main_navigator_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:caremind/models/perfil.dart';
-import 'package:caremind/screens/individual_dashboard_screen.dart';
-import 'package:caremind/screens/gestao_medicamentos_screen.dart';
-import 'package:caremind/screens/familiar_dashboard_screen.dart';
-import 'package:caremind/screens/metricas_screen.dart';
-import 'package:caremind/screens/perfil_screen.dart';
-import 'package:caremind/screens/familiares_screen.dart';
-import 'package:caremind/screens/alertas_screen.dart';
+import '../models/perfil.dart';
+import 'individual_dashboard_screen.dart';
+import 'gestao_medicamentos_screen.dart';
+import 'familiar_dashboard_screen.dart';
+import 'metricas_screen.dart';
+import 'perfil_screen.dart';
+import 'familiares_screen.dart';
+import 'alertas_screen.dart';
 
 
 class MainNavigatorScreen extends StatefulWidget {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:caremind/theme/app_theme.dart';
+import '../theme/app_theme.dart';
 import 'qr_scanner_screen.dart';
 
 class LinkAccountScreen extends StatefulWidget {

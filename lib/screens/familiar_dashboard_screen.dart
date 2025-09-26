@@ -41,7 +41,7 @@ class FamiliarDashboardScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF0400B9).withOpacity(0.1),
+                      color: const Color(0xFF0400B9).withValues(alpha: 0.1),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -83,7 +83,7 @@ class FamiliarDashboardScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0400B9).withOpacity(0.1),
+                        color: const Color(0xFF0400B9).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Text(
@@ -127,12 +127,12 @@ class FamiliarDashboardScreen extends StatelessWidget {
                   ),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: const Color(0xFF0400B9).withOpacity(0.1),
+                    color: const Color(0xFF0400B9).withValues(alpha: 0.1),
                     width: 1,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF0400B9).withOpacity(0.1),
+                      color: const Color(0xFF0400B9).withValues(alpha: 0.1),
                       blurRadius: 25,
                       offset: const Offset(0, 10),
                     ),
@@ -208,7 +208,7 @@ class FamiliarDashboardScreen extends StatelessWidget {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF0400B9).withOpacity(0.1),
+                                    color: const Color(0xFF0400B9).withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: const Text(
@@ -226,7 +226,7 @@ class FamiliarDashboardScreen extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0400B9).withOpacity(0.1),
+                              color: const Color(0xFF0400B9).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
@@ -257,12 +257,12 @@ class FamiliarDashboardScreen extends StatelessWidget {
                   ),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: const Color(0xFF0400B9).withOpacity(0.1),
+                    color: const Color(0xFF0400B9).withValues(alpha: 0.1),
                     width: 1,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF0400B9).withOpacity(0.1),
+                      color: const Color(0xFF0400B9).withValues(alpha: 0.1),
                       blurRadius: 25,
                       offset: const Offset(0, 10),
                     ),
@@ -338,7 +338,7 @@ class FamiliarDashboardScreen extends StatelessWidget {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF0400B9).withOpacity(0.1),
+                                    color: const Color(0xFF0400B9).withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: const Text(
@@ -356,7 +356,7 @@ class FamiliarDashboardScreen extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0400B9).withOpacity(0.1),
+                              color: const Color(0xFF0400B9).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
