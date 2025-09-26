@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'theme/app_theme.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/family_role_selection_screen.dart';
 import 'screens/link_account_screen.dart';
@@ -30,15 +31,7 @@ class CareMindApp extends StatelessWidget {
     return MaterialApp(
       title: 'CareMind',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: const Color(0xFF0400B9),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0400B9),
-          primary: const Color(0xFF0400B9),
-        ),
-        scaffoldBackgroundColor: const Color(0xFFFFFAFA),
-        useMaterial3: true,
-        fontFamily: 'Roboto',
+      theme: AppTheme.themeData.copyWith(
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {
             TargetPlatform.android: CupertinoPageTransitionsBuilder(),

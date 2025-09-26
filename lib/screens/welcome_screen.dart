@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:caremind/theme/app_theme.dart';
 import 'auth_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -37,22 +38,30 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
 
   // Função para exibir o pop-up de ajuda.
   void _showHelpDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        shape: RoundedRectangleBorder(
+          borderRadius: AppBorderRadius.mediumAll,
+        ),
+        title: Row(
           children: [
-            Icon(Icons.help_outline, color: Color(0xFF0400B9)),
-            SizedBox(width: 10),
-            Text('Qual plano escolher?'),
+            Icon(Icons.help_outline, color: colors.primary),
+            const SizedBox(width: 10),
+            Text('Qual plano escolher?', style: theme.textTheme.titleMedium),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Para entender a diferença entre os planos e escolher o melhor para você, acesse nosso site:'),
+            Text(
+              'Para entender a diferença entre os planos e escolher o melhor para você, acesse nosso site:',
+              style: theme.textTheme.bodyMedium,
+            ),
             const SizedBox(height: 16),
             InkWell(
               onTap: () async {
@@ -61,10 +70,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                   await launchUrl(url, mode: LaunchMode.externalApplication);
                 }
               },
-              child: const Text(
+              child: Text(
                 'caremind.online',
-                style: TextStyle(
-                  color: Color(0xFF0400B9),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colors.primary,
                   decoration: TextDecoration.underline,
                   fontWeight: FontWeight.bold,
                 ),
@@ -75,7 +84,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fechar', style: TextStyle(color: Color(0xFF0400B9))),
+            child: Text('Fechar', style: theme.textTheme.labelLarge?.copyWith(
+              color: colors.primary,
+            )),
           ),
         ],
       ),
@@ -84,8 +95,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFAFA), // Branco Neve
+      backgroundColor: colors.background,
       // AppBar transparente para posicionar a logo e o ícone de ajuda.
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -97,11 +111,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
             'assets/images/caremind_deitado.png', // Logo horizontal
             fit: BoxFit.contain, // Usa contain para mostrar a logo inteira
             height: 60, // Aumenta a altura da logo
+            color: colors.primary,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.help_outline, color: Color(0xFF0400B9), size: 28),
+            icon: Icon(Icons.help_outline, color: colors.primary, size: 28),
             onPressed: () => _showHelpDialog(context),
             tooltip: 'Ajuda',
           ),
@@ -119,23 +134,20 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
               children: [
                 const Spacer(flex: 2),
                 // Textos principais
-                const Text(
+                Text(
                   'Bem-vindo ao CareMind',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 32,
+                  style: theme.textTheme.headlineLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    fontFamily: 'League Spartan',
-                    color: Color(0xFF0400B9),
+                    color: colors.primary,
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Que tipo de conta deseja criar?',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.black54,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colors.onBackground.withOpacity(0.8),
                   ),
                 ),
                 const Spacer(flex: 1),
@@ -186,23 +198,31 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     required VoidCallback onTap,
     required bool isPrimary,
   }) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    
     // Estilos condicionais baseados no tipo de card (primário ou secundário).
-    final Color backgroundColor = isPrimary ? const Color(0xFF0400B9) : Colors.white;
-    final Color textColor = isPrimary ? Colors.white : const Color(0xFF0400B9);
-    final Color iconColor = isPrimary ? Colors.white : const Color(0xFF0400B9);
-    final Color iconBackgroundColor = isPrimary ? Colors.white.withOpacity(0.15) : const Color(0xFF0400B9).withOpacity(0.1);
-    final Border? border = isPrimary ? null : Border.all(color: const Color(0xFF0400B9), width: 1.5);
+    final Color backgroundColor = isPrimary ? colors.primary : colors.surface;
+    final Color textColor = isPrimary ? colors.onPrimary : colors.primary;
+    final Color iconColor = isPrimary ? colors.onPrimary : colors.primary;
+    final Color iconBackgroundColor = isPrimary 
+        ? colors.onPrimary.withOpacity(0.15) 
+        : colors.primary.withOpacity(0.1);
+    final Border? border = isPrimary 
+        ? null 
+        : Border.all(color: colors.primary, width: 1.5);
 
     return Container(
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: AppBorderRadius.largeAll,
         border: border,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0400B9).withOpacity(0.15),
-            blurRadius: 20,
+            color: colors.primary.withOpacity(0.15),
+            blurRadius: 15,
             offset: const Offset(0, 5),
+            spreadRadius: 1,
           ),
         ],
       ),

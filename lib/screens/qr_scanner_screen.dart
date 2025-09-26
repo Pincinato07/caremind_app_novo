@@ -57,7 +57,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: Theme.of(context).colorScheme.surfaceVariant,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -80,16 +80,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop(data); // Return the scanned data
+              Navigator.of(context).pop(data);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0400B9),
-            ),
-            child: const Text(
-              'Usar Este Código',
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text('Usar Este Código'),
           ),
         ],
       ),
@@ -105,6 +98,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -132,19 +128,18 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         title: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFF0400B9).withOpacity(0.2),
+            color: colors.primary.withOpacity(0.2),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: const Color(0xFF0400B9).withOpacity(0.3),
+              color: colors.primary.withOpacity(0.3),
               width: 1,
             ),
           ),
-          child: const Text(
+          child: Text(
             'Escanear QR Code',
-            style: TextStyle(
+            style: theme.textTheme.titleMedium?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w600,
-              fontSize: 16,
             ),
           ),
         ),
@@ -164,7 +159,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               icon: const Icon(
                 Icons.flash_on,
                 color: Colors.white,
-                size: 20,
               ),
               onPressed: () => controller.toggleTorch(),
             ),
@@ -173,44 +167,37 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       ),
       body: !hasPermission
           ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.camera_alt_outlined,
-                    size: 64,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Permissão de câmera necessária',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.no_photography,
+                      size: 64,
+                      color: colors.onSurface.withOpacity(0.6),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Para escanear QR codes, precisamos acessar sua câmera',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
+                    const SizedBox(height: 16),
+                    Text(
+                      'Permissão de câmera necessária',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: _requestCameraPermission,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0400B9),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Para escanear códigos QR, precisamos da permissão para acessar a câmera do seu dispositivo.',
+                      style: theme.textTheme.bodyMedium,
+                      textAlign: TextAlign.center,
                     ),
-                    child: const Text(
-                      'Permitir Acesso à Câmera',
-                      style: TextStyle(color: Colors.white),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: _requestCameraPermission,
+                      child: const Text('Permitir Acesso à Câmera'),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             )
           : Stack(
@@ -231,7 +218,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                 Container(
                   decoration: ShapeDecoration(
                     shape: QrScannerOverlayShape(
-                      borderColor: const Color(0xFF0400B9),
+                      borderColor: colors.primary,
                       borderRadius: 20,
                       borderLength: 40,
                       borderWidth: 6,
@@ -239,201 +226,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                     ),
                   ),
                 ),
-                
-                // Animated scanning line
-                Positioned(
-                  top: MediaQuery.of(context).size.height * 0.5 - 140,
-                  left: MediaQuery.of(context).size.width * 0.5 - 140,
-                  child: Container(
-                    width: 280,
-                    height: 2,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.transparent,
-                          const Color(0xFF0400B9),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                    child: TweenAnimationBuilder<double>(
-                      duration: const Duration(seconds: 2),
-                      tween: Tween(begin: 0.0, end: 1.0),
-                      builder: (context, value, child) {
-                        return Transform.translate(
-                          offset: Offset(0, (value - 0.5) * 280),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.transparent,
-                                  const Color(0xFF0400B9).withOpacity(0.8),
-                                  Colors.transparent,
-                                ],
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF0400B9).withOpacity(0.5),
-                                  blurRadius: 8,
-                                  spreadRadius: 2,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                      onEnd: () {
-                        // Restart animation
-                        setState(() {});
-                      },
-                    ),
-                  ),
-                ),
-                
-                // Corner indicators with glow effect
-                Positioned(
-                  top: MediaQuery.of(context).size.height * 0.5 - 150,
-                  left: MediaQuery.of(context).size.width * 0.5 - 150,
-                  child: Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0400B9),
-                      borderRadius: BorderRadius.circular(4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF0400B9).withOpacity(0.8),
-                          blurRadius: 12,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: MediaQuery.of(context).size.height * 0.5 - 150,
-                  right: MediaQuery.of(context).size.width * 0.5 - 150,
-                  child: Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0400B9),
-                      borderRadius: BorderRadius.circular(4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF0400B9).withOpacity(0.8),
-                          blurRadius: 12,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: MediaQuery.of(context).size.height * 0.5 - 150,
-                  left: MediaQuery.of(context).size.width * 0.5 - 150,
-                  child: Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0400B9),
-                      borderRadius: BorderRadius.circular(4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF0400B9).withOpacity(0.8),
-                          blurRadius: 12,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: MediaQuery.of(context).size.height * 0.5 - 150,
-                  right: MediaQuery.of(context).size.width * 0.5 - 150,
-                  child: Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0400B9),
-                      borderRadius: BorderRadius.circular(4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF0400B9).withOpacity(0.8),
-                          blurRadius: 12,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 100,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 24),
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.black.withOpacity(0.8),
-                          Colors.black.withOpacity(0.6),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: const Color(0xFF0400B9).withOpacity(0.3),
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0400B9).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.qr_code_scanner,
-                            color: Color(0xFF0400B9),
-                            size: 32,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Posicione o QR code dentro da área destacada',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Aguarde a detecção automática',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
-                            fontSize: 14,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                // Add other UI elements here
               ],
             ),
     );
@@ -502,97 +295,90 @@ class QrScannerOverlayShape extends ShapeBorder {
         ..lineTo(rect.left, rect.top);
     }
 
-    final width = rect.width;
-    final borderWidthSize = width / 2;
-    final height = rect.height;
-    final borderHeightSize = height / 2;
-    final cutOutWidth = cutOutSize < width ? cutOutSize : width - borderWidth;
-    final cutOutHeight = cutOutSize < height ? cutOutSize : height - borderWidth;
-
-    final cutOutRect = Rect.fromLTWH(
-      rect.left + (width - cutOutWidth) / 2 + borderWidth,
-      rect.top + (height - cutOutHeight) / 2 + borderWidth,
-      cutOutWidth - borderWidth * 2,
-      cutOutHeight - borderWidth * 2,
-    );
-
-    final cutOutRRect = RRect.fromRectAndRadius(
-      cutOutRect,
-      Radius.circular(borderRadius),
-    );
-
-    final backgroundPath = Path()..addRect(rect);
-    final cutOutPath = Path()..addRRect(cutOutRRect);
-
     return Path.combine(
       PathOperation.difference,
-      backgroundPath,
-      cutOutPath,
+      Path()
+        ..addRect(Rect.fromLTWH(rect.left, rect.top, rect.width, rect.height)),
+      Path()
+        ..addRRect(RRect.fromRectAndRadius(
+          Rect.fromCenter(
+            center: rect.center,
+            width: cutOutSize,
+            height: cutOutSize,
+          ),
+          Radius.circular(borderRadius),
+        )),
     );
   }
 
   @override
   void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
     final width = rect.width;
-    final borderWidthSize = width / 2;
     final height = rect.height;
+    final borderWidthSize = width / 2;
     final borderHeightSize = height / 2;
     final cutOutWidth = cutOutSize < width ? cutOutSize : width - borderWidth;
     final cutOutHeight = cutOutSize < height ? cutOutSize : height - borderWidth;
-
-    final cutOutRect = Rect.fromLTWH(
-      rect.left + (width - cutOutWidth) / 2 + borderWidth,
-      rect.top + (height - cutOutHeight) / 2 + borderWidth,
-      cutOutWidth - borderWidth * 2,
-      cutOutHeight - borderWidth * 2,
-    );
 
     final backgroundPaint = Paint()
       ..color = overlayColor
       ..style = PaintingStyle.fill;
 
-    final backgroundPath = Path()..addRect(rect);
-    final cutOutPath = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        cutOutRect,
-        Radius.circular(borderRadius),
-      ));
-
-    final backgroundWithHole = Path.combine(
-      PathOperation.difference,
-      backgroundPath,
-      cutOutPath,
-    );
-
-    canvas.drawPath(backgroundWithHole, backgroundPaint);
-
-    // Draw corner borders
     final borderPaint = Paint()
       ..color = borderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = borderWidth;
 
+    // Draw background
+    canvas.drawPath(
+      Path.combine(
+        PathOperation.difference,
+        Path()..addRect(rect),
+        Path()
+          ..addRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromCenter(
+                center: rect.center,
+                width: cutOutWidth,
+                height: cutOutHeight,
+              ),
+              Radius.circular(borderRadius),
+            ),
+          )
+          ..close(),
+      ),
+      backgroundPaint,
+    );
+
+    final cornerSize = borderLength;
+    final cutOutRect = Rect.fromCenter(
+      center: rect.center,
+      width: cutOutWidth,
+      height: cutOutHeight,
+    );
+
+    // Draw corners
     final path = Path();
 
     // Top left corner
-    path.moveTo(cutOutRect.left - borderLength, cutOutRect.top);
+    path.moveTo(cutOutRect.left, cutOutRect.top + cornerSize);
     path.lineTo(cutOutRect.left, cutOutRect.top);
-    path.lineTo(cutOutRect.left, cutOutRect.top - borderLength);
+    path.lineTo(cutOutRect.left + cornerSize, cutOutRect.top);
 
     // Top right corner
-    path.moveTo(cutOutRect.right + borderLength, cutOutRect.top);
+    path.moveTo(cutOutRect.right - cornerSize, cutOutRect.top);
     path.lineTo(cutOutRect.right, cutOutRect.top);
-    path.lineTo(cutOutRect.right, cutOutRect.top - borderLength);
+    path.lineTo(cutOutRect.right, cutOutRect.top + cornerSize);
 
     // Bottom right corner
-    path.moveTo(cutOutRect.right + borderLength, cutOutRect.bottom);
+    path.moveTo(cutOutRect.right, cutOutRect.bottom - cornerSize);
     path.lineTo(cutOutRect.right, cutOutRect.bottom);
-    path.lineTo(cutOutRect.right, cutOutRect.bottom + borderLength);
+    path.lineTo(cutOutRect.right - cornerSize, cutOutRect.bottom);
 
     // Bottom left corner
-    path.moveTo(cutOutRect.left - borderLength, cutOutRect.bottom);
+    path.moveTo(cutOutRect.left + cornerSize, cutOutRect.bottom);
     path.lineTo(cutOutRect.left, cutOutRect.bottom);
-    path.lineTo(cutOutRect.left, cutOutRect.bottom + borderLength);
+    path.lineTo(cutOutRect.left, cutOutRect.bottom - cornerSize);
 
     canvas.drawPath(path, borderPaint);
   }
@@ -601,8 +387,11 @@ class QrScannerOverlayShape extends ShapeBorder {
   ShapeBorder scale(double t) {
     return QrScannerOverlayShape(
       borderColor: borderColor,
-      borderWidth: borderWidth,
+      borderWidth: borderWidth * t,
       overlayColor: overlayColor,
+      borderRadius: borderRadius * t,
+      borderLength: borderLength * t,
+      cutOutSize: cutOutSize * t,
     );
   }
 }

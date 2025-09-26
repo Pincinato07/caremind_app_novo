@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:caremind/theme/app_theme.dart';
 import 'auth_screen.dart';
 
 class FamilyRoleSelectionScreen extends StatelessWidget {
@@ -6,15 +7,18 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFAFA), // Branco Neve
+      backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFFFAFA),
+        backgroundColor: colors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back,
-            color: Color(0xFF0400B9),
+            color: colors.primary,
           ),
           onPressed: () => Navigator.pop(context),
         ),
@@ -29,33 +33,29 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
               const Spacer(flex: 2),
               
               // Título e pergunta
-              const Center(
+              Center(
                 child: Column(
                   children: [
                     Text(
                       'Plano Família',
-                      style: TextStyle(
-                        fontSize: 32,
+                      style: theme.textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF0400B9),
+                        color: colors.primary,
                       ),
                     ),
-                    SizedBox(height: 24),
+                    const SizedBox(height: 24),
                     Text(
                       'Como você usará o CareMind?',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black87,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: colors.onBackground,
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     Text(
                       'Selecione a opção que melhor descreve seu perfil',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -73,13 +73,13 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 100,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+                      gradient: LinearGradient(
+                        colors: [colors.primary, colors.primaryContainer],
                       ),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: AppBorderRadius.largeAll,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF0400B9).withOpacity(0.3),
+                          color: colors.primary.withOpacity(0.3),
                           blurRadius: 15,
                           offset: const Offset(0, 6),
                         ),
@@ -98,8 +98,9 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppBorderRadius.largeAll,
                         ),
+                        padding: const EdgeInsets.all(16),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -107,43 +108,41 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
+                              color: colors.surface,
+                              borderRadius: AppBorderRadius.mediumAll,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.family_restroom,
                               size: 28,
-                              color: Color(0xFF0400B9),
+                              color: colors.primary,
                             ),
                           ),
                           const SizedBox(width: 16),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   'Sou o Familiar / Cuidador',
-                                  style: TextStyle(
-                                    fontSize: 18,
+                                  style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                    color: colors.onPrimary,
                                   ),
                                 ),
-                                SizedBox(height: 4),
+                                const SizedBox(height: 4),
                                 Text(
                                   'Vou cuidar de um familiar',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white70,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: colors.onPrimary.withOpacity(0.9),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.arrow_forward_ios,
-                            color: Colors.white,
+                            color: colors.onPrimary,
                             size: 20,
                           ),
                         ],
@@ -158,10 +157,10 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      color: colors.surface,
+                      borderRadius: AppBorderRadius.largeAll,
                       border: Border.all(
-                        color: const Color(0xFF0400B9),
+                        color: colors.primary,
                         width: 2,
                       ),
                       boxShadow: [
@@ -177,11 +176,12 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
                         Navigator.pushNamed(context, '/link-account');
                       },
                       style: OutlinedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
+                        backgroundColor: colors.surface,
                         side: BorderSide.none,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppBorderRadius.largeAll,
                         ),
+                        padding: const EdgeInsets.all(16),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -189,43 +189,41 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0400B9).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
+                              color: colors.primary.withOpacity(0.1),
+                              borderRadius: AppBorderRadius.mediumAll,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.elderly,
                               size: 28,
-                              color: Color(0xFF0400B9),
+                              color: colors.primary,
                             ),
                           ),
                           const SizedBox(width: 16),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   'Sou o Idoso',
-                                  style: TextStyle(
-                                    fontSize: 18,
+                                  style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF0400B9),
+                                    color: colors.primary,
                                   ),
                                 ),
-                                SizedBox(height: 4),
+                                const SizedBox(height: 4),
                                 Text(
-                                  'Preciso me conectar a um familiar',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey,
+                                  'Quero que cuidem de mim',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: colors.onSurfaceVariant,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.arrow_forward_ios,
-                            color: Color(0xFF0400B9),
+                            color: colors.primary,
                             size: 20,
                           ),
                         ],
