@@ -12,50 +12,66 @@ class PerfilScreen extends StatelessWidget {
     final colors = theme.colorScheme;
     
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Perfil'),
-        backgroundColor: colors.primary,
-        foregroundColor: colors.onPrimary,
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: colors.primary.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.person_rounded,
-                size: 80,
-                color: colors.primary,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Tela de Perfil',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                color: colors.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40.0),
-              child: Text(
-                'Gerencie seus dados pessoais, foto de perfil e configurações',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
+      backgroundColor: colors.background,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              // Header com gradiente
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [colors.primary, colors.primaryContainer],
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.person_rounded,
+                        size: 60,
+                        color: colors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Meu Perfil',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: colors.onPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Gerencie suas informações',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colors.onPrimary.withOpacity(0.9),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 32),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32.0),
-              child: Column(
+
+              // Cards de opções
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
                 children: [
                   _buildProfileButton(
                     context,
@@ -93,10 +109,11 @@ class PerfilScreen extends StatelessWidget {
                       // Implementar lógica de logout
                     },
                   ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -111,51 +128,76 @@ class PerfilScreen extends StatelessWidget {
   }) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppBorderRadius.mediumAll,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-        decoration: BoxDecoration(
-          color: isLogout ? colors.error.withOpacity(0.1) : colors.surface,
-          borderRadius: AppBorderRadius.mediumAll,
-          border: Border.all(
-            color: isLogout 
-                ? colors.error.withOpacity(0.2) 
-                : colors.outline.withOpacity(0.3),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: colors.shadow.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isLogout ? colors.error : colors.primary,
-              size: 24,
-            ),
-            const SizedBox(width: 16),
-            Text(
-              text,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: isLogout ? colors.error : colors.onSurface,
-                fontWeight: FontWeight.w500,
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: isLogout
+            ? null
+            : LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white,
+                  colors.primary.withOpacity(0.02),
+                ],
               ),
+        color: isLogout ? colors.error.withOpacity(0.08) : null,
+        borderRadius: AppBorderRadius.largeAll,
+        border: Border.all(
+          color: isLogout
+              ? colors.error.withOpacity(0.3)
+              : colors.primary.withOpacity(0.1),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: (isLogout ? colors.error : colors.primary).withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppBorderRadius.largeAll,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isLogout
+                        ? colors.error.withOpacity(0.1)
+                        : colors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: isLogout ? colors.error : colors.primary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    text,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: isLogout ? colors.error : colors.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 18,
+                  color: isLogout ? colors.error : colors.primary,
+                ),
+              ],
             ),
-            const Spacer(),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: isLogout ? colors.error : colors.onSurfaceVariant,
-            ),
-          ],
+          ),
         ),
       ),
     );

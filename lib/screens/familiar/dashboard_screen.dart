@@ -9,31 +9,29 @@ class FamiliarDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFFFAFA),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(bottom: 16, right: 16),
-            child: FloatingActionButton(
-              heroTag: 'logout',
-              onPressed: () async {
-                await SupabaseService.signOut();
-                if (!context.mounted) return;
-                Navigator.pushReplacementNamed(context, '/welcome');
-              },
-              backgroundColor: const Color(0xFF0400B9).withOpacity(0.8),
-              child: const Icon(Icons.logout, color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Botão de logout no canto superior direito
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(
+                    onPressed: () async {
+                      await SupabaseService.signOut();
+                      if (!context.mounted) return;
+                      Navigator.pushReplacementNamed(context, '/welcome');
+                    },
+                    icon: const Icon(Icons.logout),
+                    color: const Color(0xFF0400B9),
+                    tooltip: 'Sair',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               // Header de boas-vindas
               Container(
                 padding: const EdgeInsets.all(28),

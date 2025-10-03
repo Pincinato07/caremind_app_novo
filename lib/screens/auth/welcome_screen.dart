@@ -203,7 +203,35 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
 
   // Cabeçalho com animação
   Widget _buildHeader(ThemeData theme, ColorScheme colors) {
-    return const SizedBox(height: 80);
+    return Column(
+      children: [
+        const SizedBox(height: 40),
+        Hero(
+          tag: 'app_logo',
+          child: Container(
+            width: 140,
+            height: 140,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colors.primary.withOpacity(0.08),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: colors.primary.withOpacity(0.15),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: Image.asset(
+              'assets/images/caremind.png',
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
   }
 
 

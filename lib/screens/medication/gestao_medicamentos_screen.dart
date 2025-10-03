@@ -163,35 +163,28 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
           ),
         ],
       ),
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF0400B9).withOpacity(0.4),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AddEditMedicamentoForm(),
             ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: () async {
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const AddEditMedicamentoForm(),
-              ),
-            );
-            if (result == true) {
-              _loadMedicamentos(); // Recarrega a lista se um medicamento foi adicionado
-            }
-          },
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: const Icon(Icons.add, color: Colors.white),
+          );
+          if (result == true) {
+            _loadMedicamentos();
+          }
+        },
+        backgroundColor: const Color(0xFF0400B9),
+        elevation: 4,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text(
+          'Adicionar',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
         ),
       ),
     );

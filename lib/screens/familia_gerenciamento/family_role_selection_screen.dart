@@ -13,12 +13,13 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: colors.background,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: Icon(
-            Icons.arrow_back,
+            Icons.arrow_back_ios_new,
             color: colors.primary,
+            size: 20,
           ),
           onPressed: () => Navigator.pop(context),
         ),
@@ -71,17 +72,19 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
                   // Botão Familiar/Cuidador
                   Container(
                     width: double.infinity,
-                    height: 100,
+                    height: 110,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                         colors: [colors.primary, colors.primaryContainer],
                       ),
                       borderRadius: AppBorderRadius.largeAll,
                       boxShadow: [
                         BoxShadow(
                           color: colors.primary.withOpacity(0.3),
-                          blurRadius: 15,
-                          offset: const Offset(0, 6),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
@@ -155,7 +158,7 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
                   // Botão Idoso
                   Container(
                     width: double.infinity,
-                    height: 100,
+                    height: 110,
                     decoration: BoxDecoration(
                       color: colors.surface,
                       borderRadius: AppBorderRadius.largeAll,
@@ -166,8 +169,8 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.08),
-                          blurRadius: 15,
-                          offset: const Offset(0, 6),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),

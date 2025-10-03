@@ -114,7 +114,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Olá, $_userName! 👋',
+                                      'Olá, $_userName!',
                                       style: const TextStyle(
                                         fontSize: 28,
                                         fontWeight: FontWeight.bold,
@@ -133,7 +133,8 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.all(12),
+                                width: 56,
+                                height: 56,
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
                                     colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
@@ -411,62 +412,6 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   const SliverToBoxAdapter(child: SizedBox(height: 32)),
                 ],
               ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF4e7d96),
-        unselectedItemColor: Colors.grey[500],
-        selectedLabelStyle: const TextStyle(fontSize: 12),
-        unselectedLabelStyle: const TextStyle(fontSize: 12),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Início',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.medication_outlined),
-            activeIcon: Icon(Icons.medication),
-            label: 'Medicamentos',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.schedule_outlined),
-            activeIcon: Icon(Icons.schedule),
-            label: 'Rotina',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Perfil',
-          ),
-        ],
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              // Já está na tela inicial
-              break;
-            case 1:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const GestaoMedicamentosScreen(),
-                ),
-              );
-              break;
-            case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const RotinaScreen(),
-                ),
-              );
-              break;
-            case 3:
-              // Navegar para Perfil
-              break;
-          }
-        },
       ),
     );
   }
