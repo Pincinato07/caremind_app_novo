@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
-import 'auth_screen.dart';
+import '../../theme/app_theme.dart';
+import '../auth/auth_screen.dart';
 
 class FamilyRoleSelectionScreen extends StatelessWidget {
   const FamilyRoleSelectionScreen({super.key});
@@ -90,7 +90,7 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const AuthScreen(tipo: 'familiar'),
+                            builder: (_) => AuthScreen(tipo: 'familiar'),
                           ),
                         );
                       },

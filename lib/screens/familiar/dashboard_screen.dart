@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart';
+import '../../services/supabase_service.dart';
+import '../familia_gerenciamento/familiares_screen.dart';
 
 class FamiliarDashboardScreen extends StatelessWidget {
   const FamiliarDashboardScreen({super.key});
@@ -8,16 +9,23 @@ class FamiliarDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFFFAFA),
-      floatingActionButton: Container(
-        margin: const EdgeInsets.only(top: 16, right: 16),
-        child: FloatingActionButton(
-          onPressed: () async {
-            await SupabaseService.signOut();
-            Navigator.pushReplacementNamed(context, '/welcome');
-          },
-          backgroundColor: const Color(0xFF0400B9),
-          child: const Icon(Icons.logout, color: Colors.white),
-        ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(bottom: 16, right: 16),
+            child: FloatingActionButton(
+              heroTag: 'logout',
+              onPressed: () async {
+                await SupabaseService.signOut();
+                if (!context.mounted) return;
+                Navigator.pushReplacementNamed(context, '/welcome');
+              },
+              backgroundColor: const Color(0xFF0400B9).withOpacity(0.8),
+              child: const Icon(Icons.logout, color: Colors.white),
+            ),
+          ),
+        ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
       body: SafeArea(
@@ -148,10 +156,10 @@ class FamiliarDashboardScreen extends StatelessWidget {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(24),
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Gerenciamento de familiares em desenvolvimento'),
-                          backgroundColor: Color(0xFF0400B9),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const FamiliaresScreen(),
                         ),
                       );
                     },

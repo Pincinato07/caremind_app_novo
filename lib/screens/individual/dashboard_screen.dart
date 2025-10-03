@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart';
-import 'gestao_medicamentos_screen.dart';
+import '../../services/supabase_service.dart';
+import '../medication/gestao_medicamentos_screen.dart';
+import 'rotina_screen.dart';
 
 class IndividualDashboardScreen extends StatefulWidget {
   const IndividualDashboardScreen({super.key});
@@ -191,7 +192,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
 
                   // Cards de informações importantes
                   SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                     sliver: SliverGrid(
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
@@ -215,37 +216,29 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                           },
                         ),
                         _buildImportantCard(
-                          title: 'Rotinas de Hoje',
-                          subtitle: '$_totalRotinas rotinas',
+                          title: 'Minha Rotina',
+                          subtitle: 'Atividades diárias',
                           icon: Icons.schedule,
                           color: const Color(0xFF4CAF50),
-                          onTap: () {},
-                        ),
-                        _buildImportantCard(
-                          title: 'Compromissos',
-                          subtitle: '$_totalCompromissos hoje',
-                          icon: Icons.event,
-                          color: const Color(0xFF2196F3),
-                          onTap: () {},
-                        ),
-                        _buildImportantCard(
-                          title: 'Métricas de Saúde',
-                          subtitle: '$_totalMetricas registradas',
-                          icon: Icons.monitor_heart,
-                          color: const Color(0xFFFF9800),
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const RotinaScreen(),
+                              ),
+                            );
+                          },
                         ),
                       ]),
                     ),
                   ),
 
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-                  // Seção "Ações Rápidas"
+                  // Ações rápidas
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Row(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
                             'Ações Rápidas',
@@ -255,57 +248,38 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                               color: Colors.black87,
                             ),
                           ),
+                          const SizedBox(height: 16),
+                          _buildActionButton(
+                            title: 'Adicionar Medicamento',
+                            subtitle: 'Registre um novo medicamento',
+                            icon: Icons.add_circle_outline,
+                            color: const Color(0xFFE91E63),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const GestaoMedicamentosScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          _buildActionButton(
+                            title: 'Minha Rotina',
+                            subtitle: 'Acompanhe suas atividades',
+                            icon: Icons.schedule_outlined,
+                            color: const Color(0xFF4CAF50),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const RotinaScreen(),
+                                ),
+                              );
+                            },
+                          ),
                         ],
                       ),
-                    ),
-                  ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-                  // Botões de ação rápida
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        _buildActionButton(
-                          title: 'Registrar Medicamento',
-                          subtitle: 'Adicionar nova dose',
-                          icon: Icons.add_circle_outline,
-                          color: const Color(0xFFE91E63),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const GestaoMedicamentosScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        _buildActionButton(
-                          title: 'Registrar Métricas',
-                          subtitle: 'Pressão, glicemia, peso',
-                          icon: Icons.favorite_outline,
-                          color: const Color(0xFF4CAF50),
-                          onTap: () {},
-                        ),
-                        const SizedBox(height: 12),
-                        _buildActionButton(
-                          title: 'Adicionar Compromisso',
-                          subtitle: 'Consultas e lembretes',
-                          icon: Icons.event_available,
-                          color: const Color(0xFF2196F3),
-                          onTap: () {},
-                        ),
-                        const SizedBox(height: 12),
-                        _buildActionButton(
-                          title: 'Configurar Rotina',
-                          subtitle: 'Horários e atividades',
-                          icon: Icons.schedule_outlined,
-                          color: const Color(0xFFFF9800),
-                          onTap: () {},
-                        ),
-                      ]),
                     ),
                   ),
 
@@ -421,8 +395,8 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                 ),
                                 Expanded(
                                   child: _buildSummaryItem(
-                                    'Métricas',
-                                    '$_totalMetricas',
+                                    'Atividades',
+                                    '$_totalCompromissos',
                                     const Color(0xFF2196F3),
                                   ),
                                 ),
@@ -437,6 +411,62 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   const SliverToBoxAdapter(child: SizedBox(height: 32)),
                 ],
               ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: const Color(0xFF4e7d96),
+        unselectedItemColor: Colors.grey[500],
+        selectedLabelStyle: const TextStyle(fontSize: 12),
+        unselectedLabelStyle: const TextStyle(fontSize: 12),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Início',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.medication_outlined),
+            activeIcon: Icon(Icons.medication),
+            label: 'Medicamentos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.schedule_outlined),
+            activeIcon: Icon(Icons.schedule),
+            label: 'Rotina',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Perfil',
+          ),
+        ],
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              // Já está na tela inicial
+              break;
+            case 1:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const GestaoMedicamentosScreen(),
+                ),
+              );
+              break;
+            case 2:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const RotinaScreen(),
+                ),
+              );
+              break;
+            case 3:
+              // Navegar para Perfil
+              break;
+          }
+        },
       ),
     );
   }
@@ -488,12 +518,13 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
@@ -501,25 +532,25 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   child: Icon(
                     icon,
                     color: color,
-                    size: 24,
+                    size: 20,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     color: Colors.grey.shade600,
                   ),
                 ),

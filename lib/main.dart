@@ -2,19 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'theme/app_theme.dart';
-import 'screens/welcome_screen.dart';
-import 'screens/family_role_selection_screen.dart';
-import 'screens/link_account_screen.dart';
-import 'screens/individual_dashboard_screen.dart';
-import 'screens/familiar_dashboard_screen.dart';
+import 'screens/auth/welcome_screen.dart';
+import 'screens/familia_gerenciamento/family_role_selection_screen.dart';
+import 'screens/familia_gerenciamento/link_account_screen.dart';
+import 'screens/individual/dashboard_screen.dart';
+import 'screens/familiar/dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Load environment variables
   await dotenv.load(fileName: ".env");
-  
-  // Initialize Supabase
+
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,

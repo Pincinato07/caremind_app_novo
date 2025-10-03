@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
-import '../services/supabase_service.dart';
+import '../../services/supabase_service.dart';
 import 'main_navigator_screen.dart';
-import '../theme/app_theme.dart';
+import '../../theme/app_theme.dart';
 
 class AuthScreen extends StatefulWidget {
   final String tipo;
@@ -280,7 +280,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           child: Container(
             width: 120,
             height: 120,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: colors.primary.withOpacity(0.1),
               shape: BoxShape.circle,
@@ -292,10 +292,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                 ),
               ],
             ),
-            child: Icon(
-              Icons.health_and_safety,
-              color: colors.primary,
-              size: 64,
+            child: Image.asset(
+              'assets/images/caremind.png',
+              fit: BoxFit.contain,
             ),
           ),
         ),
@@ -417,29 +416,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             ),
           ),
           const SizedBox(height: 24),
-          // Link para criar conta
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Não tem uma conta? ',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
-              ),
-              GestureDetector(
-                onTap: _toggleAuthMode,
-                child: Text(
-                  'Criar agora',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: colors.primary,
-                    fontWeight: FontWeight.bold,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          // Espaço para o botão de alternar entre login/cadastro que já está sendo exibido no final
         ],
       ),
     );

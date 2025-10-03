@@ -1,14 +1,11 @@
 // lib/screens/main_navigator_screen.dart
 
+import 'package:caremind/screens/shared/perfil_screen.dart';
 import 'package:flutter/material.dart';
-import '../models/perfil.dart';
-import 'individual_dashboard_screen.dart';
-import 'gestao_medicamentos_screen.dart';
-import 'familiar_dashboard_screen.dart';
-import 'metricas_screen.dart';
-import 'perfil_screen.dart';
-import 'familiares_screen.dart';
-import 'alertas_screen.dart';
+import '../../models/perfil.dart';
+import '../individual/dashboard_screen.dart';
+import '../medication/gestao_medicamentos_screen.dart';
+import '../familiar/dashboard_screen.dart';
 
 
 class MainNavigatorScreen extends StatefulWidget {
@@ -36,14 +33,10 @@ class _MainNavigatorScreenState extends State<MainNavigatorScreen> {
       return [
         const IndividualDashboardScreen(),
         const GestaoMedicamentosScreen(),
-        const MetricasScreen(),
-        const PerfilScreen(),
       ];
     } else if (tipo == 'familiar') {
       return [
         const FamiliarDashboardScreen(),
-        const FamiliaresScreen(),
-        const AlertasScreen(),
         const PerfilScreen(),
       ];
     }

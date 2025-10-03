@@ -245,7 +245,7 @@ class AppTheme {
       ),
       
       // Configurações de cards
-      cardTheme: const CardTheme(
+      cardTheme: ThemeData.light().cardTheme.copyWith(
         color: AppColors.card,
         elevation: 1,
         margin: EdgeInsets.zero,
@@ -297,7 +297,7 @@ class AppTheme {
       ),
       
       // Configurações de diálogos
-      dialogTheme: DialogTheme(
+      dialogTheme: ThemeData.light().dialogTheme.copyWith(
         backgroundColor: AppColors.surface,
         elevation: 4,
         shape: RoundedRectangleBorder(
@@ -338,10 +338,10 @@ class AppTheme {
       ),
       
       // Configurações de tabs
-      tabBarTheme: const TabBarTheme(
+      tabBarTheme: ThemeData.light().tabBarTheme.copyWith(
         labelColor: AppColors.primary,
         unselectedLabelColor: AppColors.textSecondary,
-        indicator: UnderlineTabIndicator(
+        indicator: const UnderlineTabIndicator(
           borderSide: BorderSide(
             color: AppColors.primary,
             width: 2.0,

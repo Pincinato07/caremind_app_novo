@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/medicamento.dart';
-import '../services/medicamento_service.dart';
-import '../services/supabase_service.dart';
+import '../../models/medicamento.dart';
+import '../../services/medicamento_service.dart';
+import '../../services/supabase_service.dart';
 import 'add_edit_medicamento_form.dart';
 
 class GestaoMedicamentosScreen extends StatefulWidget {

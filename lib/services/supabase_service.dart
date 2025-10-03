@@ -45,6 +45,29 @@ class SupabaseService {
 
   static Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
 
+  // Geração de código de vinculação
+  static Future<String> gerarCodigoVinculacao() async {
+    try {
+      final response = await _client.rpc('gerar_codigo_vinculacao');
+      return response as String;
+    } catch (e) {
+      throw Exception('Erro ao gerar código de vinculação: $e');
+    }
+  }
+
+  // Vincular por código
+  static Future<Map<String, dynamic>> vincularPorCodigo(String codigo) async {
+    try {
+      final response = await _client.rpc(
+        'vincular_por_codigo',
+        params: {'codigo_input': codigo},
+      );
+      return response as Map<String, dynamic>;
+    } catch (e) {
+      throw Exception('Erro ao vincular conta: $e');
+    }
+  }
+
   // Profile methods
   static Future<void> createProfile({
     required String userId,

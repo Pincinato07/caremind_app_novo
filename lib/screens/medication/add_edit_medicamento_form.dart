@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/medicamento.dart';
-import '../services/medicamento_service.dart';
-import '../services/supabase_service.dart';
+import '../../models/medicamento.dart';
+import '../../services/medicamento_service.dart';
+import '../../services/supabase_service.dart';
 
 class AddEditMedicamentoForm extends StatefulWidget {
   final Medicamento? medicamento;
