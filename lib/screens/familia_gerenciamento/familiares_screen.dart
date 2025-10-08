@@ -1,8 +1,5 @@
-// lib/screens/familia_gerenciamento/familiares_screen.dart
-
 import 'package:flutter/material.dart';
-import '../../services/supabase_service.dart';
-import '../familiar/exibir_convite_screen.dart';
+import 'adicionar_idoso_form.dart';
 
 class FamiliaresScreen extends StatelessWidget {
   const FamiliaresScreen({super.key});
@@ -60,7 +57,7 @@ class FamiliaresScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Visualize os idosos vinculados à sua conta e adicione novos membros',
+                      'Visualize os idosos vinculados à sua conta e adicione novos membros diretamente',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.grey.shade600,
@@ -196,10 +193,10 @@ class FamiliaresScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      '• Toque no botão "Adicionar Familiar" para gerar um código de convite\n'
-                      '• Compartilhe o código ou QR code com o idoso\n'
-                      '• O idoso deve usar o código para se vincular à sua conta\n'
-                      '• Após o vínculo, você poderá acompanhar medicamentos e cuidados',
+                      '• Preencha o formulário com os dados do idoso\n'
+                      '• O sistema criará automaticamente a conta e o vínculo\n'
+                      '• Compartilhe as credenciais criadas com o idoso\n'
+                      '• O idoso poderá fazer login diretamente',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey,
@@ -214,33 +211,15 @@ class FamiliaresScreen extends StatelessWidget {
               Container(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () async {
-                    try {
-                      final codigo = await SupabaseService.gerarCodigoVinculacao();
-                      if (!context.mounted) return;
-
-                      // Construir o deep link com a URL correta
-                      final deepLink = "https://app.caremind.online/vincular?codigo=$codigo";
-
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ExibirConviteScreen(
-                            codigoConvite: codigo,
-                            deepLink: deepLink,
-                          ),
-                        ),
-                      );
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Erro ao gerar código: $e')),
-                      );
-                    }
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => const AdicionarIdosoForm(),
+                    );
                   },
                   icon: const Icon(Icons.person_add, color: Colors.white),
                   label: const Text(
-                    'Adicionar Familiar',
+                    'Adicionar Idoso',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

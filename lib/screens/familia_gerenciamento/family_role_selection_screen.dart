@@ -176,7 +176,12 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
                     ),
                     child: OutlinedButton(
                       onPressed: () {
-                        Navigator.pushNamed(context, '/link-account');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AuthScreen(tipo: 'idoso'),
+                          ),
+                        );
                       },
                       style: OutlinedButton.styleFrom(
                         backgroundColor: colors.surface,
@@ -216,7 +221,7 @@ class FamilyRoleSelectionScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Quero que cuidem de mim',
+                                  'Meu familiar vai criar minha conta',
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: colors.onSurfaceVariant,
                                   ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import '../../services/supabase_service.dart';
-import 'main_navigator_screen.dart';
+import '../shared/main_navigator_screen.dart';
 import '../../theme/app_theme.dart';
 
 class AuthScreen extends StatefulWidget {

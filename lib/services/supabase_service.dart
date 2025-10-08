@@ -68,6 +68,24 @@ class SupabaseService {
     }
   }
 
+  // Criar e vincular idoso diretamente
+  static Future<Map<String, dynamic>> criarEVincularIdoso({
+    required String nome,
+    required String email,
+    required String senha,
+  }) async {
+    try {
+      final response = await _client.rpc('criar_e_vincular_idoso', params: {
+        'nome_idoso': nome,
+        'email_idoso': email,
+        'senha_idoso': senha,
+      });
+      return Map<String, dynamic>.from(response);
+    } catch (e) {
+      throw Exception('Erro ao criar e vincular idoso: $e');
+    }
+  }
+
   // Profile methods
   static Future<void> createProfile({
     required String userId,

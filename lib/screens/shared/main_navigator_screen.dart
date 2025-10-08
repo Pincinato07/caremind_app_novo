@@ -4,8 +4,10 @@ import 'package:caremind/screens/shared/perfil_screen.dart';
 import 'package:flutter/material.dart';
 import '../../models/perfil.dart';
 import '../individual/dashboard_screen.dart';
+import '../individual/rotina_screen.dart';
 import '../medication/gestao_medicamentos_screen.dart';
 import '../familiar/dashboard_screen.dart';
+import '../familia_gerenciamento/familiares_screen.dart';
 
 
 class MainNavigatorScreen extends StatefulWidget {
@@ -26,6 +28,7 @@ class _MainNavigatorScreenState extends State<MainNavigatorScreen> {
     super.initState();
     // Monta a lista de páginas com base no tipo de perfil
     _pages = _buildPagesForProfile(widget.perfil.tipo);
+    print('MainNavigatorScreen - Inicializado com ${_pages.length} páginas para tipo: ${widget.perfil.tipo}');
   }
 
   List<Widget> _buildPagesForProfile(String? tipo) {
@@ -33,10 +36,14 @@ class _MainNavigatorScreenState extends State<MainNavigatorScreen> {
       return [
         const IndividualDashboardScreen(),
         const GestaoMedicamentosScreen(),
+        const RotinaScreen(),
+        const PerfilScreen(),
       ];
     } else if (tipo == 'familiar') {
       return [
         const FamiliarDashboardScreen(),
+        const FamiliaresScreen(),
+        _buildAlertasScreen(),
         const PerfilScreen(),
       ];
     }
@@ -49,7 +56,7 @@ class _MainNavigatorScreenState extends State<MainNavigatorScreen> {
       return const [
         BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Início'),
         BottomNavigationBarItem(icon: Icon(Icons.medication_liquid), label: 'Medicamentos'),
-        BottomNavigationBarItem(icon: Icon(Icons.monitor_heart), label: 'Métricas'),
+        BottomNavigationBarItem(icon: Icon(Icons.schedule), label: 'Rotina'),
         BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Perfil'),
       ];
     } else if (tipo == 'familiar') {
@@ -64,16 +71,35 @@ class _MainNavigatorScreenState extends State<MainNavigatorScreen> {
   }
 
   void _onItemTapped(int index) {
+    print('MainNavigatorScreen - Item tapped: $index, Pages length: ${_pages.length}');
     setState(() {
       _selectedIndex = index;
     });
   }
 
+  Widget _buildAlertasScreen() {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Alertas'),
+        backgroundColor: const Color(0xFF0400B9),
+        foregroundColor: Colors.white,
+      ),
+      body: const Center(
+        child: Text('Tela de Alertas em desenvolvimento.'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Se o perfil for 'idoso' ou desconhecido, mostramos uma tela de fallback.
+    // Debug log para verificar o tipo do perfil
+    print('MainNavigatorScreen - Tipo do perfil: ${widget.perfil.tipo}');
+    print('MainNavigatorScreen - Páginas disponíveis: ${_pages.length}');
+
+    // Se o perfil for null ou 'idoso' ou desconhecido, mostramos uma tela de fallback.
     // A lógica real para a tela do idoso será construída aqui no futuro.
-    if (widget.perfil.tipo != 'individual' && widget.perfil.tipo != 'familiar') {
+    if (widget.perfil.tipo == null || (widget.perfil.tipo != 'individual' && widget.perfil.tipo != 'familiar')) {
+      print('MainNavigatorScreen - Mostrando tela de fallback para tipo: ${widget.perfil.tipo}');
       // TODO: Implementar a tela dedicada e simples para o perfil 'Idoso'
       return Scaffold(
         appBar: AppBar(title: const Text('CareMind')),
@@ -83,7 +109,7 @@ class _MainNavigatorScreenState extends State<MainNavigatorScreen> {
 
     return Scaffold(
       body: IndexedStack(
-        index: _selectedIndex,
+        index: _selectedIndex.clamp(0, _pages.length - 1),
         children: _pages,
       ),
       bottomNavigationBar: Container(

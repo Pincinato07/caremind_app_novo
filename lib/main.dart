@@ -4,7 +4,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'theme/app_theme.dart';
 import 'screens/auth/welcome_screen.dart';
 import 'screens/familia_gerenciamento/family_role_selection_screen.dart';
-import 'screens/familia_gerenciamento/link_account_screen.dart';
 import 'screens/individual/dashboard_screen.dart';
 import 'screens/familiar/dashboard_screen.dart';
 
@@ -41,7 +40,6 @@ class CareMindApp extends StatelessWidget {
       routes: {
         '/welcome': (context) => const WelcomeScreen(),
         '/family-role-selection': (context) => const FamilyRoleSelectionScreen(),
-        '/link-account': (context) => const LinkAccountScreen(),
         '/individual-dashboard': (context) => const IndividualDashboardScreen(),
         '/familiar-dashboard': (context) => const FamiliarDashboardScreen(),
       },
