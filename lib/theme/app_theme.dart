@@ -1,32 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Cores padronizadas do aplicativo
 class AppColors {
   // Cores principais
-  static const Color primary = Color(0xFF0400B9);
-  static const Color primaryLight = Color(0xFF3D3AFF);
-  static const Color primaryDark = Color(0xFF000088);
+  static const Color primary = Color(0xFF0400BA);
+  static const Color primaryDark = Color(0xFF020054);
+  static const Color primaryLight = Color(0xFF0600E0);
   
   // Cores de destaque
   static const Color accent = Color(0xFF0600E0);
   static const Color success = Color(0xFF4CAF50);
-  static const Color warning = Color(0xFFFF9800);
-  static const Color error = Color(0xFFF44336);
+  static const Color warning = Color(0xFFFFC107);
+  static const Color error = Color(0xFFE53935);
   static const Color info = Color(0xFF2196F3);
   
   // Cores de fundo
-  static const Color background = Color(0xFFFFFAFA);
+  static const Color background = Color(0xFFF8F9FA);
   static const Color surface = Colors.white;
   static const Color card = Colors.white;
   
   // Cores de texto
-  static const Color textPrimary = Colors.black87;
+  static const Color textPrimary = Color(0xFF171717);
   static const Color textSecondary = Color(0xFF757575);
   static const Color textHint = Color(0xFF9E9E9E);
   static const Color textOnPrimary = Colors.white;
   
   // Cores de borda e divisores
-  static const Color divider = Color(0xFFE0E0E0);
+  // 12% preto para divisores: ARGB ~ 0x1F000000
+  static const Color divider = Color(0x1F000000);
   static const Color border = Color(0xFFE0E0E0);
   
   // Cores de feedback
@@ -36,67 +38,30 @@ class AppColors {
 
 /// Estilos de texto padronizados
 class AppTextStyles {
-  static const String fontFamily = 'Roboto';
-  
-  // Títulos
-  static const TextStyle headline1 = TextStyle(
-    fontSize: 32.0,
-    fontWeight: FontWeight.bold,
-    color: AppColors.textPrimary,
-    fontFamily: fontFamily,
-  );
-  
-  static const TextStyle headline2 = TextStyle(
-    fontSize: 24.0,
-    fontWeight: FontWeight.bold,
-    color: AppColors.textPrimary,
-    fontFamily: fontFamily,
-  );
-  
-  static const TextStyle headline3 = TextStyle(
-    fontSize: 20.0,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-    fontFamily: fontFamily,
-  );
-  
-  // Corpo de texto
-  static const TextStyle bodyLarge = TextStyle(
-    fontSize: 16.0,
-    color: AppColors.textPrimary,
-    fontFamily: fontFamily,
-    height: 1.5,
-  );
-  
-  static const TextStyle bodyMedium = TextStyle(
-    fontSize: 14.0,
-    color: AppColors.textSecondary,
-    fontFamily: fontFamily,
-    height: 1.5,
-  );
-  
-  static const TextStyle bodySmall = TextStyle(
-    fontSize: 12.0,
-    color: AppColors.textHint,
-    fontFamily: fontFamily,
-  );
-  
-  // Botões
-  static const TextStyle button = TextStyle(
-    fontSize: 16.0,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textOnPrimary,
-    fontFamily: fontFamily,
-  );
-  
-  // Links
-  static const TextStyle link = TextStyle(
-    fontSize: 14.0,
-    color: AppColors.primary,
-    fontWeight: FontWeight.w500,
-    decoration: TextDecoration.underline,
-    fontFamily: fontFamily,
-  );
+  static const String fontFamily = 'LeagueSpartan';
+
+  // Tamanhos baseados no DS
+  static const TextStyle displayLarge = TextStyle(fontSize: 57, fontWeight: FontWeight.w700, height: 1.2, color: AppColors.textPrimary, fontFamily: fontFamily);
+  static const TextStyle displayMedium = TextStyle(fontSize: 45, fontWeight: FontWeight.w700, height: 1.2, color: AppColors.textPrimary, fontFamily: fontFamily);
+  static const TextStyle displaySmall = TextStyle(fontSize: 36, fontWeight: FontWeight.w700, height: 1.2, color: AppColors.textPrimary, fontFamily: fontFamily);
+
+  static const TextStyle headlineLarge = TextStyle(fontSize: 32, fontWeight: FontWeight.w700, height: 1.2, color: AppColors.textPrimary, fontFamily: fontFamily);
+  static const TextStyle headlineMedium = TextStyle(fontSize: 28, fontWeight: FontWeight.w700, height: 1.2, color: AppColors.textPrimary, fontFamily: fontFamily);
+  static const TextStyle headlineSmall = TextStyle(fontSize: 24, fontWeight: FontWeight.w700, height: 1.2, color: AppColors.textPrimary, fontFamily: fontFamily);
+
+  static const TextStyle titleLarge = TextStyle(fontSize: 22, fontWeight: FontWeight.w600, height: 1.25, color: AppColors.textPrimary, fontFamily: fontFamily);
+  static const TextStyle titleMedium = TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.25, color: AppColors.textPrimary, fontFamily: fontFamily);
+  static const TextStyle titleSmall = TextStyle(fontSize: 14, fontWeight: FontWeight.w600, height: 1.25, color: AppColors.textPrimary, fontFamily: fontFamily);
+
+  static const TextStyle bodyLarge = TextStyle(fontSize: 16, height: 1.6, color: AppColors.textPrimary, fontFamily: fontFamily);
+  static const TextStyle bodyMedium = TextStyle(fontSize: 14, height: 1.6, color: AppColors.textSecondary, fontFamily: fontFamily);
+  static const TextStyle bodySmall = TextStyle(fontSize: 12, height: 1.5, color: AppColors.textHint, fontFamily: fontFamily);
+
+  static const TextStyle labelLarge = TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textOnPrimary, fontFamily: fontFamily);
+  static const TextStyle labelMedium = TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary, fontFamily: fontFamily);
+  static const TextStyle labelSmall = TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textPrimary, fontFamily: fontFamily);
+
+  static const TextStyle link = TextStyle(fontSize: 14, color: AppColors.primary, fontWeight: FontWeight.w600, decoration: TextDecoration.underline, fontFamily: fontFamily);
 }
 
 /// Bordas e raios padronizados
@@ -155,8 +120,25 @@ class AppTheme {
   AppTheme._();
   
   static ThemeData get themeData {
-    return ThemeData(
-      colorScheme: ColorScheme.light(
+    final base = ThemeData.light();
+    final textTheme = GoogleFonts.leagueSpartanTextTheme(base.textTheme).copyWith(
+      displayLarge: AppTextStyles.displayLarge,
+      displayMedium: AppTextStyles.displayMedium,
+      displaySmall: AppTextStyles.displaySmall,
+      headlineLarge: AppTextStyles.headlineLarge,
+      headlineMedium: AppTextStyles.headlineMedium,
+      headlineSmall: AppTextStyles.headlineSmall,
+      titleLarge: AppTextStyles.titleLarge,
+      titleMedium: AppTextStyles.titleMedium,
+      titleSmall: AppTextStyles.titleSmall,
+      bodyLarge: AppTextStyles.bodyLarge,
+      bodyMedium: AppTextStyles.bodyMedium,
+      bodySmall: AppTextStyles.bodySmall,
+      labelLarge: AppTextStyles.labelLarge,
+    );
+
+    return base.copyWith(
+      colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
         primaryContainer: AppColors.primaryLight,
         secondary: AppColors.accent,
@@ -172,16 +154,7 @@ class AppTheme {
       ),
       
       // Configurações de tipografia
-      fontFamily: AppTextStyles.fontFamily,
-      textTheme: const TextTheme(
-        displayLarge: AppTextStyles.headline1,
-        displayMedium: AppTextStyles.headline2,
-        displaySmall: AppTextStyles.headline3,
-        bodyLarge: AppTextStyles.bodyLarge,
-        bodyMedium: AppTextStyles.bodyMedium,
-        bodySmall: AppTextStyles.bodySmall,
-        labelLarge: AppTextStyles.button,
-      ),
+      textTheme: textTheme,
       
       // Configurações de AppBar
       appBarTheme: const AppBarTheme(
@@ -203,51 +176,37 @@ class AppTheme {
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.textOnPrimary,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.medium,
-            vertical: AppSpacing.medium,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: AppBorderRadius.mediumAll,
-          ),
-          textStyle: AppTextStyles.button,
+          minimumSize: const Size.fromHeight(48),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          shape: const RoundedRectangleBorder(borderRadius: AppBorderRadius.smallAll),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
         ),
       ),
       
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.medium,
-            vertical: AppSpacing.small,
-          ),
-          textStyle: const TextStyle(
-            fontWeight: FontWeight.w500,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ),
       
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          side: const BorderSide(color: AppColors.primary),
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.medium,
-            vertical: AppSpacing.medium,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: AppBorderRadius.mediumAll,
-          ),
-          textStyle: AppTextStyles.button.copyWith(
-            color: AppColors.primary,
-          ),
+          foregroundColor: AppColors.textPrimary,
+          backgroundColor: Colors.white,
+          side: const BorderSide(color: AppColors.border, width: 1.5),
+          minimumSize: const Size.fromHeight(48),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          shape: const RoundedRectangleBorder(borderRadius: AppBorderRadius.smallAll),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
         ),
       ),
       
       // Configurações de cards
-      cardTheme: ThemeData.light().cardTheme.copyWith(
+      cardTheme: base.cardTheme.copyWith(
         color: AppColors.card,
-        elevation: 1,
+        elevation: 2,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: AppBorderRadius.mediumAll,
@@ -257,35 +216,29 @@ class AppTheme {
       // Configurações de campos de formulário
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surface,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.medium,
-          vertical: AppSpacing.medium,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: const OutlineInputBorder(
+          borderRadius: AppBorderRadius.smallAll,
+          borderSide: BorderSide.none,
         ),
-        border: OutlineInputBorder(
-          borderRadius: AppBorderRadius.mediumAll,
-          borderSide: const BorderSide(color: AppColors.border),
+        enabledBorder: const OutlineInputBorder(
+          borderRadius: AppBorderRadius.smallAll,
+          borderSide: BorderSide(color: AppColors.border, width: 1),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: AppBorderRadius.mediumAll,
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: AppBorderRadius.mediumAll,
-          borderSide: const BorderSide(
-            color: AppColors.primary,
-            width: 2.0,
-          ),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: AppBorderRadius.smallAll,
+          borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: AppBorderRadius.mediumAll,
+          borderRadius: AppBorderRadius.smallAll,
           borderSide: const BorderSide(
             color: AppColors.error,
             width: 2.0,
           ),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: AppBorderRadius.mediumAll,
+          borderRadius: AppBorderRadius.smallAll,
           borderSide: const BorderSide(
             color: AppColors.error,
             width: 2.0,
@@ -297,13 +250,13 @@ class AppTheme {
       ),
       
       // Configurações de diálogos
-      dialogTheme: ThemeData.light().dialogTheme.copyWith(
+      dialogTheme: base.dialogTheme.copyWith(
         backgroundColor: AppColors.surface,
         elevation: 4,
         shape: RoundedRectangleBorder(
           borderRadius: AppBorderRadius.mediumAll,
         ),
-        titleTextStyle: AppTextStyles.headline3,
+        titleTextStyle: AppTextStyles.headlineSmall,
         contentTextStyle: AppTextStyles.bodyMedium,
       ),
       
@@ -338,7 +291,7 @@ class AppTheme {
       ),
       
       // Configurações de tabs
-      tabBarTheme: ThemeData.light().tabBarTheme.copyWith(
+      tabBarTheme: base.tabBarTheme.copyWith(
         labelColor: AppColors.primary,
         unselectedLabelColor: AppColors.textSecondary,
         indicator: const UnderlineTabIndicator(
@@ -353,7 +306,7 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surface,
         disabledColor: AppColors.disabled,
-        selectedColor: AppColors.primary.withValues(alpha: 0.1),
+        selectedColor: Color(0x1A0400BA),
         checkmarkColor: AppColors.primary,
         padding: EdgeInsets.symmetric(
           horizontal: AppSpacing.small,

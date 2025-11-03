@@ -18,9 +18,8 @@ class SupabaseService {
       email: email,
       password: password,
       data: {
-        'nome': nome,
-        'tipo': tipo,
-        'display_name': nome,
+        'nome_completo': nome,
+        'tipo_conta': tipo,
       },
     );
 
