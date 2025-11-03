@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'theme/app_theme.dart';
-import 'screens/auth/welcome_screen.dart';
-import 'screens/familia_gerenciamento/family_role_selection_screen.dart';
+import 'screens/auth/auth_shell.dart';
 import 'screens/individual/dashboard_screen.dart';
 import 'screens/familiar/dashboard_screen.dart';
 
@@ -36,10 +35,11 @@ class CareMindApp extends StatelessWidget {
           },
         ),
       ),
-      initialRoute: '/welcome',
+      initialRoute: '/login',
       routes: {
-        '/welcome': (context) => const WelcomeScreen(),
-        '/family-role-selection': (context) => const FamilyRoleSelectionScreen(),
+        '/': (context) => const AuthShell(initialMode: AuthMode.login),
+        '/login': (context) => const AuthShell(initialMode: AuthMode.login),
+        '/register': (context) => const AuthShell(initialMode: AuthMode.register),
         '/individual-dashboard': (context) => const IndividualDashboardScreen(),
         '/familiar-dashboard': (context) => const FamiliarDashboardScreen(),
       },

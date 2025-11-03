@@ -47,7 +47,7 @@ class _MainNavigatorScreenState extends State<MainNavigatorScreen> {
         const PerfilScreen(),
       ];
     }
-    // Fallback, embora não deva ser alcançado pela lógica de redirecionamento
+    // Fallback for idoso or unknown
     return [const Center(child: Text('Tipo de perfil inválido'))];
   }
 

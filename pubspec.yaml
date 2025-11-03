@@ -27,6 +27,11 @@ dependencies:
   url_launcher: ^6.2.5
   share_plus: ^7.2.1
   
+  # UI/UX: Animated waves background, SVG rendering, and Google Fonts
+  wave: ^0.2.2
+  flutter_svg: ^2.0.10+1
+  google_fonts: ^6.2.1
+
   # QR Code
   qr_flutter: ^4.1.0
   mobile_scanner: ^5.2.3
@@ -47,20 +52,20 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/images/caremind_logo.png"
+  image_path: "assets/images/caremind.png"
   min_sdk_android: 21
   web:
     generate: true
-    image_path: "assets/images/caremind_logo.png"
+    image_path: "assets/images/caremind.png"
     background_color: "#FFFFFF"
     theme_color: "#0400B9"
   windows:
     generate: true
-    image_path: "assets/images/caremind_logo.png"
+    image_path: "assets/images/caremind.png"
     icon_size: 48
   macos:
     generate: true
-    image_path: "assets/images/caremind_logo.png"
+    image_path: "assets/images/caremind.png"
 
 # Configuração da Splash Screen
 flutter_native_splash:
