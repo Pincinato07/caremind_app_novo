@@ -143,12 +143,10 @@ class AppTheme {
         primaryContainer: AppColors.primaryLight,
         secondary: AppColors.accent,
         surface: AppColors.surface,
-        background: AppColors.background,
         error: AppColors.error,
         onPrimary: AppColors.textOnPrimary,
         onSecondary: AppColors.textOnPrimary,
         onSurface: AppColors.textPrimary,
-        onBackground: AppColors.textPrimary,
         onError: AppColors.textOnPrimary,
         brightness: Brightness.light,
       ),
@@ -158,7 +156,7 @@ class AppTheme {
       
       // Configurações de AppBar
       appBarTheme: const AppBarTheme(
-        color: AppColors.primary,
+        backgroundColor: AppColors.primary,
         elevation: 0,
         centerTitle: true,
         titleTextStyle: TextStyle(
