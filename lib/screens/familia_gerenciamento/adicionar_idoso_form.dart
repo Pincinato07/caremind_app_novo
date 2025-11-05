@@ -141,7 +141,7 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: colors.surfaceVariant.withOpacity(0.3),
+                    fillColor: colors.surfaceContainerHighest.withOpacity(0.3),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -167,7 +167,7 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: colors.surfaceVariant.withOpacity(0.3),
+                    fillColor: colors.surfaceContainerHighest.withOpacity(0.3),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -203,7 +203,7 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: colors.surfaceVariant.withOpacity(0.3),
+                    fillColor: colors.surfaceContainerHighest.withOpacity(0.3),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {

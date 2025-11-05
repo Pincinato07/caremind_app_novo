@@ -12,7 +12,7 @@ class PerfilScreen extends StatelessWidget {
     final colors = theme.colorScheme;
     
     return Scaffold(
-      backgroundColor: colors.background,
+      backgroundColor: colors.surface,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
