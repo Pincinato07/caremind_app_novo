@@ -2,9 +2,10 @@ import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../widgets/wave_background.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/supabase_service.dart';
+import '../../widgets/wave_background.dart';
 import '../shared/main_navigator_screen.dart';
 
 enum AuthMode { login, register }
@@ -18,29 +19,27 @@ class AuthShell extends StatefulWidget {
   State<AuthShell> createState() => _AuthShellState();
 }
 
-class _AuthShellState extends State<AuthShell> {
+class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMixin {
+  final _formKey = GlobalKey<FormState>();
   late AuthMode _mode;
-
-  // Login controllers
-  final _loginFormKey = GlobalKey<FormState>();
   final _loginEmailController = TextEditingController();
   final _loginPasswordController = TextEditingController();
   bool _isLoginLoading = false;
 
-  // Register controllers and state
+  // Register
   final _registerPageController = PageController();
   int _registerStep = 0;
-  
+
   // Step 1
   final _registerFormKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-  
+
   // Step 2
   final _passwordFormKey = GlobalKey<FormState>();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
+
   // Step 3
   String _selectedAccountType = 'pessoal';
   bool _termsAccepted = false;
@@ -49,6 +48,19 @@ class _AuthShellState extends State<AuthShell> {
   void initState() {
     super.initState();
     _mode = widget.initialMode;
+    
+    // Adicionar listeners para depuração
+    _nameController.addListener(() {
+      print('Nome alterado para: ${_nameController.text}');
+    });
+    
+    _emailController.addListener(() {
+      print('Email alterado para: ${_emailController.text}');
+    });
+    
+    print('=== INIT STATE ===');
+    print('_registerFormKey: $_registerFormKey');
+    print('_passwordFormKey: $_passwordFormKey');
   }
 
   @override
@@ -63,8 +75,17 @@ class _AuthShellState extends State<AuthShell> {
     super.dispose();
   }
 
+  Future<void> _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      _showSnack('Não foi possível abrir o link: $url');
+    }
+  }
+
+  // ==================== AUTH HANDLERS ====================
+
   Future<void> _handleLogin() async {
-    if (!_loginFormKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoginLoading = true);
     try {
       final response = await SupabaseService.signIn(
@@ -72,6 +93,7 @@ class _AuthShellState extends State<AuthShell> {
         password: _loginPasswordController.text,
       );
       if (!mounted) return;
+
       if (response.user != null) {
         final perfil = await SupabaseService.getProfile(response.user!.id);
         if (perfil != null && mounted) {
@@ -81,29 +103,74 @@ class _AuthShellState extends State<AuthShell> {
             (route) => false,
           );
         } else {
-          _showSnack('Não foi possível carregar seu perfil.');
+          _showSnack('Perfil não encontrado.');
         }
       } else {
-        _showSnack('Erro ao fazer login.');
+        _showSnack('Credenciais inválidas.');
       }
     } catch (e) {
-      _showSnack('Erro: ${e.toString()}');
+      _showSnack('Erro: $e');
     } finally {
       if (mounted) setState(() => _isLoginLoading = false);
     }
   }
 
   Future<void> _handleSignUp() async {
-    // Validate all forms - check if currentState is not null first
-    final registerFormValid = _registerFormKey.currentState?.validate() ?? false;
-    final passwordFormValid = _passwordFormKey.currentState?.validate() ?? false;
+    print('=== MÉTODO _handleSignUp CHAMADO ===');
+    
+    // Debug: Mostrar estado dos campos
+    debugPrint('\n=== DEBUG - ESTADO DOS CAMPOS ===');
+    debugPrint('Nome: "${_nameController.text}" (${_nameController.text.length} caracteres)');
+    debugPrint('Email: "${_emailController.text}" (${_emailController.text.length} caracteres)');
+    debugPrint('Senha: ${_passwordController.text.isNotEmpty ? "[PREENCHIDO]" : "[VAZIO]"}');
+    debugPrint('Confirmar Senha: ${_confirmPasswordController.text.isNotEmpty ? "[PREENCHIDO]" : "[VAZIO]"}');
+    debugPrint('Tipo de Conta: $_selectedAccountType');
+    debugPrint('Termos Aceitos: $_termsAccepted');
+    
+    // Validação manual dos campos do passo 1
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+    
+    // Validar campos do passo 1
+    bool step1Valid = name.isNotEmpty && email.contains('@');
+    debugPrint('\n=== VALIDAÇÃO PASSO 1 ===');
+    debugPrint('Validação Nome: ${name.isNotEmpty}');
+    debugPrint('Validação Email: ${email.contains('@')}');
+    debugPrint('Validação do Passo 1 finalizada. Resultado: $step1Valid');
+    
+    // Validar campos do passo 2
+    bool step2Valid = password.length >= 6 && password == confirmPassword;
+    debugPrint('\n=== VALIDAÇÃO PASSO 2 ===');
+    debugPrint('Validação Tamanho Senha: ${password.length >= 6}');
+    debugPrint('Validação Confirmação: ${password == confirmPassword}');
+    debugPrint('Validação do Passo 2 finalizada. Resultado: $step2Valid');
 
-    if (!registerFormValid || !passwordFormValid || !_termsAccepted) {
-      _showSnack('Por favor, preencha todos os campos corretamente.');
+    // Debug: Mostrar o estado das validações
+    debugPrint('\n=== RESUMO DAS VALIDAÇÕES ===');
+    debugPrint('Passo 1 (Nome e Email): $step1Valid');
+    debugPrint('Passo 2 (Senhas): $step2Valid');
+    debugPrint('Termos aceitos: $_termsAccepted');
+
+    if (!step1Valid) {
+      debugPrint('Falha na validação do Passo 1. Navegando para a página 0...');
+      _showSnack('Por favor, preencha corretamente os dados do primeiro passo.');
+      _registerPageController.jumpToPage(0);
       return;
     }
 
-    if (!mounted) return;
+    if (!step2Valid) {
+      _showSnack('Por favor, verifique as senhas informadas.');
+      _registerPageController.jumpToPage(1);
+      return;
+    }
+
+    if (!_termsAccepted) {
+      _showSnack('Você precisa aceitar os termos de uso para continuar.');
+      _registerPageController.jumpToPage(2);
+      return;
+    }
 
     try {
       final response = await SupabaseService.signUp(
@@ -113,16 +180,14 @@ class _AuthShellState extends State<AuthShell> {
         tipo: _selectedAccountType,
       );
 
-      if (response.user != null && mounted) {
-        // Create profile immediately after signup
-        await SupabaseService.createProfile(
-          userId: response.user!.id,
-          nome: _nameController.text.trim(),
-          tipo: _selectedAccountType,
-        );
+      if (!mounted) return;
 
-        // Aguardar um pouco para garantir que o perfil seja criado
-        await Future.delayed(const Duration(seconds: 1));
+      if (response.user != null) {
+        // O trigger 'handle_new_user' no Supabase já criou o perfil automaticamente
+        // usando os metadados que enviamos no 'signUp'.
+        
+        // Adicionamos um pequeno delay para dar tempo ao trigger de rodar
+        await Future.delayed(const Duration(milliseconds: 500));
 
         final perfil = await SupabaseService.getProfile(response.user!.id);
         if (perfil != null && mounted) {
@@ -131,18 +196,14 @@ class _AuthShellState extends State<AuthShell> {
             MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
             (route) => false,
           );
-        } else if (mounted) {
-          _showSnack('Cadastro realizado com sucesso! Faça login para continuar.');
+        } else {
+          // O trigger pode ter falhado ou o RLS está bloqueando
+          _showSnack('Erro ao carregar seu novo perfil. Tente fazer login.');
           setState(() => _mode = AuthMode.login);
         }
-      } else if (mounted) {
-        _showSnack('Erro ao realizar cadastro. Tente novamente.');
       }
     } catch (e) {
-      // Trata erros de registro
-      if (mounted) {
-        _showSnack('Erro ao criar conta: ${e.toString()}');
-      }
+      _showSnack('Erro ao cadastrar: $e');
     }
   }
 
@@ -151,559 +212,308 @@ class _AuthShellState extends State<AuthShell> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
-  
-  // Step 1: Personal Information
+
+  // ==================== NAVIGATION ====================
+
+  void _nextPage() {
+    _registerPageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.ease);
+  }
+
+  void _previousPage() {
+    _registerPageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.ease);
+  }
+
+  // ==================== STEP BUILDERS ====================
+
   Widget _buildStep1() {
-    return Form(
-      key: _registerFormKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Nome Completo',
-            style: GoogleFonts.leagueSpartan(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              height: 1.25,
-              shadows: [Shadow(color: Colors.black.withOpacity(0.2), offset: Offset(0, 2), blurRadius: 4)],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Form(
+        key: _registerFormKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _fieldLabel('Nome Completo'),
+            const SizedBox(height: 8),
+            _glowField(
+              controller: _nameController,
+              hint: 'Seu nome completo',
+              validator: (v) => v?.trim().isEmpty ?? true ? 'Informe seu nome' : null,
             ),
-          ),
-          const SizedBox(height: 8),
-          _glowField(
-            controller: _nameController,
-            hint: 'Seu nome',
-            validator: (v) => v == null || v.isEmpty ? 'Informe seu nome' : null,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Email',
-            style: GoogleFonts.leagueSpartan(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              height: 1.25,
-              shadows: [Shadow(color: Colors.black.withOpacity(0.2), offset: Offset(0, 2), blurRadius: 4)],
+            const SizedBox(height: 16),
+            _fieldLabel('Email'),
+            const SizedBox(height: 8),
+            _glowField(
+              controller: _emailController,
+              hint: 'seu@email.com',
+              keyboardType: TextInputType.emailAddress,
+              validator: (v) => v == null || !v.contains('@') ? 'Email inválido' : null,
             ),
-          ),
-          const SizedBox(height: 8),
-          _glowField(
-            controller: _emailController,
-            hint: 'seu@email.com',
-            keyboardType: TextInputType.emailAddress,
-            validator: (v) => v == null || v.isEmpty
-                ? 'Informe o e-mail'
-                : !v.contains('@')
-                    ? 'E-mail inválido'
-                    : null,
-          ),
-          const Spacer(),
-          _primaryButton(
-            label: 'Continuar',
-            onPressed: () {
-              if (_registerFormKey.currentState!.validate()) {
-                _registerPageController.nextPage(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-                setState(() => _registerStep = 1);
-              }
-            },
-          ),
-          const SizedBox(height: 16),
-        ],
+            const SizedBox(height: 24),
+            _primaryButton(
+              label: 'Continuar',
+              onPressed: () {
+                if (_registerFormKey.currentState!.validate()) {
+                  _nextPage();
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
-  
-  // Step 2: Password
+
   Widget _buildStep2() {
-    return Form(
-      key: _passwordFormKey,
+    print('=== _buildStep2 CHAMADO ===');
+    print('_passwordController: ${_passwordController.text} (${_passwordController.text.length} caracteres)');
+    print('_confirmPasswordController: ${_confirmPasswordController.text} (${_confirmPasswordController.text.length} caracteres)');
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Form(
+        key: _passwordFormKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Crie sua senha',
+              style: GoogleFonts.leagueSpartan(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            _fieldLabel('Senha'),
+            const SizedBox(height: 8),
+            _glowField(
+              controller: _passwordController,
+              hint: 'Mínimo 6 caracteres',
+              obscure: true,
+              validator: (v) {
+                final isValid = v == null || v.length < 6 ? 'Mínimo 6 caracteres' : null;
+                print('Validação Senha: ${isValid ?? 'VÁLIDA'}');
+                return isValid;
+              },
+            ),
+            const SizedBox(height: 16),
+            _fieldLabel('Confirmar Senha'),
+            const SizedBox(height: 8),
+            _glowField(
+              controller: _confirmPasswordController,
+              hint: 'Repita a senha',
+              obscure: true,
+              validator: (v) {
+                final isValid = v != _passwordController.text ? 'Senhas não coincidem' : null;
+                print('Validação Confirmação: ${isValid ?? 'VÁLIDA'}');
+                return isValid;
+              },
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(child: _outlineButton(label: 'Voltar', onPressed: _previousPage)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _primaryButton(
+                    label: 'Continuar',
+                    onPressed: () {
+                      print('=== BOTÃO CONTINUAR PRESSIONADO (PASSO 2) ===');
+                      print('_passwordFormKey.currentState: ${_passwordFormKey.currentState}');
+                      print('Senha: ${_passwordController.text}');
+                      print('Confirmação: ${_confirmPasswordController.text}');
+                      
+                      if (_passwordFormKey.currentState != null) {
+                        final isValid = _passwordFormKey.currentState!.validate();
+                        print('Validação do formulário: $isValid');
+                        
+                        if (isValid) {
+                          _nextPage();
+                        } else {
+                          print('Formulário inválido!');
+                        }
+                      } else {
+                        print('ERRO: _passwordFormKey.currentState é nulo');
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStep3() {
+    print('=== _buildStep3 CHAMADO ===');
+    print('_termsAccepted: $_termsAccepted');
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Crie sua senha',
+            'Tipo de Conta',
             style: GoogleFonts.leagueSpartan(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              height: 1.25,
-              shadows: [Shadow(color: Colors.black.withOpacity(0.2), offset: Offset(0, 2), blurRadius: 4)],
+              fontSize: 20, 
+              fontWeight: FontWeight.w700, 
+              color: Colors.white
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Senha',
-            style: GoogleFonts.leagueSpartan(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              height: 1.25,
-            ),
+          const SizedBox(height: 12),
+          _accountOption(
+            'Uso Pessoal',
+            'Para cuidar de você mesmo',
+            'pessoal',
           ),
-          const SizedBox(height: 8),
-          _glowField(
-            controller: _passwordController,
-            hint: 'Digite sua senha',
-            obscure: true,
-            validator: (v) => v == null || v.isEmpty
-                ? 'Informe uma senha'
-                : v.length < 6
-                    ? 'A senha deve ter no mínimo 6 caracteres'
-                    : null,
+          const SizedBox(height: 12),
+          _accountOption(
+            'Familiar/Cuidador',
+            'Para cuidar de um familiar ou pessoa próxima',
+            'familiar',
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Confirmar Senha',
-            style: GoogleFonts.leagueSpartan(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              height: 1.25,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _glowField(
-            controller: _confirmPasswordController,
-            hint: 'Confirme sua senha',
-            obscure: true,
-            validator: (v) => v == null || v.isEmpty
-                ? 'Confirme sua senha'
-                : v != _passwordController.text
-                    ? 'As senhas não conferem'
-                    : null,
-          ),
-          const Spacer(),
-          const SizedBox(height: 24), // Extra space before buttons
+          const SizedBox(height: 12),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {
-                    _registerPageController.previousPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                    setState(() => _registerStep = 0);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: const BorderSide(color: Colors.white, width: 1.5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    backgroundColor: Colors.white.withOpacity(0.1), // Add background for visibility
-                  ),
-                  child: const Text('Voltar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              Checkbox(
+                value: _termsAccepted,
+                onChanged: (v) {
+                  print('Termos aceitos alterado para: $v');
+                  setState(() {
+                    _termsAccepted = v ?? false;
+                    print('_termsAccepted atualizado para: $_termsAccepted');
+                  });
+                },
+                activeColor: const Color(0xFF4CAF50),
+                fillColor: MaterialStateProperty.resolveWith<Color>(
+                  (states) => states.contains(MaterialState.selected) 
+                    ? const Color(0xFF4CAF50) 
+                    : Colors.white,
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 8),
               Expanded(
-                child: _primaryButton(
-                  label: 'Continuar',
-                  onPressed: () {
-                    if (_passwordFormKey.currentState!.validate()) {
-                      _registerPageController.nextPage(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      );
-                      setState(() => _registerStep = 2);
-                    }
-                  },
+                child: RichText(
+                  text: TextSpan(
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(230), 
+                      fontSize: 14, 
+                      height: 1.4
+                    ),
+                    children: [
+                      const TextSpan(text: 'Eu concordo com os '),
+                      _linkSpan(
+                        'Termos de Uso', 
+                        () => _launchURL('https://www.caremind.online/termos')
+                      ),
+                      const TextSpan(text: ' e '),
+                      _linkSpan(
+                        'Política de Privacidade', 
+                        () => _launchURL('https://www.caremind.online/politica-privacidade')
+                      ),
+                      const TextSpan(text: ' do CareMind.'),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _outlineButton(
+                  label: 'Voltar', 
+                  onPressed: _previousPage, 
+                  fontSize: 16
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _primaryButton(
+                  label: 'Finalizar',
+                  onPressed: _termsAccepted ? _handleSignUp : null,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
-  
-  // Step 3: Account Type
-  Widget _buildStep3() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Como você usará o Caremind?',
-          style: GoogleFonts.leagueSpartan(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            height: 1.25,
-            shadows: [const Shadow(color: Colors.black26, offset: Offset(0, 2), blurRadius: 4)],
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 16),
-        Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                _buildAccountTypeOption(
-                  title: 'Uso Pessoal',
-                  subtitle: 'Para gerenciar meus próprios medicamentos',
-                  value: 'pessoal',
-                  groupValue: _selectedAccountType,
-                  onChanged: (value) => setState(() => _selectedAccountType = value!),
-                ),
-                const SizedBox(height: 12),
-                _buildAccountTypeOption(
-                  title: 'Familiar / Cuidador',
-                  subtitle: 'Para cuidar de um familiar ou paciente',
-                  value: 'cuidador',
-                  groupValue: _selectedAccountType,
-                  onChanged: (value) => setState(() => _selectedAccountType = value!),
-                ),
-                const SizedBox(height: 16),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: RichText(
-                    text: TextSpan(
-                      style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.4),
-                      children: [
-                        const TextSpan(text: 'Eu concordo com os '),
-                        TextSpan(
-                          text: 'Termos de Uso',
-                          style: const TextStyle(decoration: TextDecoration.underline, fontWeight: FontWeight.w600),
-                          recognizer: TapGestureRecognizer()
-                            ..onTap = () {
-                              // TODO: Open terms and conditions
-                            },
-                        ),
-                        const TextSpan(text: ' e '),
-                        TextSpan(
-                          text: 'Política de Privacidade',
-                          style: const TextStyle(decoration: TextDecoration.underline, fontWeight: FontWeight.w600),
-                          recognizer: TapGestureRecognizer()
-                            ..onTap = () {
-                              // TODO: Open privacy policy
-                            },
-                        ),
-                        const TextSpan(text: ' do Caremind.'),
-                      ],
-                    ),
-                  ),
-                  value: _termsAccepted,
-                  onChanged: (value) => setState(() => _termsAccepted = value ?? false),
-                  activeColor: const Color(0xFF0400BA),
-                  checkColor: Colors.white,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  tileColor: Colors.transparent,
-                ),
-              ],
-            ),
+
+  Widget _accountOption(String title, String subtitle, String value) {
+    final isSelected = _selectedAccountType == value;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedAccountType = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withAlpha(20),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF4CAF50) : Colors.white.withAlpha(77),
+            width: isSelected ? 2 : 1,
           ),
         ),
-        Row(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () {
-                  _registerPageController.previousPage(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
-                  setState(() => _registerStep = 1);
-                },
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: const BorderSide(color: Colors.white, width: 1.5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  backgroundColor: Colors.white.withOpacity(0.1), // Add background for visibility
-                ),
-                child: const Text('Voltar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-              ),
+            Radio<String>(
+              value: value,
+              groupValue: _selectedAccountType,
+              onChanged: (v) => setState(() => _selectedAccountType = v!),
+              activeColor: const Color(0xFF4CAF50),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 8),
             Expanded(
-              child: _primaryButton(
-                label: 'Finalizar Cadastro',
-                onPressed: _termsAccepted ? _handleSignUp : null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(color: Colors.white.withAlpha(204), fontSize: 12, height: 1.2),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-  
-  Widget _buildAccountTypeOption({
-    required String title,
-    required String subtitle,
-    required String value,
-    required String groupValue,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: groupValue == value 
-              ? const Color(0xFF0400BA).withOpacity(0.8) 
-              : Colors.transparent,
-          width: 1.5,
-        ),
-      ),
-      child: RadioListTile<String>(
-        title: Text(
-          title,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13),
-        ),
-        value: value,
-        groupValue: groupValue,
-        onChanged: onChanged,
-        activeColor: const Color(0xFF0400BA),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        dense: true,
-        tileColor: Colors.transparent,
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Softer left-to-right background gradient
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [Color(0xFFA8B8FF), Color(0xFF9B7EFF)],
-                stops: [0.0, 1.0],
-              ),
-            ),
-          ),
-          // Global animated waves (match CSS-like layers)
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: const SizedBox(
-              key: ValueKey('auth_waves_v3'),
-              child: AuthWaveBackground(),
-            ),
-          ),
-          // Top logo (global)
-          SafeArea(
-            child: Stack(
-              children: [
-                // Logo caremind_deitado.png alinhado acima do card
-                Positioned(
-                  top: 40,
-                  left: 20,
-                  right: 20,
-                  child: Builder(builder: (context) {
-                    final w = MediaQuery.of(context).size.width;
-                    final double height = (w * 0.15).clamp(40.0, 80.0);
-                    return Image.asset(
-                      'assets/images/caremind_deitado.png',
-                      height: height,
-                      fit: BoxFit.contain,
-                    );
-                  }),
-                ),
-                // Animated card switcher (only the card changes)
-                Positioned.fill(
-                  child: Align(
-                    // Raise the card closer to center
-                    alignment: const Alignment(0, 0.15),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 350),
-                        switchInCurve: Curves.easeOut,
-                        switchOutCurve: Curves.easeIn,
-                        transitionBuilder: (child, anim) {
-                          // Fade + slight vertical slide
-                          return FadeTransition(
-                            opacity: anim,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0, 0.04),
-                                end: Offset.zero,
-                              ).animate(anim),
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: _mode == AuthMode.login
-                            ? _buildLoginCard(key: const ValueKey('login'))
-                            : _buildRegisterCard(key: const ValueKey('register')),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+  TextSpan _linkSpan(String text, VoidCallback onTap) {
+    return TextSpan(
+      text: text,
+      style: const TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+      recognizer: TapGestureRecognizer()..onTap = onTap,
     );
   }
 
-  // Primary solid button per spec (shadow + 48px height)
-  Widget _primaryButton({required String label, required VoidCallback? onPressed}) {
-    final baseColor = const Color(0xFF0400BA);
-    return SizedBox(
-      height: 48,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ButtonStyle(
-          animationDuration: const Duration(milliseconds: 300),
-          backgroundColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.pressed)) {
-              return const Color(0xFF020054); // 20% darker approx
-            }
-            if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
-              return const Color(0xFF0600E0); // 10% darker/active
-            }
-            return baseColor;
-          }),
-          foregroundColor: WidgetStateProperty.all(Colors.white),
-          overlayColor: WidgetStateProperty.all(Colors.white.withOpacity(0.06)),
-          elevation: WidgetStateProperty.all(6),
-          shadowColor: WidgetStateProperty.all(baseColor.withOpacity(0.2)),
-          padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
-          shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-        ),
-        child: Text(label),
-      ),
-    );
+  // ==================== UI HELPERS 
+  // ====================
+
+  Widget _fieldLabel(String text) {
+    return Text(text, style: GoogleFonts.leagueSpartan(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600));
   }
 
-  // Card container (glassmorphism)
-  Widget _glassContainer({required Widget child, Key? key}) {
-    return KeyedSubtree(
-      key: key,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final screenW = MediaQuery.of(context).size.width;
-          final pad = (screenW * 0.025).clamp(16.0, 28.0);
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: Stack(
-              children: [
-                // Neutral underlay so the BackdropFilter doesn't pick strong hues from the page gradient
-                // This keeps the gradient behind the card without tinting the glass excessively
-                Positioned.fill(
-                  child: Container(color: Colors.white.withOpacity(0.08)),
-                ),
-                BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                  child: Container(
-                    width: screenW * 0.85,
-                    constraints: const BoxConstraints(maxWidth: 380),
-                    padding: EdgeInsets.all(pad),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.white.withOpacity(0.18), width: 1),
-                      boxShadow: const [
-                        // subtle outer shadow around edges
-                        BoxShadow(
-                          color: Color.fromRGBO(0, 0, 0, 0.15),
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    foregroundDecoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withOpacity(0.25),
-                          Colors.white.withOpacity(0.08),
-                          Colors.transparent,
-                        ],
-                        stops: const [0.0, 0.2, 0.6],
-                      ),
-                    ),
-                    child: child,
-                  ),
-                ),
-                // Top 1px glow line
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  left: 0,
-                  child: Container(
-                    height: 1,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          Colors.transparent,
-                          Colors.white.withOpacity(0.5),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                // Subtle inner shadow at bottom
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: IgnorePointer(
-                    child: Container(
-                      height: 18,
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color(0x0F000000),
-                            Color(0x00000000),
-                          ]
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  // Helper: responsive title size (clamp)
-  Text _responsiveTitle(String text) {
-    final w = MediaQuery.of(context).size.width;
-    final size = (w * 0.06).clamp(28.0, 48.0);
-    return Text(
-      text,
-      textAlign: TextAlign.center,
-      style: GoogleFonts.leagueSpartan(
-        fontSize: size,
-        fontWeight: FontWeight.w700,
-        height: 1.2,
-        color: Colors.white,
-        shadows: [Shadow(color: Colors.black.withOpacity(0.2), offset: const Offset(0, 2), blurRadius: 4)],
-      ),
-    );
-  }
-
-  // Helper: solid field (no glow)
   Widget _glowField({
     required TextEditingController controller,
     required String hint,
@@ -713,202 +523,373 @@ class _AuthShellState extends State<AuthShell> {
   }) {
     return TextFormField(
       controller: controller,
-      keyboardType: keyboardType,
       obscureText: obscure,
-      validator: validator,
-      style: const TextStyle(color: Color(0xFF2D3748)),
+      keyboardType: keyboardType,
+      style: const TextStyle(color: Colors.white, fontSize: 15),
       decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white,
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey[500]),
+        hintStyle: TextStyle(color: Colors.white.withAlpha(140)),
+        filled: true,
+        fillColor: Colors.white.withAlpha(20),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.white.withAlpha(50)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        errorStyle: const TextStyle(color: Colors.amber),
+      ),
+      onChanged: (value) {
+        print('Campo alterado ($hint): $value');
+        if (_registerFormKey.currentState != null) {
+          _registerFormKey.currentState!.validate();
+        }
+      },
+      validator: validator,
+    );
+  }
+
+  Widget _primaryButton({
+    required String label,
+    required VoidCallback? onPressed,
+    double fontSize = 16,
+    EdgeInsetsGeometry? padding,
+  }) {
+    print('=== _primaryButton chamado ===');
+    print('Label: $label');
+    print('onPressed: $onPressed');
+    print('_termsAccepted: $_termsAccepted');
+    
+    return ElevatedButton(
+      onPressed: onPressed == null 
+          ? null 
+          : () {
+              print('Botão pressionado: $label');
+              onPressed();
+            },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: onPressed == null ? Colors.grey[400] : const Color(0xFF4CAF50),
+        padding: padding ?? const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 3,
+        minimumSize: const Size(double.infinity, 50),
+      ),
+      child: onPressed == _handleLogin && _isLoginLoading
+          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+          : Text(label, style: GoogleFonts.leagueSpartan(color: Colors.white, fontSize: fontSize, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  Widget _outlineButton({required String label, required VoidCallback onPressed, double fontSize = 16}) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        side: const BorderSide(color: Colors.white, width: 1.5),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        backgroundColor: Colors.white.withAlpha(26),
+      ),
+      child: Text(
+        label, 
+        style: GoogleFonts.leagueSpartan(
+          color: Colors.white, 
+          fontSize: fontSize, 
+          fontWeight: FontWeight.w600
+        )
       ),
     );
   }
 
-  Widget _buildLoginCard({Key? key}) {
-    return _glassContainer(
-      key: key,
-      child: Form(
-        key: _loginFormKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _responsiveTitle('Entrar'),
-            const SizedBox(height: 24),
-            Text(
-              'Email',
-              style: GoogleFonts.leagueSpartan(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                height: 1.25,
-                shadows: [Shadow(color: Colors.black.withOpacity(0.2), offset: Offset(0, 2), blurRadius: 4)],
+  Widget _glassContainer({required Widget child}) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(20),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.white.withAlpha(46)),
+                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 2))],
+              ),
+              child: child,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Text _responsiveTitle(String text) {
+    final size = MediaQuery.of(context).size.width * 0.06;
+    final clampedSize = size.clamp(24.0, 32.0);
+    return Text(
+      text,
+      textAlign: TextAlign.center,
+      style: GoogleFonts.leagueSpartan(
+        fontSize: clampedSize,
+        fontWeight: FontWeight.w700,
+        color: Colors.white,
+        shadows: const [Shadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+      ),
+    );
+  }
+
+  // ==================== MAIN BUILD ====================
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      body: Stack(
+        children: [
+          // Fundo gradiente
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [Color(0xFFA8B8FF), Color(0xFF9B7EFF)],
               ),
             ),
+          ),
+          
+          // Ondas na parte inferior
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AuthWaveBackground(),
+          ),
+
+          // Conteúdo principal
+          Positioned.fill(
+            child: SafeArea(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Logo
+                        Image.asset(
+                          'assets/images/caremind_deitado.png',
+                          height: 60,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Card de autenticação
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 350),
+                          child: _mode == AuthMode.login
+                              ? _buildLoginCard()
+                              : _buildRegisterCard(),
+                        ),
+                        
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginCard() {
+    return _glassContainer(
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _responsiveTitle('Bem-vindo de volta!'),
+            const SizedBox(height: 8),
+            Text(
+              'Faça login para continuar',
+              style: TextStyle(color: Colors.white.withAlpha(230), fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            _fieldLabel('Email'),
             const SizedBox(height: 8),
             _glowField(
               controller: _loginEmailController,
               hint: 'seu@email.com',
               keyboardType: TextInputType.emailAddress,
-              validator: (v) => v == null || v.isEmpty ? 'Informe o e-mail' : null,
+              validator: (v) => v?.contains('@') == true ? null : 'Email inválido',
             ),
             const SizedBox(height: 16),
-            Text(
-              'Senha',
-              style: GoogleFonts.leagueSpartan(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                height: 1.25,
-                shadows: [Shadow(color: Colors.black.withOpacity(0.2), offset: Offset(0, 2), blurRadius: 4)],
-              ),
-            ),
+            _fieldLabel('Senha'),
             const SizedBox(height: 8),
             _glowField(
               controller: _loginPasswordController,
-              hint: 'Password',
+              hint: 'Sua senha',
               obscure: true,
-              validator: (v) => v == null || v.isEmpty ? 'Informe a senha' : null,
+              validator: (v) => v?.isNotEmpty == true ? null : 'Informe a senha',
             ),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Esqueci minha senha',
+            const SizedBox(height: 24),
+            _primaryButton(
+              label: 'Entrar',
+              onPressed: _isLoginLoading ? null : _handleLogin,
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () => _showSnack('Em breve'),
+              child: const Text(
+                'Esqueceu a senha?',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.95),
+                  color: Colors.white70,
                   decoration: TextDecoration.underline,
-                  decorationColor: Colors.white70,
-                  decorationThickness: 0.8,
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            _isLoginLoading
-                ? const SizedBox(height: 48, child: Center(child: SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 3, color: Color(0xFF0400BA)))))
-                : _primaryButton(label: 'Entrar', onPressed: _handleLogin),
-            const SizedBox(height: 16),
-            Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Não tem conta ainda? ', style: TextStyle(color: Colors.white, fontSize: 14)),
-                  GestureDetector(
-                    onTap: () => setState(() => _mode = AuthMode.register),
-                    child: const Text('Criar conta', style: TextStyle(decoration: TextDecoration.underline, fontWeight: FontWeight.w600, color: Colors.white, fontSize: 14)),
+            TextButton(
+              onPressed: _isLoginLoading
+                  ? null
+                  : () => setState(() => _mode = AuthMode.register),
+              child: RichText(
+                text: TextSpan(
+                  style: TextStyle(
+                    color: Colors.white.withAlpha(230),
+                    fontSize: 14,
                   ),
-                ],
+                  children: const [
+                    TextSpan(text: 'Não tem conta? '),
+                    TextSpan(
+                      text: 'Cadastre-se',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-            const Divider(color: Colors.black12),
-            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRegisterCard({Key? key}) {
+  Widget _buildRegisterCard() {
     return _glassContainer(
-      key: key,
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _responsiveTitle('Registrar'),
-          const SizedBox(height: 6),
+          // Cabeçalho
+          _responsiveTitle('Criar Conta'),
+          const SizedBox(height: 4),
           Text(
             'Passo ${_registerStep + 1} de 3',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(color: Colors.white.withAlpha(204), fontSize: 14),
           ),
           const SizedBox(height: 16),
-          // Page indicator
-          Center(
-            child: SmoothPageIndicator(
-              controller: _registerPageController,
-              count: 3,
-              effect: WormEffect(
-                dotWidth: 8,
-                dotHeight: 8,
-                activeDotColor: Colors.white,
-                dotColor: Colors.white.withOpacity(0.3),
-                spacing: 6,
+
+          // Conteúdo animado que se adapta ao tamanho
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: SizedBox(
+              height: _getStepHeight(),
+              child: Listener(
+                behavior: HitTestBehavior.opaque,
+                onPointerDown: (_) {},
+                child: PageView(
+                  controller: _registerPageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  onPageChanged: (i) {
+                    // Add a small delay to prevent animation glitches
+                    Future.delayed(const Duration(milliseconds: 50), () {
+                      if (mounted) {
+                        setState(() => _registerStep = i);
+                      }
+                    });
+                  },
+                  children: [
+                    _buildStep1(),
+                    _buildStep2(),
+                    _buildStep3(),
+                  ],
+                ),
               ),
-              onDotClicked: (index) {
-                _registerPageController.animateToPage(
-                  index,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-                setState(() => _registerStep = index);
-              },
             ),
           ),
+
           const SizedBox(height: 16),
-          // PageView for the registration steps
-          SizedBox(
-            height: 320, // Increased height to give more space for buttons in step 2
-            child: PageView(
-              controller: _registerPageController,
-              physics: const NeverScrollableScrollPhysics(),
-              onPageChanged: (index) {
-                setState(() => _registerStep = index);
-              },
-              children: [
-                _buildStep1(),
-                _buildStep2(),
-                _buildStep3(),
-              ],
+
+          // Indicador
+          SmoothPageIndicator(
+            controller: _registerPageController,
+            count: 3,
+            effect: const WormEffect(
+              dotHeight: 6, 
+              dotWidth: 6,  
+              activeDotColor: Colors.white,
+              dotColor: Color.fromRGBO(255, 255, 255, 0.3),
+              spacing: 6,
             ),
           ),
-          // Bottom links - only show on step 0 and attach to bottom
-          if (_registerStep == 0) ...[
-            const SizedBox(height: 4), // Very minimal spacing
-            Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+
+          const SizedBox(height: 16),
+
+          // Link para login (apenas no passo 1)
+          if (_registerStep == 0)
+            RichText(
+              text: TextSpan(
+                style: TextStyle(color: Colors.white.withAlpha(179), fontSize: 14),
                 children: [
-                  const Text('Já tem uma conta? ', style: TextStyle(color: Colors.white, fontSize: 14)),
-                  GestureDetector(
-                    onTap: () => setState(() => _mode = AuthMode.login),
-                    child: const Text(
-                      'Fazer login',
-                      style: TextStyle(
-                        decoration: TextDecoration.underline,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
+                  const TextSpan(text: 'Já tem conta? '),
+                  TextSpan(
+                    text: 'Fazer login',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      decoration: TextDecoration.underline,
                     ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () => setState(() => _mode = AuthMode.login),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 4),
-          ],
+            )
+          else
+            const SizedBox(height: 0),
         ],
       ),
     );
+  }
+
+  // Retorna a altura apropriada para cada passo
+  double _getStepHeight() {
+    switch (_registerStep) {
+      case 0: // Step 1 - Nome e Email
+        return 280.0;
+      case 1: // Step 2 - Senhas
+        return 300.0;
+      case 2: // Step 3 - Tipo de conta e termos
+        return 350.0;
+      default:
+        return 280.0;
+    }
   }
 }

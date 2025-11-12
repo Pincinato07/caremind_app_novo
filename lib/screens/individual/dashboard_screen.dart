@@ -142,7 +142,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                   borderRadius: BorderRadius.circular(16),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF0400B9).withOpacity(0.3),
+                                      color: const Color(0xFF0400B9).withAlpha(0x4D),
                                       blurRadius: 12,
                                       offset: const Offset(0, 4),
                                     ),
@@ -319,17 +319,17 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                             end: Alignment.bottomRight,
                             colors: [
                               Colors.white,
-                              const Color(0xFF0400B9).withOpacity(0.02),
+                              const Color(0xFF0400B9).withAlpha(0x05),
                             ],
                           ),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: const Color(0xFF0400B9).withOpacity(0.1),
+                            color: const Color(0xFF0400B9).withAlpha(0x1A),
                             width: 1,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF0400B9).withOpacity(0.1),
+                              color: const Color(0xFF0400B9).withAlpha(0x1A),
                               blurRadius: 20,
                               offset: const Offset(0, 8),
                             ),
@@ -342,7 +342,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF4CAF50).withOpacity(0.1),
+                                    color: const Color(0xFF4CAF50).withAlpha(0x1A),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: const Icon(
@@ -401,6 +401,13 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                     const Color(0xFF2196F3),
                                   ),
                                 ),
+                                Expanded(
+                                  child: _buildSummaryItem(
+                                    'Métricas',
+                                    '$_totalMetricas',
+                                    const Color(0xFF9C27B0),
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -440,18 +447,18 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            color.withOpacity(0.1),
-            color.withOpacity(0.05),
+            color.withAlpha(0x1A),
+            color.withAlpha(0x0D),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: color.withOpacity(0.2),
+          color: color.withAlpha(0x33),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.1),
+            color: color.withAlpha(0x1A),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -471,7 +478,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
+                    color: color.withAlpha(0x33),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -519,12 +526,12 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF0400B9).withOpacity(0.1),
+          color: const Color(0xFF0400B9).withAlpha(0x1A),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0400B9).withOpacity(0.05),
+            color: const Color(0xFF0400B9).withAlpha(0x0D),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -542,7 +549,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withAlpha(0x1A),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(

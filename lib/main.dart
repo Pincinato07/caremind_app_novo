@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'theme/app_theme.dart';
@@ -10,6 +11,11 @@ import 'widgets/global_wave_background.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Desativa logs de debug no modo web
+  if (kIsWeb) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+  }
   
   await dotenv.load(fileName: ".env");
 

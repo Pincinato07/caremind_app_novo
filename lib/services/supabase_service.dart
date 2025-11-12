@@ -86,19 +86,6 @@ class SupabaseService {
   }
 
   // Profile methods
-  static Future<void> createProfile({
-    required String userId,
-    required String nome,
-    required String tipo,
-  }) async {
-    await _client.from('perfis').insert({
-      'id': userId,
-      'nome': nome,
-      'tipo': tipo,
-      'created_at': DateTime.now().toIso8601String(),
-    });
-  }
-
   static Future<Perfil?> getProfile(String userId) async {
     final response = await _client
         .from('perfis')

@@ -37,6 +37,7 @@ dependencies:
   qr_flutter: ^4.1.0
   mobile_scanner: ^5.2.3
   clipboard: ^0.1.3
+  flutter_native_splash: ^2.4.7
 
 dev_dependencies:
   flutter_test:
@@ -74,12 +75,8 @@ flutter_launcher_icons:
 
 # Configuração da Splash Screen
 flutter_native_splash:
-  color: "#F8F9FA"
+  color: "#FFFFFF"
   image: assets/images/caremind.png
-  android_12:
-    image: assets/images/caremind.png
-    icon_background_color: "#F8F9FA"
-  fullscreen: true
-  android_gravity: center
-  ios_content_mode: scaleAspectFit
-  web_image_mode: center
+  android: true
+  ios: true
+  web: true
