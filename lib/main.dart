@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'theme/app_theme.dart';
@@ -7,16 +6,12 @@ import 'screens/auth/auth_shell.dart';
 import 'screens/auth/onboarding_screen.dart';
 import 'screens/individual/dashboard_screen.dart';
 import 'screens/familiar/dashboard_screen.dart';
+import 'screens/splash_screen.dart';
 import 'widgets/global_wave_background.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Desativa logs de debug no modo web
-  if (kIsWeb) {
-    debugPrint = (String? message, {int? wrapWidth}) {};
-  }
-  
+
   await dotenv.load(fileName: ".env");
 
   await Supabase.initialize(
@@ -55,8 +50,9 @@ class CareMindApp extends StatelessWidget {
           ],
         );
       },
-      initialRoute: '/onboarding',
+      initialRoute: '/splash',
       routes: {
+        '/splash': (context) => const SplashScreen(),
         '/': (context) => const AuthShell(initialMode: AuthMode.login),
         '/onboarding': (context) => const OnboardingScreen(),
         '/login': (context) => const AuthShell(initialMode: AuthMode.login),
