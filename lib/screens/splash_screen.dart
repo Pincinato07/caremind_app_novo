@@ -1,43 +1,302 @@
 import 'package:flutter/material.dart';
-
+import 'package:google_fonts/google_fonts.dart';
+import '../widgets/app_scaffold_with_waves.dart';
+import '../services/supabase_service.dart';
+import '../core/injection/injection.dart';
+import '../core/errors/app_exception.dart';
+import 'auth/onboarding_screen.dart';
+import 'auth/auth_shell.dart';
+import 'shared/main_navigator_screen.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+  const SplashScreen({super.key});
 
   @override
-  _SplashScreenState createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+  
+  String _loadingStatus = 'Inicializando...';
+  double _progress = 0.0;
+
   @override
   void initState() {
     super.initState();
+    
+    // Configurar animações
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeIn,
+      ),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeOutBack,
+      ),
+    );
+
+    _animationController.forward();
     _initializeApp();
   }
 
-  Future<void> _initializeApp() async {
-    // Adicione aqui qualquer inicialização necessária
-    // Por exemplo: carregar configurações, autenticação, etc.
-    
-    // Tempo mínimo de exibição da splash screen (2 segundos)
-    await Future.delayed(const Duration(seconds: 2));
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
+  Future<void> _updateProgress(String status, double progress) async {
     if (mounted) {
-      // Navega para a tela de onboarding após o tempo de exibição
-      Navigator.of(context).pushReplacementNamed('/onboarding');
+      setState(() {
+        _loadingStatus = status;
+        _progress = progress;
+      });
+      // Pequeno delay para suavizar transições
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+  }
+
+  Future<void> _initializeApp() async {
+    try {
+      // Progresso: 10% - Inicializando serviços
+      await _updateProgress('Carregando serviços...', 0.1);
+      
+      // Nota: configureDependencies já foi chamado no main.dart
+      // Aqui apenas verificamos se está tudo certo
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Progresso: 30% - Verificando autenticação
+      await _updateProgress('Verificando autenticação...', 0.3);
+      
+      final supabaseService = getIt<SupabaseService>();
+      final user = supabaseService.currentUser;
+      
+      await Future.delayed(const Duration(milliseconds: 400));
+
+      if (user == null) {
+        // Progresso: 70% - Usuário não autenticado
+        await _updateProgress('Preparando tela de login...', 0.7);
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        // Progresso: 100% - Redirecionar para onboarding
+        await _updateProgress('Finalizando...', 1.0);
+        await Future.delayed(const Duration(milliseconds: 300));
+
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed('/onboarding');
+        }
+        return;
+      }
+
+      // Progresso: 50% - Carregando perfil
+      await _updateProgress('Carregando perfil...', 0.5);
+      
+      final perfil = await supabaseService.getProfile(user.id);
+      await Future.delayed(const Duration(milliseconds: 400));
+
+      if (perfil == null) {
+        // Progresso: 70% - Perfil não encontrado, redirecionar para cadastro
+        await _updateProgress('Perfil não encontrado...', 0.7);
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        // Progresso: 100%
+        await _updateProgress('Finalizando...', 1.0);
+        await Future.delayed(const Duration(milliseconds: 300));
+
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed('/onboarding');
+        }
+        return;
+      }
+
+      // Progresso: 70% - Carregando dados do usuário
+      await _updateProgress('Carregando dados...', 0.7);
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Progresso: 90% - Preparando interface
+      await _updateProgress('Preparando interface...', 0.9);
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      // Progresso: 100% - Finalizando
+      await _updateProgress('Finalizando...', 1.0);
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      if (mounted) {
+        // Navegar para a tela principal baseada no perfil
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => MainNavigatorScreen(perfil: perfil),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Erro na inicialização: $e');
+      
+      // Em caso de erro, redirecionar para login
+      if (mounted) {
+        await _updateProgress('Erro ao carregar. Redirecionando...', 0.8);
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        Navigator.of(context).pushReplacementNamed('/');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
+    final screenSize = MediaQuery.of(context).size;
+    
+    return AppScaffoldWithWaves(
       body: Center(
-        child: Image.asset(
-          'assets/images/caremind.png',
-          width: 200, // Ajuste o tamanho conforme necessário
-          height: 200, // Ajuste o tamanho conforme necessário
-          fit: BoxFit.contain,
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Logo animado
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        blurRadius: 30,
+                        spreadRadius: 5,
+                      ),
+                    ],
+                  ),
+                  child: Image.asset(
+                    'assets/images/caremind_deitado.png',
+                    width: screenSize.width * 0.4,
+                    height: screenSize.width * 0.4,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      // Fallback se a imagem não existir
+                      return Container(
+                        width: screenSize.width * 0.4,
+                        height: screenSize.width * 0.4,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.favorite_rounded,
+                          size: screenSize.width * 0.2,
+                          color: Colors.white,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                
+                const SizedBox(height: 48),
+                
+                // Nome do app
+                Text(
+                  'CareMind',
+                  style: GoogleFonts.leagueSpartan(
+                    fontSize: 42,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    letterSpacing: 2,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        offset: const Offset(0, 2),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 8),
+                
+                // Slogan
+                Text(
+                  'Cuidando de quem você ama',
+                  style: GoogleFonts.leagueSpartan(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withValues(alpha: 0.9),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                
+                const SizedBox(height: 64),
+                
+                // Barra de progresso
+                Container(
+                  width: screenSize.width * 0.7,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(4),
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: TweenAnimationBuilder<double>(
+                      duration: const Duration(milliseconds: 500),
+                      tween: Tween(begin: 0.0, end: _progress),
+                      builder: (context, value, child) {
+                        return LinearProgressIndicator(
+                          value: value,
+                          backgroundColor: Colors.transparent,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white.withValues(alpha: 0.9),
+                          ),
+                          minHeight: 8,
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Status de carregamento
+                Text(
+                  _loadingStatus,
+                  style: GoogleFonts.leagueSpartan(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                
+                const SizedBox(height: 32),
+                
+                // Indicador de carregamento
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

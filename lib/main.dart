@@ -13,14 +13,17 @@ import 'core/injection/injection.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Carregar variáveis de ambiente
   await dotenv.load(fileName: ".env");
 
+  // Inicializar Supabase (já feito antes da splash)
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
-  // Configura injeção de dependências
+  // Configurar injeção de dependências (já feito antes da splash)
+  // A splash screen agora vai fazer verificações de autenticação
   await configureDependencies();
   
   runApp(const CareMindApp());
