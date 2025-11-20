@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../models/medicamento.dart';
 import '../../services/medicamento_service.dart';
 import '../../services/supabase_service.dart';
+import '../../services/notification_service.dart';
+import '../../core/injection/injection.dart';
+import '../../core/errors/app_exception.dart';
+import '../../widgets/app_scaffold_with_waves.dart';
 
 class AddEditMedicamentoForm extends StatefulWidget {
   final Medicamento? medicamento;
+  final String? idosoId; // ID do idoso quando familiar está adicionando remédio
 
-  const AddEditMedicamentoForm({super.key, this.medicamento});
+  const AddEditMedicamentoForm({super.key, this.medicamento, this.idosoId});
 
   @override
   State<AddEditMedicamentoForm> createState() => _AddEditMedicamentoFormState();
@@ -116,11 +122,17 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
     setState(() => _isLoading = true);
 
     try {
-      final user = SupabaseService.currentUser;
+      final supabaseService = getIt<SupabaseService>();
+      final medicamentoService = getIt<MedicamentoService>();
+      final user = supabaseService.currentUser;
       if (user == null) {
         _showError('Usuário não encontrado');
         return;
       }
+
+      // Se idosoId foi fornecido (familiar adicionando para idoso), usar ele
+      // Caso contrário, usar o userId do usuário logado
+      final targetUserId = widget.idosoId ?? user.id;
 
       if (_isEditing) {
         // Atualizar medicamento existente
@@ -131,10 +143,17 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
           'frequencia': _buildFrequenciaJson(),
         };
         
-        await MedicamentoService.updateMedicamento(
+        final medicamentoSalvo = await medicamentoService.updateMedicamento(
           widget.medicamento!.id!,
           updates,
         );
+        
+        // Cancelar notificações antigas e agendar novas
+        await NotificationService.cancelMedicamentoNotifications(
+          widget.medicamento!.id!,
+        );
+        // Agendar novas notificações baseadas na frequência atualizada
+        await NotificationService.scheduleMedicationReminders(medicamentoSalvo);
         
         _showSuccess('Medicamento atualizado com sucesso');
       } else {
@@ -142,19 +161,26 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
         final medicamento = Medicamento(
           createdAt: DateTime.now(),
           nome: _nomeController.text.trim(),
-          userId: user.id,
+          userId: targetUserId, // Usa idosoId se fornecido
           dosagem: _dosagemController.text.trim(),
           frequencia: _buildFrequenciaJson(),
           quantidade: int.parse(_quantidadeController.text),
         );
         
-        await MedicamentoService.addMedicamento(medicamento);
+        final medicamentoSalvo = await medicamentoService.addMedicamento(medicamento);
+        
+        // Agendar notificações diárias repetitivas baseadas na frequência
+        await NotificationService.scheduleMedicationReminders(medicamentoSalvo);
+        
         _showSuccess('Medicamento adicionado com sucesso');
       }
       
       Navigator.pop(context, true); // Retorna true para indicar sucesso
     } catch (error) {
-      _showError('Erro ao salvar medicamento: $error');
+      final errorMessage = error is AppException
+          ? error.message
+          : 'Erro ao salvar medicamento: $error';
+      _showError(errorMessage);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -169,6 +195,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
     );
   }
 
+
   void _showSuccess(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -180,23 +207,25 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFFAFA),
+    return AppScaffoldWithWaves(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0400B9),
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         title: Text(
           _isEditing ? 'Editar Medicamento' : 'Novo Medicamento',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: GoogleFonts.leagueSpartan(
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _saveMedicamento,
             child: Text(
               'Salvar',
-              style: TextStyle(
+              style: GoogleFonts.leagueSpartan(
                 color: _isLoading ? Colors.white54 : Colors.white,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -250,7 +279,9 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _isEditing ? 'Atualize as informações do medicamento' : 'Preencha os dados do medicamento',
+                            widget.idosoId != null
+                                ? 'Adicionando remédio para ${widget.idosoId}' // TODO: Buscar nome do idoso
+                                : (_isEditing ? 'Atualize as informações do medicamento' : 'Preencha os dados do medicamento'),
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey.shade600,

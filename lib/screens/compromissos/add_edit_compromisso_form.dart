@@ -1,0 +1,274 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import '../../services/supabase_service.dart';
+import '../../services/compromisso_service.dart';
+import '../../core/injection/injection.dart';
+import '../../core/errors/app_exception.dart';
+import '../../widgets/app_scaffold_with_waves.dart';
+
+class AddEditCompromissoForm extends StatefulWidget {
+  final Map<String, dynamic>? compromisso;
+  final String? idosoId; // Para familiar adicionar compromisso para idoso
+
+  const AddEditCompromissoForm({super.key, this.compromisso, this.idosoId});
+
+  @override
+  State<AddEditCompromissoForm> createState() => _AddEditCompromissoFormState();
+}
+
+class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _tituloController = TextEditingController();
+  final _descricaoController = TextEditingController();
+  DateTime _dataHora = DateTime.now();
+  bool _isLoading = false;
+  bool get _isEditing => widget.compromisso != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditing) {
+      _loadCompromissoData();
+    }
+  }
+
+  void _loadCompromissoData() {
+    final compromisso = widget.compromisso!;
+    _tituloController.text = compromisso['titulo'] as String? ?? '';
+    _descricaoController.text = compromisso['descricao'] as String? ?? '';
+    _dataHora = DateTime.parse(compromisso['data_hora'] as String);
+  }
+
+  @override
+  void dispose() {
+    _tituloController.dispose();
+    _descricaoController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _selectDateTime() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _dataHora,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (date != null) {
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_dataHora),
+      );
+
+      if (time != null) {
+        setState(() {
+          _dataHora = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+        });
+      }
+    }
+  }
+
+  Future<void> _saveCompromisso() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final supabaseService = getIt<SupabaseService>();
+      final compromissoService = getIt<CompromissoService>();
+      final user = supabaseService.currentUser;
+      
+      if (user == null) {
+        _showError('Usuário não encontrado');
+        return;
+      }
+
+      final targetId = widget.idosoId ?? user.id;
+      final data = {
+        'titulo': _tituloController.text.trim(),
+        'descricao': _descricaoController.text.trim(),
+        'data_hora': _dataHora.toIso8601String(),
+        'perfil_id': targetId,
+      };
+
+      if (_isEditing) {
+        await compromissoService.updateCompromisso(
+          widget.compromisso!['id'] as int,
+          data,
+        );
+        _showSuccess('Compromisso atualizado com sucesso');
+      } else {
+        await compromissoService.addCompromisso(data);
+        _showSuccess('Compromisso adicionado com sucesso');
+      }
+
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+    } catch (error) {
+      final errorMessage = error is AppException
+          ? error.message
+          : 'Erro ao salvar compromisso: $error';
+      _showError(errorMessage);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppScaffoldWithWaves(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        title: Text(
+          _isEditing ? 'Editar Compromisso' : 'Novo Compromisso',
+          style: GoogleFonts.leagueSpartan(
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: _isLoading ? null : _saveCompromisso,
+            child: Text(
+              'Salvar',
+              style: GoogleFonts.leagueSpartan(
+                color: _isLoading ? Colors.white54 : Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF0400B9).withOpacity(0.1),
+                      const Color(0xFF0400B9).withOpacity(0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0400B9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.calendar_today, color: Colors.white, size: 24),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.idosoId != null
+                                ? 'Adicionando compromisso para idoso'
+                                : (_isEditing ? 'Editar Compromisso' : 'Novo Compromisso'),
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _isEditing ? 'Atualize as informações do compromisso' : 'Preencha os dados do compromisso',
+                            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _tituloController,
+                decoration: InputDecoration(
+                  labelText: 'Título',
+                  hintText: 'ex: Consulta médica, Exame de sangue',
+                  prefixIcon: const Icon(Icons.title),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Por favor, insira o título do compromisso';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _descricaoController,
+                decoration: InputDecoration(
+                  labelText: 'Descrição (opcional)',
+                  hintText: 'Detalhes adicionais sobre o compromisso',
+                  prefixIcon: const Icon(Icons.description),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                maxLines: 4,
+              ),
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: _selectDateTime,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.access_time, color: Color(0xFF0400B9)),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Data e Hora', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            const SizedBox(height: 4),
+                            Text(
+                              DateFormat('dd/MM/yyyy às HH:mm').format(_dataHora),
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

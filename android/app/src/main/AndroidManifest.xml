@@ -1,4 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Permissões para notificações locais -->
+    <!-- Android 13+ (API 33+): POST_NOTIFICATIONS é solicitada automaticamente pelo plugin -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Android 12+ (API 31+): SCHEDULE_EXACT_ALARM para agendar notificações exatas -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <!-- Vibração para notificações -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- Wake up device para notificações -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <!-- Receber boot completed para reagendar notificações após reiniciar -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    
     <application
         android:label="Caremind"
         android:name="${applicationName}"
@@ -30,6 +42,18 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        
+        <!-- Receiver para reagendar notificações após reiniciar o dispositivo -->
+        <receiver android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.PACKAGE_REPLACED"/>
+                <data android:scheme="package"/>
+            </intent-filter>
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

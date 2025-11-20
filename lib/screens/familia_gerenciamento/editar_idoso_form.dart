@@ -2,28 +2,57 @@ import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
+import '../../models/perfil.dart';
 
-class AdicionarIdosoForm extends StatefulWidget {
-  const AdicionarIdosoForm({super.key});
+class EditarIdosoForm extends StatefulWidget {
+  final Perfil idoso;
+
+  const EditarIdosoForm({super.key, required this.idoso});
 
   @override
-  State<AdicionarIdosoForm> createState() => _AdicionarIdosoFormState();
+  State<EditarIdosoForm> createState() => _EditarIdosoFormState();
 }
 
-class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
+class _EditarIdosoFormState extends State<EditarIdosoForm> {
   final _formKey = GlobalKey<FormState>();
   final _nomeController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _senhaController = TextEditingController();
+  final _telefoneController = TextEditingController();
+  final _dataNascimentoController = TextEditingController();
   bool _isLoading = false;
-  bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadIdosoData();
+  }
+
+  void _loadIdosoData() {
+    _nomeController.text = widget.idoso.nome ?? '';
+    // TODO: Carregar telefone e data_nascimento do perfil se existirem
+  }
 
   @override
   void dispose() {
     _nomeController.dispose();
-    _emailController.dispose();
-    _senhaController.dispose();
+    _telefoneController.dispose();
+    _dataNascimentoController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().subtract(const Duration(days: 365 * 70)),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      helpText: 'Selecione a data de nascimento',
+    );
+    if (picked != null) {
+      setState(() {
+        _dataNascimentoController.text =
+            '${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}';
+      });
+    }
   }
 
   Future<void> _submitForm() async {
@@ -33,10 +62,15 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
 
     try {
       final supabaseService = getIt<SupabaseService>();
-      final response = await supabaseService.criarEVincularIdoso(
+      final response = await supabaseService.atualizarIdoso(
+        idosoId: widget.idoso.id,
         nome: _nomeController.text.trim(),
-        email: _emailController.text.trim(),
-        senha: _senhaController.text,
+        telefone: _telefoneController.text.trim().isEmpty
+            ? null
+            : _telefoneController.text.trim(),
+        dataNascimento: _dataNascimentoController.text.trim().isEmpty
+            ? null
+            : _dataNascimentoController.text.trim(),
       );
 
       if (!mounted) return;
@@ -44,15 +78,15 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
       if (response['success'] == true) {
         Navigator.of(context).pop(true); // Retorna true para indicar sucesso
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Idoso "${_nomeController.text}" adicionado com sucesso!'),
+          const SnackBar(
+            content: Text('Idoso atualizado com sucesso!'),
             backgroundColor: Colors.green,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(response['error'] ?? response['message'] ?? 'Erro ao adicionar idoso'),
+            content: Text(response['error'] ?? 'Erro ao atualizar idoso'),
             backgroundColor: Colors.red,
           ),
         );
@@ -61,7 +95,7 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
       if (!mounted) return;
       final errorMessage = error is AppException
           ? error.message
-          : 'Erro ao adicionar idoso: ${error.toString()}';
+          : 'Erro ao atualizar idoso: ${error.toString()}';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errorMessage),
@@ -105,7 +139,7 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
-                        Icons.person_add,
+                        Icons.edit,
                         color: colors.primary,
                         size: 24,
                       ),
@@ -116,7 +150,7 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Adicionar Idoso',
+                            'Editar Idoso',
                             style: theme.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: colors.primary,
@@ -124,7 +158,7 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Crie a conta e estabeleça o vínculo automaticamente',
+                            'Atualize as informações do idoso',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: colors.onSurfaceVariant,
                             ),
@@ -141,7 +175,7 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
                 TextFormField(
                   controller: _nomeController,
                   decoration: InputDecoration(
-                    labelText: 'Nome Completo do Idoso',
+                    labelText: 'Nome Completo',
                     prefixIcon: const Icon(Icons.person_outline),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -162,74 +196,37 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
 
                 const SizedBox(height: 16),
 
-                // Campo Email
+                // Campo Telefone
                 TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
+                  controller: _telefoneController,
+                  keyboardType: TextInputType.phone,
                   decoration: InputDecoration(
-                    labelText: 'E-mail do Idoso',
-                    prefixIcon: const Icon(Icons.email_outlined),
+                    labelText: 'Telefone (opcional)',
+                    prefixIcon: const Icon(Icons.phone_outlined),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
                     fillColor: colors.surfaceContainerHighest.withOpacity(0.3),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, insira o e-mail';
-                    }
-                    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value)) {
-                      return 'Por favor, insira um e-mail válido';
-                    }
-                    return null;
-                  },
                 ),
 
                 const SizedBox(height: 16),
 
-                // Campo Senha
+                // Campo Data de Nascimento
                 TextFormField(
-                  controller: _senhaController,
-                  obscureText: _obscurePassword,
+                  controller: _dataNascimentoController,
+                  readOnly: true,
+                  onTap: _selectDate,
                   decoration: InputDecoration(
-                    labelText: 'Senha Inicial',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    ),
+                    labelText: 'Data de Nascimento (opcional)',
+                    prefixIcon: const Icon(Icons.calendar_today_outlined),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
                     fillColor: colors.surfaceContainerHighest.withOpacity(0.3),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, insira uma senha';
-                    }
-                    if (value.length < 6) {
-                      return 'A senha deve ter pelo menos 6 caracteres';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 8),
-
-                // Info sobre senha
-                Text(
-                  'Esta será a senha inicial do idoso. Ele poderá alterá-la depois.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                    fontStyle: FontStyle.italic,
+                    hintText: 'DD/MM/AAAA',
                   ),
                 ),
 
@@ -271,7 +268,7 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
                                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                 ),
                               )
-                            : const Text('Adicionar e Conectar'),
+                            : const Text('Salvar Alterações'),
                       ),
                     ),
                   ],
@@ -284,3 +281,4 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
     );
   }
 }
+

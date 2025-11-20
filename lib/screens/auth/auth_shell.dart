@@ -6,6 +6,8 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/supabase_service.dart';
+import '../../core/injection/injection.dart';
+import '../../core/errors/app_exception.dart';
 import '../../widgets/wave_background.dart'; // Caminho correto
 import '../shared/main_navigator_screen.dart';
 
@@ -43,6 +45,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
   // Step 3
   String _selectedAccountType = 'pessoal';
   bool _termsAccepted = false;
+  bool _consentimentoDadosSaude = false; // Consentimento explícito LGPD
   bool _isRegistering = false;
 
   @override
@@ -76,14 +79,15 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoginLoading = true);
     try {
-      final response = await SupabaseService.signIn(
+      final supabaseService = getIt<SupabaseService>();
+      final response = await supabaseService.signIn(
         email: _loginEmailController.text.trim(),
         password: _loginPasswordController.text,
       );
       if (!mounted) return;
 
       if (response.user != null) {
-        final perfil = await SupabaseService.getProfile(response.user!.id);
+        final perfil = await supabaseService.getProfile(response.user!.id);
         if (perfil != null && mounted) {
           Navigator.pushAndRemoveUntil(
             context,
@@ -97,7 +101,10 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         _showSnack('Credenciais inválidas.');
       }
     } catch (e) {
-      _showSnack('Erro: $e');
+      final errorMessage = e is AppException
+          ? e.message
+          : 'Erro ao fazer login: $e';
+      _showSnack(errorMessage);
     } finally {
       if (mounted) setState(() => _isLoginLoading = false);
     }
@@ -128,8 +135,14 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         _registerPageController.jumpToPage(2);
         return;
       }
+      if (!_consentimentoDadosSaude) {
+        _showSnack('Você precisa consentir o compartilhamento de dados de saúde.');
+        _registerPageController.jumpToPage(2);
+        return;
+      }
 
-      final response = await SupabaseService.signUp(
+      final supabaseService = getIt<SupabaseService>();
+      final response = await supabaseService.signUp(
         email: email,
         password: password,
         nome: name,
@@ -140,7 +153,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
 
       if (response.user != null) {
         await Future.delayed(const Duration(milliseconds: 500));
-        final perfil = await SupabaseService.getProfile(response.user!.id);
+        final perfil = await supabaseService.getProfile(response.user!.id);
         if (perfil != null && mounted) {
           Navigator.pushAndRemoveUntil(
             context,
@@ -153,7 +166,10 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         }
       }
     } catch (e) {
-      _showSnack('Erro ao cadastrar: $e');
+      final errorMessage = e is AppException
+          ? e.message
+          : 'Erro ao cadastrar: $e';
+      _showSnack(errorMessage);
     } finally {
       if (mounted) setState(() => _isRegistering = false);
     }
@@ -164,6 +180,106 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
   void _showSnack(String msg) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    }
+  }
+
+  Future<void> _handleForgotPassword() async {
+    final emailController = TextEditingController();
+    
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(
+          'Recuperar Senha',
+          style: GoogleFonts.leagueSpartan(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Digite seu e-mail para receber instruções de redefinição de senha.',
+              style: GoogleFonts.leagueSpartan(
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                labelText: 'E-mail',
+                hintText: 'seu@email.com',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                prefixIcon: const Icon(Icons.email_outlined),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancelar',
+              style: GoogleFonts.leagueSpartan(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              if (emailController.text.trim().isNotEmpty && 
+                  emailController.text.contains('@')) {
+                Navigator.pop(context, emailController.text.trim());
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Por favor, digite um e-mail válido'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF0400BA),
+            ),
+            child: Text(
+              'Enviar',
+              style: GoogleFonts.leagueSpartan(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (result == null || result == false) return;
+
+    final email = result as String;
+    
+    try {
+      final supabaseService = getIt<SupabaseService>();
+      await supabaseService.resetPassword(email);
+      
+      if (mounted) {
+        _showSnack('Verifique seu e-mail para redefinir a senha');
+      }
+    } catch (e) {
+      if (mounted) {
+        final errorMessage = e is AppException
+            ? e.message
+            : 'Erro ao enviar e-mail de recuperação: $e';
+        _showSnack(errorMessage);
+      }
     }
   }
 
@@ -455,6 +571,33 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
           ],
         ),
         const SizedBox(height: 16),
+        // Checkbox de consentimento LGPD para compartilhamento de dados de saúde
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(
+              value: _consentimentoDadosSaude,
+              onChanged: (v) => setState(() => _consentimentoDadosSaude = v ?? false),
+              activeColor: const Color(0xFF0400BA),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: RichText(
+                text: TextSpan(
+                  style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                  children: [
+                    const TextSpan(
+                      text: 'Eu consinto o compartilhamento dos meus dados de saúde (medicamentos e compromissos) com familiares vinculados, conforme a ',
+                    ),
+                    _linkSpan('Política de Privacidade', () => _launchURL('https://www.caremind.online/politica-privacidade')),
+                    const TextSpan(text: ' e a LGPD. Posso revogar este consentimento a qualquer momento nas configurações.'),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
         Row(
           children: [
             Expanded(child: _outlineButton(label: 'Voltar', onPressed: _previousPage)),
@@ -462,7 +605,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
             Expanded(
               child: _primaryButton(
                 label: _isRegistering ? 'Criando conta...' : 'Finalizar',
-                onPressed: (!_isRegistering && _termsAccepted) ? _handleSignUp : null,
+                onPressed: (!_isRegistering && _termsAccepted && _consentimentoDadosSaude) ? _handleSignUp : null,
                 isLoading: _isRegistering,
               ),
             ),
@@ -490,7 +633,16 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
             const SizedBox(height: 8),
             _primaryButton(label: 'Entrar', onPressed: _isLoginLoading ? null : _handleLogin, isLoading: _isLoginLoading),
             const SizedBox(height: 12),
-            TextButton(onPressed: () => _showSnack('Em breve'), child: const Text('Esqueceu a senha?', style: TextStyle(color: Colors.white70, decoration: TextDecoration.underline))),
+            TextButton(
+              onPressed: _isLoginLoading ? null : _handleForgotPassword,
+              child: const Text(
+                'Esqueceu a senha?',
+                style: TextStyle(
+                  color: Colors.white70,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
             TextButton(
               onPressed: _isLoginLoading ? null : () => setState(() => _mode = AuthMode.register),
               child: RichText(

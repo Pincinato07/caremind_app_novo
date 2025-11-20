@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../models/medicamento.dart';
 import '../../services/medicamento_service.dart';
 import '../../services/supabase_service.dart';
+import '../../core/injection/injection.dart';
+import '../../core/errors/app_exception.dart';
+import '../../widgets/app_scaffold_with_waves.dart';
 import 'add_edit_medicamento_form.dart';
 
 class GestaoMedicamentosScreen extends StatefulWidget {
@@ -15,12 +19,33 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
   List<Medicamento> _medicamentos = [];
   bool _isLoading = true;
   String? _error;
+  String? _perfilTipo; // Tipo do perfil do usuário
 
   @override
   void initState() {
     super.initState();
+    _loadUserProfile();
     _loadMedicamentos();
   }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final supabaseService = getIt<SupabaseService>();
+      final user = supabaseService.currentUser;
+      if (user != null) {
+        final perfil = await supabaseService.getProfile(user.id);
+        if (perfil != null && mounted) {
+          setState(() {
+            _perfilTipo = perfil.tipo?.toLowerCase();
+          });
+        }
+      }
+    } catch (e) {
+      // Ignora erro ao carregar perfil
+    }
+  }
+
+  bool get _isIdoso => _perfilTipo == 'idoso';
 
   Future<void> _loadMedicamentos() async {
     setState(() {
@@ -29,9 +54,11 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
     });
 
     try {
-      final user = SupabaseService.currentUser;
+      final supabaseService = getIt<SupabaseService>();
+      final medicamentoService = getIt<MedicamentoService>();
+      final user = supabaseService.currentUser;
       if (user != null) {
-        final medicamentos = await MedicamentoService.getMedicamentos(user.id);
+        final medicamentos = await medicamentoService.getMedicamentos(user.id);
         setState(() {
           _medicamentos = medicamentos;
           _isLoading = false;
@@ -43,8 +70,11 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
         });
       }
     } catch (error) {
+      final errorMessage = error is AppException
+          ? error.message
+          : 'Erro ao carregar medicamentos: $error';
       setState(() {
-        _error = error.toString();
+        _error = errorMessage;
         _isLoading = false;
       });
     }
@@ -52,13 +82,17 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
 
   Future<void> _toggleConcluido(Medicamento medicamento) async {
     try {
-      await MedicamentoService.toggleConcluido(
+      final medicamentoService = getIt<MedicamentoService>();
+      await medicamentoService.toggleConcluido(
         medicamento.id!,
         !medicamento.concluido,
       );
       _loadMedicamentos(); // Recarrega a lista
     } catch (error) {
-      _showError('Erro ao atualizar medicamento: $error');
+      final errorMessage = error is AppException
+          ? error.message
+          : 'Erro ao atualizar medicamento: $error';
+      _showError(errorMessage);
     }
   }
 
@@ -84,11 +118,15 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
 
     if (confirmed == true) {
       try {
-        await MedicamentoService.deleteMedicamento(medicamento.id!);
+        final medicamentoService = getIt<MedicamentoService>();
+        await medicamentoService.deleteMedicamento(medicamento.id!);
         _loadMedicamentos(); // Recarrega a lista
         _showSuccess('Medicamento excluído com sucesso');
       } catch (error) {
-        _showError('Erro ao excluir medicamento: $error');
+        final errorMessage = error is AppException
+            ? error.message
+            : 'Erro ao excluir medicamento: $error';
+        _showError(errorMessage);
       }
     }
   }
@@ -113,8 +151,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFFAFA),
+    return AppScaffoldWithWaves(
       body: CustomScrollView(
         slivers: [
           // Header moderno
@@ -122,13 +159,13 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
             expandedHeight: 120,
             floating: false,
             pinned: true,
-            backgroundColor: const Color(0xFF0400B9),
+            backgroundColor: Colors.transparent,
             foregroundColor: Colors.white,
             flexibleSpace: FlexibleSpaceBar(
-              title: const Text(
+              title: Text(
                 'Medicamentos',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
+                style: GoogleFonts.leagueSpartan(
+                  fontWeight: FontWeight.w700,
                   color: Colors.white,
                 ),
               ),
@@ -137,7 +174,10 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+                    colors: [
+                      Color(0xFFA8B8FF),
+                      Color(0xFF9B7EFF),
+                    ],
                   ),
                 ),
                 child: const Center(
@@ -151,7 +191,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.refresh),
+                icon: const Icon(Icons.refresh, color: Colors.white),
                 onPressed: _loadMedicamentos,
               ),
             ],
@@ -163,30 +203,33 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddEditMedicamentoForm(),
+      floatingActionButton: _isIdoso
+          ? null // Idoso não pode adicionar medicamentos
+          : FloatingActionButton.extended(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AddEditMedicamentoForm(),
+                  ),
+                );
+                if (result == true) {
+                  _loadMedicamentos();
+                }
+              },
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF0400BA),
+              elevation: 4,
+              icon: const Icon(Icons.add),
+              label: Text(
+                'Adicionar',
+                style: GoogleFonts.leagueSpartan(
+                  color: const Color(0xFF0400BA),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
             ),
-          );
-          if (result == true) {
-            _loadMedicamentos();
-          }
-        },
-        backgroundColor: const Color(0xFF0400B9),
-        elevation: 4,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'Adicionar',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-      ),
     );
   }
 
@@ -198,14 +241,14 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(
-                color: Color(0xFF0400B9),
+              const CircularProgressIndicator(
+                color: Colors.white,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Text(
                 'Carregando medicamentos...',
-                style: TextStyle(
-                  color: Colors.grey,
+                style: GoogleFonts.leagueSpartan(
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 16,
                 ),
               ),
@@ -239,29 +282,36 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     const SizedBox(height: 16),
                     Text(
                       'Erro ao carregar medicamentos',
-                      style: TextStyle(
+                      style: GoogleFonts.leagueSpartan(
                         fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red.shade700,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       _error!,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.red.shade600),
+                      style: GoogleFonts.leagueSpartan(
+                        color: Colors.red.shade300,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: _loadMedicamentos,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0400B9),
-                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF0400BA),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text('Tentar novamente'),
+                      child: Text(
+                        'Tentar novamente',
+                        style: GoogleFonts.leagueSpartan(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -285,13 +335,13 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      const Color(0xFF0400B9).withOpacity(0.1),
-                      const Color(0xFF0600E0).withOpacity(0.05),
+                      Colors.white.withValues(alpha: 0.15),
+                      Colors.white.withValues(alpha: 0.1),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: const Color(0xFF0400B9).withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
@@ -300,13 +350,16 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.white.withValues(alpha: 0.3),
+                            Colors.white.withValues(alpha: 0.2),
+                          ],
                         ),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF0400B9).withOpacity(0.3),
+                            color: Colors.white.withValues(alpha: 0.2),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -319,12 +372,12 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    const Text(
+                    Text(
                       'Nenhum medicamento encontrado',
-                      style: TextStyle(
+                      style: GoogleFonts.leagueSpartan(
                         fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0400B9),
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -332,8 +385,8 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     Text(
                       'Toque no botão "+" para adicionar seu primeiro medicamento e começar a organizar sua saúde',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
+                      style: GoogleFonts.leagueSpartan(
+                        color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 16,
                         height: 1.5,
                       ),
@@ -568,17 +621,23 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () async {
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AddEditMedicamentoForm(medicamento: medicamento),
-              ),
-            );
-            if (result == true) {
-              _loadMedicamentos();
-            }
-          },
+          onTap: _isIdoso
+              ? () {
+                  // Idoso só pode marcar como concluído
+                  _toggleConcluido(medicamento);
+                }
+              : () async {
+                  // Outros perfis podem editar
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AddEditMedicamentoForm(medicamento: medicamento),
+                    ),
+                  );
+                  if (result == true) {
+                    _loadMedicamentos();
+                  }
+                },
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -662,7 +721,9 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                             _toggleConcluido(medicamento);
                             break;
                           case 'delete':
-                            _deleteMedicamento(medicamento);
+                            if (!_isIdoso) {
+                              _deleteMedicamento(medicamento);
+                            }
                             break;
                         }
                       },
@@ -681,16 +742,17 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                             ],
                           ),
                         ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                              SizedBox(width: 12),
-                              Text('Excluir', style: TextStyle(color: Colors.red)),
-                            ],
+                        if (!_isIdoso)
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                                SizedBox(width: 12),
+                                Text('Excluir', style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ],

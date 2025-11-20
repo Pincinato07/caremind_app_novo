@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
+import '../rotinas/gestao_rotinas_screen.dart';
 
 class RotinaIdosoScreen extends StatelessWidget {
   const RotinaIdosoScreen({super.key});
 
+  @override
+  Widget build(BuildContext context) {
+    return const GestaoRotinasScreen();
+  }
+}
+
+// Código antigo mantido para referência (pode ser removido)
+class _OldRotinaIdosoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

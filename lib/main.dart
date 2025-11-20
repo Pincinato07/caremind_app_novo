@@ -8,6 +8,7 @@ import 'screens/individual/dashboard_screen.dart';
 import 'screens/familiar/dashboard_screen.dart';
 import 'screens/splash_screen.dart';
 import 'widgets/global_wave_background.dart';
+import 'core/injection/injection.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +19,9 @@ void main() async {
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
+
+  // Configura injeção de dependências
+  await configureDependencies();
   
   runApp(const CareMindApp());
 }
@@ -34,7 +38,7 @@ class CareMindApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.transparent,
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {
-            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
             TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
           },
         ),

@@ -1,11 +1,15 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/medicamento.dart';
+import '../core/errors/app_exception.dart';
+import '../core/errors/error_handler.dart';
 
 class MedicamentoService {
-  static final SupabaseClient _client = Supabase.instance.client;
+  final SupabaseClient _client;
+
+  MedicamentoService(this._client);
 
   // Buscar todos os medicamentos de um usuário
-  static Future<List<Medicamento>> getMedicamentos(String userId) async {
+  Future<List<Medicamento>> getMedicamentos(String userId) async {
     try {
       final response = await _client
           .from('medicamentos')
@@ -17,12 +21,12 @@ class MedicamentoService {
           .map((item) => Medicamento.fromMap(item))
           .toList();
     } catch (error) {
-      throw Exception('Erro ao buscar medicamentos: $error');
+      throw ErrorHandler.toAppException(error);
     }
   }
 
   // Adicionar um novo medicamento
-  static Future<Medicamento> addMedicamento(Medicamento medicamento) async {
+  Future<Medicamento> addMedicamento(Medicamento medicamento) async {
     try {
       final data = medicamento.toMap();
       data.remove('id'); // Remove o ID para inserção
@@ -33,14 +37,24 @@ class MedicamentoService {
           .select()
           .single();
 
-      return Medicamento.fromMap(response);
+      final medicamentoSalvo = Medicamento.fromMap(response);
+
+      // Agendar notificações automaticamente após criar medicamento
+      try {
+        await NotificationService.scheduleMedicationReminders(medicamentoSalvo);
+      } catch (e) {
+        // Log erro mas não interrompe o fluxo
+        print('⚠️ Erro ao agendar notificações: $e');
+      }
+
+      return medicamentoSalvo;
     } catch (error) {
-      throw Exception('Erro ao adicionar medicamento: $error');
+      throw ErrorHandler.toAppException(error);
     }
   }
 
   // Atualizar um medicamento existente
-  static Future<Medicamento> updateMedicamento(
+  Future<Medicamento> updateMedicamento(
     int medicamentoId,
     Map<String, dynamic> updates,
   ) async {
@@ -52,26 +66,45 @@ class MedicamentoService {
           .select()
           .single();
 
-      return Medicamento.fromMap(response);
+      final medicamentoAtualizado = Medicamento.fromMap(response);
+
+      // Cancelar notificações antigas e agendar novas com frequência atualizada
+      try {
+        await NotificationService.cancelMedicamentoNotifications(medicamentoId);
+        await NotificationService.scheduleMedicationReminders(medicamentoAtualizado);
+      } catch (e) {
+        // Log erro mas não interrompe o fluxo
+        print('⚠️ Erro ao atualizar notificações: $e');
+      }
+
+      return medicamentoAtualizado;
     } catch (error) {
-      throw Exception('Erro ao atualizar medicamento: $error');
+      throw ErrorHandler.toAppException(error);
     }
   }
 
   // Deletar um medicamento
-  static Future<void> deleteMedicamento(int medicamentoId) async {
+  Future<void> deleteMedicamento(int medicamentoId) async {
     try {
+      // Cancelar notificações antes de deletar
+      try {
+        await NotificationService.cancelMedicamentoNotifications(medicamentoId);
+      } catch (e) {
+        // Log erro mas não interrompe o fluxo
+        print('⚠️ Erro ao cancelar notificações: $e');
+      }
+
       await _client
           .from('medicamentos')
           .delete()
           .eq('id', medicamentoId);
     } catch (error) {
-      throw Exception('Erro ao deletar medicamento: $error');
+      throw ErrorHandler.toAppException(error);
     }
   }
 
   // Marcar medicamento como concluído/não concluído
-  static Future<Medicamento> toggleConcluido(
+  Future<Medicamento> toggleConcluido(
     int medicamentoId,
     bool concluido,
   ) async {
@@ -85,12 +118,12 @@ class MedicamentoService {
 
       return Medicamento.fromMap(response);
     } catch (error) {
-      throw Exception('Erro ao atualizar status do medicamento: $error');
+      throw ErrorHandler.toAppException(error);
     }
   }
 
   // Buscar medicamentos por status (concluído/pendente)
-  static Future<List<Medicamento>> getMedicamentosPorStatus(
+  Future<List<Medicamento>> getMedicamentosPorStatus(
     String userId,
     bool concluido,
   ) async {
@@ -106,12 +139,12 @@ class MedicamentoService {
           .map((item) => Medicamento.fromMap(item))
           .toList();
     } catch (error) {
-      throw Exception('Erro ao buscar medicamentos por status: $error');
+      throw ErrorHandler.toAppException(error);
     }
   }
 
   // Buscar medicamento por ID
-  static Future<Medicamento?> getMedicamentoPorId(int medicamentoId) async {
+  Future<Medicamento?> getMedicamentoPorId(int medicamentoId) async {
     try {
       final response = await _client
           .from('medicamentos')
@@ -124,7 +157,7 @@ class MedicamentoService {
       }
       return null;
     } catch (error) {
-      throw Exception('Erro ao buscar medicamento: $error');
+      throw ErrorHandler.toAppException(error);
     }
   }
 }

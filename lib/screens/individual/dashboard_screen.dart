@@ -1,6 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../services/supabase_service.dart';
+import '../../services/medicamento_service.dart';
+import '../../core/injection/injection.dart';
+import '../../core/errors/app_exception.dart';
+import '../../core/navigation/app_navigation.dart';
+import '../../models/medicamento.dart';
+import '../../widgets/app_scaffold_with_waves.dart';
+import '../../widgets/glass_card.dart';
+import '../../widgets/app_button.dart';
 import '../medication/gestao_medicamentos_screen.dart';
+import '../medication/add_edit_medicamento_form.dart';
+import '../compromissos/gestao_compromissos_screen.dart';
+import '../compromissos/add_edit_compromisso_form.dart';
 import 'rotina_screen.dart';
 
 class IndividualDashboardScreen extends StatefulWidget {
@@ -14,11 +26,13 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
   String _userName = 'Usuário';
   bool _isLoading = true;
   
-  // Dados reais
   int _totalMedicamentos = 0;
   int _totalRotinas = 0;
   int _totalCompromissos = 0;
   int _totalMetricas = 0;
+  
+  bool _temAtraso = false;
+  String _mensagemStatus = '';
 
   @override
   void initState() {
@@ -28,12 +42,12 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
 
   Future<void> _loadUserData() async {
     try {
-      final user = SupabaseService.currentUser;
+      final supabaseService = getIt<SupabaseService>();
+      final user = supabaseService.currentUser;
       if (user != null) {
-        final perfil = await SupabaseService.getProfile(user.id);
+        final perfil = await supabaseService.getProfile(user.id);
         if (perfil != null && mounted) {
-          // Buscar dados reais das tabelas
-          await _loadDashboardData(user.id);
+          await _loadDashboardData(user.id, supabaseService);
           
           setState(() {
             _userName = perfil.nome ?? 'Usuário';
@@ -48,28 +62,32 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     }
   }
 
-  Future<void> _loadDashboardData(String userId) async {
+  Future<void> _loadDashboardData(String userId, SupabaseService supabaseService) async {
     try {
-      // Buscar medicamentos
-      final medicamentosResponse = await SupabaseService.client
-          .from('medicamentos')
-          .select('id')
-          .eq('user_id', userId);
-      _totalMedicamentos = medicamentosResponse.length;
+      final medicamentoService = getIt<MedicamentoService>();
+      final medicamentos = await medicamentoService.getMedicamentos(userId);
+      _totalMedicamentos = medicamentos.length;
+      
+      final pendentes = medicamentos.where((m) => !m.concluido).toList();
+      if (pendentes.isEmpty) {
+        _temAtraso = false;
+        _mensagemStatus = 'Você tomou tudo hoje.';
+      } else {
+        _temAtraso = true;
+        _mensagemStatus = 'Você tem ${pendentes.length} medicamento(s) pendente(s).';
+      }
 
-      // Buscar rotinas
-      final rotinasResponse = await SupabaseService.client
+      final rotinasResponse = await supabaseService.client
           .from('rotinas')
           .select('id')
           .eq('perfil_id', userId);
       _totalRotinas = rotinasResponse.length;
 
-      // Buscar compromissos de hoje
       final hoje = DateTime.now();
       final inicioDia = DateTime(hoje.year, hoje.month, hoje.day);
       final fimDia = DateTime(hoje.year, hoje.month, hoje.day, 23, 59, 59);
       
-      final compromissosResponse = await SupabaseService.client
+      final compromissosResponse = await supabaseService.client
           .from('compromissos')
           .select('id')
           .eq('perfil_id', userId)
@@ -77,8 +95,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
           .lte('data_hora', fimDia.toIso8601String());
       _totalCompromissos = compromissosResponse.length;
 
-      // Buscar métricas de hoje
-      final metricasResponse = await SupabaseService.client
+      final metricasResponse = await supabaseService.client
           .from('metricas_saude')
           .select('id')
           .eq('perfil_id', userId)
@@ -86,22 +103,31 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
           .lte('data_hora', fimDia.toIso8601String());
       _totalMetricas = metricasResponse.length;
     } catch (e) {
-      print('Erro ao carregar dados do dashboard: $e');
+      // Erro silencioso
+    }
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Bom dia! Como está se sentindo hoje?';
+    } else if (hour < 18) {
+      return 'Boa tarde! Vamos cuidar da sua saúde?';
+    } else {
+      return 'Boa noite! Que tal revisar o dia?';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFFAFA),
+    return AppScaffoldWithWaves(
       body: SafeArea(
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFF0400B9)))
+            ? const Center(child: CircularProgressIndicator(color: Colors.white))
             : CustomScrollView(
                 slivers: [
-                  // Header com saudação
                   SliverToBoxAdapter(
-                    child: Container(
+                    child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,18 +141,18 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                   children: [
                                     Text(
                                       'Olá, $_userName!',
-                                      style: const TextStyle(
+                                      style: GoogleFonts.leagueSpartan(
                                         fontSize: 28,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF0400B9),
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
                                       ),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
                                       _getGreeting(),
-                                      style: TextStyle(
+                                      style: GoogleFonts.leagueSpartan(
                                         fontSize: 16,
-                                        color: Colors.grey.shade600,
+                                        color: Colors.white.withValues(alpha: 0.9),
                                       ),
                                     ),
                                   ],
@@ -137,12 +163,12 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                 height: 56,
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
-                                    colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+                                    colors: [Color(0xFF0400BA), Color(0xFF0600E0)],
                                   ),
                                   borderRadius: BorderRadius.circular(16),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF0400B9).withAlpha(0x4D),
+                                      color: const Color(0xFF0400BA).withValues(alpha: 0.3),
                                       blurRadius: 12,
                                       offset: const Offset(0, 4),
                                     ),
@@ -160,38 +186,29 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       ),
                     ),
                   ),
-
-                  // Seção "Coisas Importantes"
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      child: _buildSemaforoStatus(),
+                    ),
+                  ),
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Row(
                         children: [
-                          const Text(
+                          Text(
                             'Coisas Importantes',
-                            style: TextStyle(
+                            style: GoogleFonts.leagueSpartan(
                               fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const Spacer(),
-                          TextButton(
-                            onPressed: () {},
-                            child: Text(
-                              'Ver todas',
-                              style: TextStyle(
-                                color: const Color(0xFF0400B9),
-                                fontWeight: FontWeight.w600,
-                              ),
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-
-                  // Cards de informações importantes
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                     sliver: SliverGrid(
@@ -208,45 +225,60 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                           icon: Icons.medication_liquid,
                           color: const Color(0xFFE91E63),
                           onTap: () {
-                            Navigator.push(
+                            AppNavigation.pushWithHaptic(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => const GestaoMedicamentosScreen(),
-                              ),
+                              const GestaoMedicamentosScreen(),
                             );
                           },
                         ),
                         _buildImportantCard(
                           title: 'Minha Rotina',
                           subtitle: 'Atividades diárias',
-                          icon: Icons.schedule,
+                          icon: Icons.schedule_rounded,
                           color: const Color(0xFF4CAF50),
                           onTap: () {
-                            Navigator.push(
+                            AppNavigation.pushWithHaptic(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => const RotinaScreen(),
-                              ),
+                              const RotinaScreen(),
                             );
+                          },
+                        ),
+                        _buildImportantCard(
+                          title: 'Compromissos',
+                          subtitle: '$_totalCompromissos hoje',
+                          icon: Icons.calendar_today,
+                          color: const Color(0xFF2196F3),
+                          onTap: () {
+                            AppNavigation.pushWithHaptic(
+                              context,
+                              const GestaoCompromissosScreen(),
+                            );
+                          },
+                        ),
+                        _buildImportantCard(
+                          title: 'Métricas',
+                          subtitle: '$_totalMetricas hoje',
+                          icon: Icons.analytics_outlined,
+                          color: const Color(0xFF9C27B0),
+                          onTap: () {
+                            // TODO: Navegar para métricas
                           },
                         ),
                       ]),
                     ),
                   ),
-
-                  // Ações rápidas
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Ações Rápidas',
-                            style: TextStyle(
+                            style: GoogleFonts.leagueSpartan(
                               fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -256,11 +288,9 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                             icon: Icons.add_circle_outline,
                             color: const Color(0xFFE91E63),
                             onTap: () {
-                              Navigator.push(
+                              AppNavigation.pushWithHaptic(
                                 context,
-                                MaterialPageRoute(
-                                  builder: (context) => const GestaoMedicamentosScreen(),
-                                ),
+                                const AddEditMedicamentoForm(),
                               );
                             },
                           ),
@@ -271,11 +301,22 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                             icon: Icons.schedule_outlined,
                             color: const Color(0xFF4CAF50),
                             onTap: () {
-                              Navigator.push(
+                              AppNavigation.pushWithHaptic(
                                 context,
-                                MaterialPageRoute(
-                                  builder: (context) => const RotinaScreen(),
-                                ),
+                                const RotinaScreen(),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          _buildActionButton(
+                            title: 'Adicionar Compromisso',
+                            subtitle: 'Nova consulta ou compromisso',
+                            icon: Icons.event_outlined,
+                            color: const Color(0xFF2196F3),
+                            onTap: () {
+                              AppNavigation.pushWithHaptic(
+                                context,
+                                const AddEditCompromissoForm(),
                               );
                             },
                           ),
@@ -283,155 +324,50 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       ),
                     ),
                   ),
-
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-                  // Seção "Resumo de Hoje"
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Row(
-                        children: [
-                          const Text(
-                            'Resumo de Hoje',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-                  // Card de resumo
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    sliver: SliverToBoxAdapter(
-                      child: Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Colors.white,
-                              const Color(0xFF0400B9).withAlpha(0x05),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: const Color(0xFF0400B9).withAlpha(0x1A),
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF0400B9).withAlpha(0x1A),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF4CAF50).withAlpha(0x1A),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Icon(
-                                    Icons.check_circle_outline,
-                                    color: Color(0xFF4CAF50),
-                                    size: 24,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                const Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Você está no caminho certo!',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                      SizedBox(height: 4),
-                                      Text(
-                                        'Continue seguindo sua rotina de saúde',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildSummaryItem(
-                                    'Medicamentos',
-                                    '$_totalMedicamentos',
-                                    const Color(0xFFE91E63),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: _buildSummaryItem(
-                                    'Rotinas',
-                                    '$_totalRotinas',
-                                    const Color(0xFF4CAF50),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: _buildSummaryItem(
-                                    'Atividades',
-                                    '$_totalCompromissos',
-                                    const Color(0xFF2196F3),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: _buildSummaryItem(
-                                    'Métricas',
-                                    '$_totalMetricas',
-                                    const Color(0xFF9C27B0),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
                 ],
               ),
       ),
     );
   }
 
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) {
-      return 'Bom dia! Como está se sentindo hoje?';
-    } else if (hour < 18) {
-      return 'Boa tarde! Vamos cuidar da sua saúde?';
-    } else {
-      return 'Boa noite! Que tal revisar o dia?';
-    }
+  Widget _buildSemaforoStatus() {
+    return GlassCard(
+      padding: const EdgeInsets.all(24),
+      borderColor: _temAtraso 
+          ? Colors.red.withValues(alpha: 0.5) 
+          : Colors.green.withValues(alpha: 0.5),
+      child: Row(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: _temAtraso ? Colors.red : Colors.green,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: (_temAtraso ? Colors.red : Colors.green).withValues(alpha: 0.5),
+                  blurRadius: 8,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              _mensagemStatus.isNotEmpty ? _mensagemStatus : 'Carregando status...',
+              style: GoogleFonts.leagueSpartan(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildImportantCard({
@@ -441,75 +377,41 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            color.withAlpha(0x1A),
-            color.withAlpha(0x0D),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: color.withAlpha(0x33),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: color.withAlpha(0x1A),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
+    return GlassCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: Colors.white, size: 20),
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: color.withAlpha(0x33),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 10),
+          Text(
+            title,
+            style: GoogleFonts.leagueSpartan(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: GoogleFonts.leagueSpartan(
+              fontSize: 11,
+              color: Colors.white.withValues(alpha: 0.8),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -521,100 +423,50 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF0400B9).withAlpha(0x1A),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0400B9).withAlpha(0x0D),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return GlassCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: Colors.white, size: 24),
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: color.withAlpha(0x1A),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: 24,
+                Text(
+                  title,
+                  style: GoogleFonts.leagueSpartan(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.leagueSpartan(
+                    fontSize: 14,
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
-                ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  color: Colors.grey.shade400,
-                  size: 16,
                 ),
               ],
             ),
           ),
-        ),
+          Icon(
+            Icons.arrow_forward_ios,
+            color: Colors.white.withValues(alpha: 0.6),
+            size: 16,
+          ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildSummaryItem(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
-          ),
-        ),
-      ],
     );
   }
 }
