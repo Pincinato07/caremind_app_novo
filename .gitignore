@@ -46,3 +46,9 @@ app.*.map.json
 
 # Environment Variables
 .env
+
+# Firebase Service Account Credentials (NUNCA commitar!)
+**/caremind-*-*.json
+**/*service-account*.json
+**/*ServiceAccount*.json
+ios/Runner/*-*.json
