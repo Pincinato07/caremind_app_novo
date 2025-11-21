@@ -74,5 +74,79 @@ class RelatoriosService {
       throw ErrorHandler.toAppException(error);
     }
   }
+
+  /// Busca alertas recentes
+  /// 
+  /// [perfilId] - ID do perfil (familiar ou individual)
+  /// 
+  /// Se for familiar: busca eventos dos idosos vinculados
+  /// Se for individual: busca eventos do próprio perfil
+  /// 
+  /// Retorna lista de eventos críticos ou recentes
+  Future<List<Map<String, dynamic>>> getAlertasRecentes(String perfilId) async {
+    try {
+      List<String> perfisIdsParaBuscar = [];
+
+      // 1. Verificar se é familiar (tem vínculos)
+      final vinculosResponse = await _client
+          .from('vinculos_familiares')
+          .select('id_idoso')
+          .eq('id_familiar', perfilId);
+
+      if (vinculosResponse.isNotEmpty) {
+        // É familiar: buscar eventos dos idosos vinculados
+        for (var vinculo in vinculosResponse) {
+          if (vinculo['id_idoso'] != null) {
+            perfisIdsParaBuscar.add(vinculo['id_idoso'] as String);
+          }
+        }
+      }
+
+      // Se não encontrou vínculos, é individual: buscar eventos do próprio perfil
+      if (perfisIdsParaBuscar.isEmpty) {
+        perfisIdsParaBuscar = [perfilId];
+      }
+
+      if (perfisIdsParaBuscar.isEmpty) {
+        return [];
+      }
+
+      // 2. Buscar eventos críticos ou recentes
+      // Tipos de eventos críticos
+      final tiposCriticos = [
+        'medicamento_atrasado',
+        'medicamento_nao_tomado',
+        'estoque_baixo',
+        'rotina_nao_concluida',
+        'compromisso_atrasado',
+      ];
+
+      // Buscar eventos críticos primeiro
+      final eventosCriticosResponse = await _client
+          .from('historico_eventos')
+          .select()
+          .inFilter('perfil_id', perfisIdsParaBuscar)
+          .inFilter('tipo_evento', tiposCriticos)
+          .order('data_hora', ascending: false)
+          .limit(20);
+
+      // Se encontrou eventos críticos, retornar eles
+      if (eventosCriticosResponse.isNotEmpty) {
+        return List<Map<String, dynamic>>.from(eventosCriticosResponse);
+      }
+
+      // Se não encontrou eventos críticos, buscar os últimos eventos gerais
+      final eventosGeraisResponse = await _client
+          .from('historico_eventos')
+          .select()
+          .inFilter('perfil_id', perfisIdsParaBuscar)
+          .order('data_hora', ascending: false)
+          .limit(20);
+
+      return List<Map<String, dynamic>>.from(eventosGeraisResponse);
+    } catch (error) {
+      throw ErrorHandler.toAppException(error);
+    }
+  }
 }
 

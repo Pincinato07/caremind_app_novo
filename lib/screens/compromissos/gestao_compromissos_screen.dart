@@ -8,6 +8,7 @@ import '../../core/state/familiar_state.dart';
 import '../../services/historico_eventos_service.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/banner_contexto_familiar.dart';
+import '../../widgets/compromissos_calendar.dart';
 import 'add_edit_compromisso_form.dart';
 
 class GestaoCompromissosScreen extends StatefulWidget {
@@ -29,6 +30,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
   bool _isLoading = true;
   String? _error;
   String? _perfilTipo;
+  String _viewMode = 'list'; // 'list' ou 'calendar'
 
   @override
   void initState() {
@@ -316,6 +318,63 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
   }
 
   Widget _buildBody() {
+    // Toggle entre lista e calendário (só mostra se houver compromissos)
+    final showToggle = !_isLoading && _error == null && _compromissos.isNotEmpty;
+    
+    if (showToggle) {
+      return Column(
+        children: [
+          // Toggle de visualização
+          Container(
+            margin: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildViewToggleButton('list', Icons.list, 'Lista'),
+                _buildViewToggleButton('calendar', Icons.calendar_today, 'Calendário'),
+              ],
+            ),
+          ),
+          
+          // Conteúdo baseado no modo de visualização
+          Expanded(
+            child: _viewMode == 'calendar'
+                ? SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: CompromissosCalendar(
+                      compromissos: _compromissos,
+                      onCompromissoTap: (compromisso) async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) {
+                              final familiarState = getIt<FamiliarState>();
+                              final idosoId = widget.idosoId ?? 
+                                  (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
+                              return AddEditCompromissoForm(compromisso: compromisso, idosoId: idosoId);
+                            },
+                          ),
+                        );
+                        if (result == true) {
+                          _loadCompromissos();
+                        }
+                      },
+                    ),
+                  )
+                : _buildListView(),
+          ),
+        ],
+      );
+    }
+    
     if (_isLoading) {
       return Container(
         height: 300,
@@ -385,7 +444,8 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
     }
 
     if (_compromissos.isEmpty) {
-      return Container(
+      return SingleChildScrollView(
+        child: Container(
         padding: const EdgeInsets.all(24),
         child: Center(
           child: Column(
@@ -439,10 +499,12 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
             ],
           ),
         ),
+      ),
       );
     }
 
-    return Column(
+    return SingleChildScrollView(
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
@@ -521,8 +583,57 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
             ))),
         const SizedBox(height: 100),
       ],
+    ),
     );
   }
+
+  Widget _buildViewToggleButton(String mode, IconData icon, String label) {
+    final isActive = _viewMode == mode;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _viewMode = mode;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            gradient: isActive
+                ? const LinearGradient(
+                    colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+                  )
+                : null,
+            color: isActive ? null : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: isActive ? Colors.white : Colors.white.withOpacity(0.7),
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: GoogleFonts.leagueSpartan(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: isActive ? Colors.white : Colors.white.withOpacity(0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildListView() {
+    return SingleChildScrollView(
+      child: Column(
 
   Widget _buildCompromissoCard(Map<String, dynamic> compromisso) {
     final concluido = compromisso['concluido'] as bool? ?? false;

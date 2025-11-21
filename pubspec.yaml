@@ -62,6 +62,9 @@ dependencies:
   # Gráficos para relatórios
   fl_chart: ^0.69.0
   
+  # Calendário para compromissos
+  table_calendar: ^3.1.2
+  
   # Armazenamento local para múltiplas contas
   shared_preferences: ^2.2.2
 

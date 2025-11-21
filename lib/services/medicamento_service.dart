@@ -1,8 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/medicamento.dart';
-import '../core/errors/app_exception.dart';
 import '../core/errors/error_handler.dart';
 import 'notification_service.dart';
+import 'historico_eventos_service.dart';
 
 class MedicamentoService {
   final SupabaseClient _client;
@@ -105,14 +105,48 @@ class MedicamentoService {
   }
 
   // Marcar medicamento como concluído/não concluído
+  // Se marcar como concluído, decrementa quantidade e verifica estoque baixo
   Future<Medicamento> toggleConcluido(
     int medicamentoId,
     bool concluido,
   ) async {
     try {
+      // Buscar medicamento atual para verificar quantidade
+      final medicamentoAtual = await getMedicamentoPorId(medicamentoId);
+      if (medicamentoAtual == null) {
+        throw Exception('Medicamento não encontrado');
+      }
+
+      Map<String, dynamic> updates = {'concluido': concluido};
+      
+      // Se está marcando como tomado, decrementar quantidade
+      if (concluido && !medicamentoAtual.concluido) {
+        final novaQuantidade = medicamentoAtual.quantidade > 0 
+            ? medicamentoAtual.quantidade - 1 
+            : 0;
+        updates['quantidade'] = novaQuantidade;
+
+        // Verificar se estoque está baixo (<= 5 unidades)
+        if (novaQuantidade <= 5 && novaQuantidade > 0) {
+          try {
+            await HistoricoEventosService.addEvento({
+              'perfil_id': medicamentoAtual.userId,
+              'tipo_evento': 'estoque_baixo',
+              'data_hora': DateTime.now().toIso8601String(),
+              'descricao': 'Estoque de "${medicamentoAtual.nome}" está baixo (${novaQuantidade} unidade(s) restante(s))',
+              'referencia_id': medicamentoId.toString(),
+              'tipo_referencia': 'medicamento',
+            });
+          } catch (e) {
+            // Log erro mas não interrompe o fluxo
+            print('⚠️ Erro ao registrar alerta de estoque baixo: $e');
+          }
+        }
+      }
+
       final response = await _client
           .from('medicamentos')
-          .update({'concluido': concluido})
+          .update(updates)
           .eq('id', medicamentoId)
           .select()
           .single();
