@@ -4,6 +4,7 @@ import '../widgets/app_scaffold_with_waves.dart';
 import '../services/supabase_service.dart';
 import '../core/injection/injection.dart';
 import 'shared/main_navigator_screen.dart';
+import 'auth/onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -100,7 +101,38 @@ class _SplashScreenState extends State<SplashScreen>
         await Future.delayed(const Duration(milliseconds: 300));
 
         if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/onboarding');
+          Navigator.of(context).pushReplacement(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => const OnboardingScreen(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                // Fade out da splash enquanto fade in do onboarding
+                final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: const Interval(0.3, 1.0, curve: Curves.easeInOut),
+                  ),
+                );
+                
+                // Scale suave para o onboarding
+                final scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: const Interval(0.3, 1.0, curve: Curves.easeOutCubic),
+                  ),
+                );
+                
+                return FadeTransition(
+                  opacity: fadeAnimation,
+                  child: ScaleTransition(
+                    scale: scaleAnimation,
+                    child: child,
+                  ),
+                );
+              },
+              transitionDuration: const Duration(milliseconds: 800),
+              reverseTransitionDuration: const Duration(milliseconds: 400),
+            ),
+          );
         }
         return;
       }
@@ -121,7 +153,38 @@ class _SplashScreenState extends State<SplashScreen>
         await Future.delayed(const Duration(milliseconds: 300));
 
         if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/onboarding');
+          Navigator.of(context).pushReplacement(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => const OnboardingScreen(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                // Fade out da splash enquanto fade in do onboarding
+                final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: const Interval(0.3, 1.0, curve: Curves.easeInOut),
+                  ),
+                );
+                
+                // Scale suave para o onboarding
+                final scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: const Interval(0.3, 1.0, curve: Curves.easeOutCubic),
+                  ),
+                );
+                
+                return FadeTransition(
+                  opacity: fadeAnimation,
+                  child: ScaleTransition(
+                    scale: scaleAnimation,
+                    child: child,
+                  ),
+                );
+              },
+              transitionDuration: const Duration(milliseconds: 800),
+              reverseTransitionDuration: const Duration(milliseconds: 400),
+            ),
+          );
         }
         return;
       }

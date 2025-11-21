@@ -69,19 +69,46 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => const AuthShell(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          const begin = Offset(1.0, 0.0);
-          const end = Offset.zero;
-          const curve = Curves.easeInOut;
-
-          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-          var offsetAnimation = animation.drive(tween);
-
-          return SlideTransition(
-            position: offsetAnimation,
-            child: child,
+          // Fade suave combinado com scale
+          final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+            CurvedAnimation(
+              parent: animation,
+              curve: const Interval(0.0, 0.7, curve: Curves.easeInOut),
+            ),
+          );
+          
+          // Scale sutil para dar profundidade
+          final scaleAnimation = Tween<double>(begin: 0.98, end: 1.0).animate(
+            CurvedAnimation(
+              parent: animation,
+              curve: const Interval(0.0, 0.7, curve: Curves.easeOutCubic),
+            ),
+          );
+          
+          // Slide horizontal muito suave (opcional, pode remover se preferir apenas fade+scale)
+          final slideAnimation = Tween<Offset>(
+            begin: const Offset(0.02, 0.0), // Muito sutil, quase imperceptível
+            end: Offset.zero,
+          ).animate(
+            CurvedAnimation(
+              parent: animation,
+              curve: const Interval(0.0, 0.7, curve: Curves.easeOutCubic),
+            ),
+          );
+          
+          return FadeTransition(
+            opacity: fadeAnimation,
+            child: ScaleTransition(
+              scale: scaleAnimation,
+              child: SlideTransition(
+                position: slideAnimation,
+                child: child,
+              ),
+            ),
           );
         },
-        transitionDuration: const Duration(milliseconds: 500),
+        transitionDuration: const Duration(milliseconds: 600),
+        reverseTransitionDuration: const Duration(milliseconds: 400),
       ),
     );
   }
