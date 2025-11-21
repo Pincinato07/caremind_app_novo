@@ -21,15 +21,7 @@ class ErrorHandler {
     if (error is AuthException) {
       return AuthenticationException(
         message: error.message,
-        code: error.status,
-        originalError: error,
-      );
-    }
-
-    if (error is RealtimeException) {
-      return NetworkException(
-        message: 'Erro de conexão em tempo real: ${error.message}',
-        code: error.status,
+        code: error.statusCode?.toString(),
         originalError: error,
       );
     }
@@ -44,8 +36,8 @@ class ErrorHandler {
 
     if (error is FunctionException) {
       return DatabaseException(
-        message: 'Erro na função: ${error.message}',
-        code: error.statusCode?.toString(),
+        message: 'Erro na função: ${error.toString()}',
+        code: null, // FunctionException não tem statusCode
         originalError: error,
       );
     }

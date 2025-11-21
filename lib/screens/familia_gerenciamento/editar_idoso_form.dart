@@ -26,9 +26,39 @@ class _EditarIdosoFormState extends State<EditarIdosoForm> {
     _loadIdosoData();
   }
 
+  /// Converte data do formato ISO (YYYY-MM-DD) para DD/MM/YYYY
+  String? _convertDateFromISO(String? dateStr) {
+    if (dateStr == null || dateStr.trim().isEmpty) {
+      return null;
+    }
+    
+    try {
+      // Formato esperado: YYYY-MM-DD
+      final parts = dateStr.trim().split('-');
+      if (parts.length != 3) {
+        return null;
+      }
+      
+      final year = int.parse(parts[0]);
+      final month = int.parse(parts[1]);
+      final day = int.parse(parts[2]);
+      
+      // Retornar no formato DD/MM/YYYY
+      return '${day.toString().padLeft(2, '0')}/${month.toString().padLeft(2, '0')}/${year.toString().padLeft(4, '0')}';
+    } catch (e) {
+      return null;
+    }
+  }
+
   void _loadIdosoData() {
     _nomeController.text = widget.idoso.nome ?? '';
-    // TODO: Carregar telefone e data_nascimento do perfil se existirem
+    _telefoneController.text = widget.idoso.telefone ?? '';
+    
+    // Converter data de ISO para formato brasileiro
+    final dataFormatada = _convertDateFromISO(widget.idoso.dataNascimento);
+    if (dataFormatada != null) {
+      _dataNascimentoController.text = dataFormatada;
+    }
   }
 
   @override
@@ -55,6 +85,30 @@ class _EditarIdosoFormState extends State<EditarIdosoForm> {
     }
   }
 
+  /// Converte data do formato DD/MM/YYYY para YYYY-MM-DD (ISO)
+  String? _convertDateToISO(String? dateStr) {
+    if (dateStr == null || dateStr.trim().isEmpty) {
+      return null;
+    }
+    
+    try {
+      // Formato esperado: DD/MM/YYYY
+      final parts = dateStr.trim().split('/');
+      if (parts.length != 3) {
+        return null;
+      }
+      
+      final day = int.parse(parts[0]);
+      final month = int.parse(parts[1]);
+      final year = int.parse(parts[2]);
+      
+      // Retornar no formato ISO: YYYY-MM-DD
+      return '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -62,15 +116,21 @@ class _EditarIdosoFormState extends State<EditarIdosoForm> {
 
     try {
       final supabaseService = getIt<SupabaseService>();
+      
+      // Converter data para formato ISO se fornecida
+      final dataNascimentoISO = _convertDateToISO(
+        _dataNascimentoController.text.trim().isEmpty
+            ? null
+            : _dataNascimentoController.text.trim(),
+      );
+      
       final response = await supabaseService.atualizarIdoso(
         idosoId: widget.idoso.id,
         nome: _nomeController.text.trim(),
         telefone: _telefoneController.text.trim().isEmpty
             ? null
             : _telefoneController.text.trim(),
-        dataNascimento: _dataNascimentoController.text.trim().isEmpty
-            ? null
-            : _dataNascimentoController.text.trim(),
+        dataNascimento: dataNascimentoISO,
       );
 
       if (!mounted) return;
@@ -118,17 +178,21 @@ class _EditarIdosoFormState extends State<EditarIdosoForm> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Container(
-        width: MediaQuery.of(context).size.width * 0.9,
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 500,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                 // Header
                 Row(
                   children: [
@@ -278,7 +342,10 @@ class _EditarIdosoFormState extends State<EditarIdosoForm> {
           ),
         ),
       ),
+      ),
     );
   }
 }
+
+
 

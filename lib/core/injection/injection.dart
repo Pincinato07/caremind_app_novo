@@ -5,9 +5,12 @@ import '../../services/medicamento_service.dart';
 import '../../services/rotina_service.dart';
 import '../../services/compromisso_service.dart';
 import '../../services/historico_eventos_service.dart';
+import '../../services/relatorios_service.dart';
+import '../../services/account_manager_service.dart';
 import '../../services/lgpd_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/ocr_service.dart';
+import '../../core/state/familiar_state.dart';
 
 final getIt = GetIt.instance;
 
@@ -39,7 +42,15 @@ Future<void> configureDependencies() async {
   );
 
   getIt.registerLazySingleton<HistoricoEventosService>(
-    () => HistoricoEventosService(getIt<SupabaseClient>()),
+    () => HistoricoEventosService(),
+  );
+
+  getIt.registerLazySingleton<RelatoriosService>(
+    () => RelatoriosService(getIt<SupabaseClient>()),
+  );
+
+  getIt.registerLazySingleton<AccountManagerService>(
+    () => AccountManagerService(),
   );
 
   getIt.registerLazySingleton<OcrService>(
@@ -53,6 +64,11 @@ Future<void> configureDependencies() async {
       getIt<MedicamentoService>(),
       getIt<CompromissoService>(),
     ),
+  );
+
+  // Registra FamiliarState como singleton (estado global para perfil familiar)
+  getIt.registerLazySingleton<FamiliarState>(
+    () => FamiliarState(),
   );
 }
 

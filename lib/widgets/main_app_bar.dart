@@ -1,0 +1,98 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../core/navigation/app_navigation.dart';
+import '../screens/shared/configuracoes_screen.dart';
+import '../screens/shared/perfil_screen.dart';
+
+/// AppBar principal com ícones de configurações e perfil
+/// Configurações no canto superior esquerdo
+/// Perfil no canto superior direito
+class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
+  final String? title;
+
+  const MainAppBar({
+    super.key,
+    this.title,
+  });
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context) {
+    const iconColor = Color(0xFF0400BA);
+    const iconSize = 32.0;
+    
+    return AppBar(
+      title: title != null
+          ? Text(
+              title!,
+              style: GoogleFonts.leagueSpartan(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                fontSize: 20,
+              ),
+            )
+          : null,
+      backgroundColor: Colors.transparent,
+      foregroundColor: iconColor,
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      scrolledUnderElevation: 0,
+      centerTitle: true,
+      flexibleSpace: const SizedBox.shrink(),
+      leading: Padding(
+        padding: const EdgeInsets.only(left: 12),
+        child: IconButton(
+          icon: const Icon(
+            Icons.settings_outlined,
+            color: iconColor,
+            size: iconSize,
+          ),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(
+            minWidth: 40,
+            minHeight: 40,
+          ),
+          onPressed: () {
+            Navigator.push(
+              context,
+              AppNavigation.smoothRoute(
+                const ConfiguracoesScreen(),
+              ),
+            );
+          },
+          tooltip: 'Configurações',
+        ),
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: IconButton(
+            icon: const Icon(
+              Icons.person_outline_rounded,
+              color: iconColor,
+              size: iconSize,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(
+              minWidth: 40,
+              minHeight: 40,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                AppNavigation.smoothRoute(
+                  const PerfilScreen(),
+                ),
+              );
+            },
+            tooltip: 'Perfil',
+          ),
+        ),
+      ],
+    );
+  }
+}
+

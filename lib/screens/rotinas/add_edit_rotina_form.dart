@@ -67,7 +67,7 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
         'titulo': _tituloController.text.trim(),
         'descricao': _descricaoController.text.trim(),
         'horario': _horarioController.text.trim(),
-        'perfil_id': targetId,
+        'user_id': targetId,
       };
 
       if (_isEditing) {
@@ -134,13 +134,14 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
           ),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -192,6 +193,8 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                   hintText: 'ex: Exercícios matinais, Hidratação',
                   prefixIcon: const Icon(Icons.title),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.white,
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -201,13 +204,46 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                 },
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _horarioController,
-                decoration: InputDecoration(
-                  labelText: 'Horário',
-                  hintText: 'ex: 08:00, Manhã, Tarde',
-                  prefixIcon: const Icon(Icons.access_time),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              InkWell(
+                onTap: _selectHorario,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.access_time, color: Color(0xFF0400B9)),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Horário',
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _horarioController.text.isEmpty
+                                  ? 'Toque para selecionar o horário'
+                                  : _horarioController.text,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: _horarioController.text.isEmpty
+                                    ? Colors.grey.shade600
+                                    : Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -218,14 +254,110 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                   hintText: 'Detalhes adicionais sobre a rotina',
                   prefixIcon: const Icon(Icons.description),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.white,
                 ),
                 maxLines: 4,
               ),
+              const SizedBox(height: 24),
+              // Botão Salvar
+              Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0400B9).withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _saveRotina,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _isEditing ? Icons.update : Icons.add,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _isEditing ? 'Atualizar Rotina' : 'Adicionar Rotina',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+              const SizedBox(height: 24), // Espaço extra no final
             ],
           ),
         ),
+        ),
       ),
     );
+  }
+
+  Future<void> _selectHorario() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _horarioController.text.isNotEmpty
+          ? _parseTimeFromString(_horarioController.text)
+          : TimeOfDay.now(),
+      helpText: 'Selecione o horário',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: const Color(0xFF0400B9),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black87,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _horarioController.text =
+            '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+      });
+    }
+  }
+
+  TimeOfDay _parseTimeFromString(String timeStr) {
+    try {
+      final parts = timeStr.split(':');
+      if (parts.length == 2) {
+        final hour = int.parse(parts[0]);
+        final minute = int.parse(parts[1]);
+        return TimeOfDay(hour: hour, minute: minute);
+      }
+    } catch (e) {
+      // Ignora erro
+    }
+    return TimeOfDay.now();
   }
 }
 

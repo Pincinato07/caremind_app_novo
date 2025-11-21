@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../theme/app_theme.dart';
-import '../../core/navigation/app_navigation.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
-import '../integracoes/integracoes_screen.dart';
-import '../compromissos/gestao_compromissos_screen.dart';
-import '../rotinas/gestao_rotinas_screen.dart';
-import '../medication/gestao_medicamentos_screen.dart';
+import '../../widgets/caremind_app_bar.dart';
 
 /// Tela de Configurações
 /// Centraliza configurações do app
@@ -15,133 +10,33 @@ class ConfiguracoesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-
     return AppScaffoldWithWaves(
-      appBar: AppBar(
-        title: Text(
-          'Configurações',
-          style: GoogleFonts.leagueSpartan(
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
+      appBar: const CareMindAppBar(title: 'Configurações'),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             children: [
-            // Seção: Gestão
-            _buildSection(
-              context,
-              title: 'Gestão',
-              children: [
-                _buildConfigButton(
-                  context,
-                  icon: Icons.medication_liquid,
-                  text: 'Medicamentos',
-                  subtitle: 'Gerenciar medicamentos',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      AppNavigation.smoothRoute(
-                        const GestaoMedicamentosScreen(),
-                      ),
-                    );
-                  },
-                ),
-                _buildConfigButton(
-                  context,
-                  icon: Icons.calendar_today,
-                  text: 'Compromissos',
-                  subtitle: 'Gerenciar compromissos e consultas',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      AppNavigation.smoothRoute(
-                        const GestaoCompromissosScreen(),
-                      ),
-                    );
-                  },
-                ),
-                _buildConfigButton(
-                  context,
-                  icon: Icons.schedule_rounded,
-                  text: 'Rotinas',
-                  subtitle: 'Gerenciar rotinas e atividades',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      AppNavigation.smoothRoute(
-                        const GestaoRotinasScreen(),
-                      ),
-                    );
-                  },
-                ),
-                _buildConfigButton(
-                  context,
-                  icon: Icons.camera_alt,
-                  text: 'Integrações',
-                  subtitle: 'Leitura de receita com OCR',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      AppNavigation.smoothRoute(
-                        const IntegracoesScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-
             // Seção: Notificações
             _buildSection(
               context,
               title: 'Notificações',
               children: [
-                SwitchListTile(
-                  secondary: const Icon(Icons.notifications_active, color: Colors.white),
-                  title: Text(
-                    'Notificações de Medicamentos',
-                    style: GoogleFonts.leagueSpartan(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Receber lembretes de horários',
-                    style: GoogleFonts.leagueSpartan(
-                      fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.8),
-                    ),
-                  ),
-                  value: true, // TODO: Implementar persistência
+                _buildSwitchTile(
+                  context,
+                  icon: Icons.notifications_active,
+                  title: 'Notificações de Medicamentos',
+                  subtitle: 'Receber lembretes de horários',
+                  value: true,
                   onChanged: (value) {
                     // TODO: Salvar preferência
                   },
                 ),
-                SwitchListTile(
-                  secondary: const Icon(Icons.event_available, color: Colors.white),
-                  title: Text(
-                    'Notificações de Compromissos',
-                    style: GoogleFonts.leagueSpartan(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Receber lembretes de compromissos',
-                    style: GoogleFonts.leagueSpartan(
-                      fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.8),
-                    ),
-                  ),
-                  value: true, // TODO: Implementar persistência
+                _buildSwitchTile(
+                  context,
+                  icon: Icons.event_available,
+                  title: 'Notificações de Compromissos',
+                  subtitle: 'Receber lembretes de compromissos',
+                  value: true,
                   onChanged: (value) {
                     // TODO: Salvar preferência
                   },
@@ -154,44 +49,22 @@ class ConfiguracoesScreen extends StatelessWidget {
               context,
               title: 'Acessibilidade',
               children: [
-                SwitchListTile(
-                  secondary: const Icon(Icons.volume_up, color: Colors.white),
-                  title: Text(
-                    'Falar Textos',
-                    style: GoogleFonts.leagueSpartan(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Text-to-Speech para leitura',
-                    style: GoogleFonts.leagueSpartan(
-                      fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.8),
-                    ),
-                  ),
-                  value: true, // TODO: Implementar persistência
+                _buildSwitchTile(
+                  context,
+                  icon: Icons.volume_up,
+                  title: 'Falar Textos',
+                  subtitle: 'Text-to-Speech para leitura',
+                  value: true,
                   onChanged: (value) {
                     // TODO: Salvar preferência
                   },
                 ),
-                SwitchListTile(
-                  secondary: const Icon(Icons.vibration, color: Colors.white),
-                  title: Text(
-                    'Vibração',
-                    style: GoogleFonts.leagueSpartan(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Feedback háptico nas ações',
-                    style: GoogleFonts.leagueSpartan(
-                      fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.8),
-                    ),
-                  ),
-                  value: true, // TODO: Implementar persistência
+                _buildSwitchTile(
+                  context,
+                  icon: Icons.vibration,
+                  title: 'Vibração',
+                  subtitle: 'Feedback háptico nas ações',
+                  value: true,
                   onChanged: (value) {
                     // TODO: Salvar preferência
                   },
@@ -231,47 +104,59 @@ class ConfiguracoesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildConfigButton(
+  Widget _buildSwitchTile(
     BuildContext context, {
     required IconData icon,
-    required String text,
+    required String title,
     required String subtitle,
-    required VoidCallback onTap,
+    required bool value,
+    required ValueChanged<bool> onChanged,
   }) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(10),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.3),
+            Colors.white.withValues(alpha: 0.25),
+          ],
         ),
-        child: Icon(
-          icon,
-          color: Colors.white,
-          size: 24,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.4),
+          width: 1.5,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      title: Text(
-        text,
-        style: GoogleFonts.leagueSpartan(
-          fontWeight: FontWeight.w600,
-          fontSize: 16,
-          color: Colors.white,
+      child: SwitchListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        secondary: Icon(icon, color: Colors.white),
+        title: Text(
+          title,
+          style: GoogleFonts.leagueSpartan(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
         ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: GoogleFonts.leagueSpartan(
-          fontSize: 14,
-          color: Colors.white.withValues(alpha: 0.8),
+        subtitle: Text(
+          subtitle,
+          style: GoogleFonts.leagueSpartan(
+            fontSize: 14,
+            color: Colors.white.withValues(alpha: 0.9),
+          ),
         ),
+        value: value,
+        onChanged: onChanged,
+        activeColor: const Color(0xFF0400BA),
       ),
-      trailing: Icon(
-        Icons.arrow_forward_ios,
-        size: 16,
-        color: Colors.white.withValues(alpha: 0.6),
-      ),
-      onTap: onTap,
     );
   }
 }

@@ -1,7 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
-/// Card com efeito glassmorphism para uso em listas e grids
+/// Card com efeito glassmorphism melhorado para melhor legibilidade
 class GlassCard extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
@@ -26,31 +25,47 @@ class GlassCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
+          borderRadius: borderRadius ?? BorderRadius.circular(16),
           child: Container(
             padding: padding ?? const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
+              // Cor sólida semi-transparente com melhor contraste
+              // Usando gradiente sutil para manter elegância
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.3),
+                  Colors.white.withValues(alpha: 0.25),
+                ],
+              ),
               borderRadius: borderRadius ?? BorderRadius.circular(16),
               border: Border.all(
-                color: borderColor ?? Colors.white.withValues(alpha: 0.2),
-                width: 1,
+                color: borderColor ?? Colors.white.withValues(alpha: 0.4),
+                width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                  spreadRadius: 0,
+                ),
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.1),
                   blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  offset: const Offset(0, -2),
+                  spreadRadius: 0,
                 ),
               ],
             ),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: child,
-            ),
+            child: child,
           ),
         ),
       ),
     );
   }
 }
+
+
 

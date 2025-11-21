@@ -53,12 +53,40 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
       initialDate: _dataHora,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365)),
+      helpText: 'Selecione a data',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: const Color(0xFF0400B9),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black87,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (date != null) {
       final time = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.fromDateTime(_dataHora),
+        helpText: 'Selecione o horário',
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: ColorScheme.light(
+                primary: const Color(0xFF0400B9),
+                onPrimary: Colors.white,
+                surface: Colors.white,
+                onSurface: Colors.black87,
+              ),
+            ),
+            child: child!,
+          );
+        },
       );
 
       if (time != null) {
@@ -89,7 +117,7 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
         'titulo': _tituloController.text.trim(),
         'descricao': _descricaoController.text.trim(),
         'data_hora': _dataHora.toIso8601String(),
-        'perfil_id': targetId,
+        'user_id': targetId,
       };
 
       if (_isEditing) {
@@ -156,13 +184,14 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
           ),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -214,6 +243,8 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
                   hintText: 'ex: Consulta médica, Exame de sangue',
                   prefixIcon: const Icon(Icons.title),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.white,
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -230,6 +261,8 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
                   hintText: 'Detalhes adicionais sobre o compromisso',
                   prefixIcon: const Icon(Icons.description),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.white,
                 ),
                 maxLines: 4,
               ),
@@ -239,6 +272,7 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
+                    color: Colors.white,
                     border: Border.all(color: Colors.grey.shade300),
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -264,8 +298,58 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
                   ),
                 ),
               ),
+              const SizedBox(height: 24),
+              // Botão Salvar
+              Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0400B9).withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _saveCompromisso,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _isEditing ? Icons.update : Icons.add,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _isEditing ? 'Atualizar Compromisso' : 'Adicionar Compromisso',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+              const SizedBox(height: 24), // Espaço extra no final
             ],
           ),
+        ),
         ),
       ),
     );

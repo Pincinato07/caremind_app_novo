@@ -3,9 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../widgets/app_scaffold_with_waves.dart';
 import '../services/supabase_service.dart';
 import '../core/injection/injection.dart';
-import '../core/errors/app_exception.dart';
-import 'auth/onboarding_screen.dart';
-import 'auth/auth_shell.dart';
 import 'shared/main_navigator_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -82,9 +79,16 @@ class _SplashScreenState extends State<SplashScreen>
       await _updateProgress('Verificando autenticação...', 0.3);
       
       final supabaseService = getIt<SupabaseService>();
+      
+      // O Supabase Flutter restaura automaticamente a sessão ao inicializar
+      // Aguardar um pouco para garantir que a sessão seja restaurada
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      // Verificar se há uma sessão ativa e um usuário logado
+      // O Supabase mantém a sessão automaticamente usando armazenamento seguro
       final user = supabaseService.currentUser;
       
-      await Future.delayed(const Duration(milliseconds: 400));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       if (user == null) {
         // Progresso: 70% - Usuário não autenticado
@@ -158,147 +162,144 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
+    final screenHeight = screenSize.height;
+    final isSmallScreen = screenHeight < 700;
     
     return AppScaffoldWithWaves(
-      body: Center(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: ScaleTransition(
-            scale: _scaleAnimation,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Logo animado
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        blurRadius: 30,
-                        spreadRadius: 5,
-                      ),
-                    ],
+      body: SafeArea(
+        child: Center(
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: screenHeight - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
                   ),
-                  child: Image.asset(
-                    'assets/images/caremind_deitado.png',
-                    width: screenSize.width * 0.4,
-                    height: screenSize.width * 0.4,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      // Fallback se a imagem não existir
-                      return Container(
-                        width: screenSize.width * 0.4,
-                        height: screenSize.width * 0.4,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Logo animado
+                        Image.asset(
+                          'assets/images/caremind.png',
+                          width: screenSize.width * (isSmallScreen ? 0.3 : 0.4),
+                          height: screenSize.width * (isSmallScreen ? 0.3 : 0.4),
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            // Fallback se a imagem não existir
+                            return Icon(
+                              Icons.favorite_rounded,
+                              size: screenSize.width * (isSmallScreen ? 0.25 : 0.3),
+                              color: Colors.white,
+                            );
+                          },
                         ),
-                        child: Icon(
-                          Icons.favorite_rounded,
-                          size: screenSize.width * 0.2,
-                          color: Colors.white,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                
-                const SizedBox(height: 48),
-                
-                // Nome do app
-                Text(
-                  'CareMind',
-                  style: GoogleFonts.leagueSpartan(
-                    fontSize: 42,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: 2,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        offset: const Offset(0, 2),
-                        blurRadius: 8,
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 8),
-                
-                // Slogan
-                Text(
-                  'Cuidando de quem você ama',
-                  style: GoogleFonts.leagueSpartan(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.9),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                
-                const SizedBox(height: 64),
-                
-                // Barra de progresso
-                Container(
-                  width: screenSize.width * 0.7,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(4),
-                    color: Colors.white.withValues(alpha: 0.2),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: TweenAnimationBuilder<double>(
-                      duration: const Duration(milliseconds: 500),
-                      tween: Tween(begin: 0.0, end: _progress),
-                      builder: (context, value, child) {
-                        return LinearProgressIndicator(
-                          value: value,
-                          backgroundColor: Colors.transparent,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white.withValues(alpha: 0.9),
+                        
+                        SizedBox(height: isSmallScreen ? 24 : 32),
+                        
+                        // Nome do app
+                        Text(
+                          'CareMind',
+                          style: GoogleFonts.leagueSpartan(
+                            fontSize: isSmallScreen ? 36 : 42,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 2,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                offset: const Offset(0, 2),
+                                blurRadius: 8,
+                              ),
+                            ],
                           ),
-                          minHeight: 8,
-                        );
-                      },
+                        ),
+                        
+                        SizedBox(height: isSmallScreen ? 4 : 8),
+                        
+                        // Slogan
+                        Text(
+                          'Cuidando de quem você ama',
+                          style: GoogleFonts.leagueSpartan(
+                            fontSize: isSmallScreen ? 16 : 18,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withValues(alpha: 0.9),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        
+                        SizedBox(height: isSmallScreen ? 32 : 48),
+                        
+                        // Barra de progresso
+                        Container(
+                          width: screenSize.width * 0.7,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(3),
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(3),
+                            child: TweenAnimationBuilder<double>(
+                              duration: const Duration(milliseconds: 500),
+                              tween: Tween(begin: 0.0, end: _progress),
+                              builder: (context, value, child) {
+                                return LinearProgressIndicator(
+                                  value: value,
+                                  backgroundColor: Colors.transparent,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white.withValues(alpha: 0.9),
+                                  ),
+                                  minHeight: 6,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        
+                        SizedBox(height: isSmallScreen ? 16 : 20),
+                        
+                        // Status de carregamento
+                        Text(
+                          _loadingStatus,
+                          style: GoogleFonts.leagueSpartan(
+                            fontSize: isSmallScreen ? 14 : 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        
+                        SizedBox(height: isSmallScreen ? 20 : 24),
+                        
+                        // Indicador de carregamento
+                        SizedBox(
+                          width: isSmallScreen ? 28 : 32,
+                          height: isSmallScreen ? 28 : 32,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                
-                const SizedBox(height: 24),
-                
-                // Status de carregamento
-                Text(
-                  _loadingStatus,
-                  style: GoogleFonts.leagueSpartan(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.85),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 32),
-                
-                // Indicador de carregamento
-                SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Colors.white.withValues(alpha: 0.8),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
+
 }

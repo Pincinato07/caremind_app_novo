@@ -1,7 +1,9 @@
+import 'dart:typed_data' show Int64List;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../models/medicamento.dart';
 
@@ -31,7 +33,7 @@ class NotificationService {
       tz.setLocalLocation(tz.getLocation('America/Sao_Paulo'));
 
       // Configurações Android - CRÍTICO para som e vibração
-      final androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
 
       // Configurações iOS
       const iosSettings = DarwinInitializationSettings(
@@ -51,7 +53,7 @@ class NotificationService {
         onDidReceiveNotificationResponse: _onNotificationTapped,
       );
 
-      if (!initialized) {
+      if (initialized != true) {
         debugPrint('⚠️ NotificationService: Falha ao inicializar notificações');
         return;
       }
@@ -380,7 +382,8 @@ class NotificationService {
       priority: Priority.max,
       icon: '@mipmap/ic_launcher',
       playSound: true,
-      sound: const RawResourceAndroidNotificationSound('notification'),
+      // Som padrão do sistema
+      // Nota: Se quiser som customizado, adicione arquivo .mp3 em android/app/src/main/res/raw/
       enableVibration: true,
       vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]),
       styleInformation: BigTextStyleInformation(
@@ -396,7 +399,7 @@ class NotificationService {
       interruptionLevel: InterruptionLevel.critical,
     );
 
-    const notificationDetails = NotificationDetails(
+    final notificationDetails = NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
     );

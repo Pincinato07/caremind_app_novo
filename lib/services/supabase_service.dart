@@ -156,26 +156,44 @@ class SupabaseService {
         body: {
           'idosoId': idosoId,
           'nome': nome,
-          if (telefone != null) 'telefone': telefone,
-          if (dataNascimento != null) 'data_nascimento': dataNascimento,
-          if (fotoUsuario != null) 'foto_usuario': fotoUsuario,
+          if (telefone != null && telefone.isNotEmpty) 'telefone': telefone,
+          if (dataNascimento != null && dataNascimento.isNotEmpty) 'data_nascimento': dataNascimento,
+          if (fotoUsuario != null && fotoUsuario.isNotEmpty) 'foto_usuario': fotoUsuario,
         },
       );
 
-      // Verificar se houve erro
+      // Verificar se houve erro na resposta
       if (response.data != null) {
         final data = response.data as Map<String, dynamic>?;
-        if (data != null && data.containsKey('error')) {
-          throw Exception(data['error'] as String);
+        if (data != null) {
+          // Verificar se há erro na resposta
+          if (data.containsKey('error')) {
+            final errorMsg = data['error'] as String? ?? 'Erro desconhecido';
+            throw Exception(errorMsg);
+          }
+          
+          // Verificar se foi bem-sucedido
+          if (data.containsKey('success') && data['success'] == true) {
+            return data;
+          }
         }
-        if (data != null && data.containsKey('success') && data['success'] == true) {
-          return data;
-        }
+      }
+
+      // Verificar se há erro HTTP
+      if (response.status >= 400) {
+        final errorMsg = response.data is Map<String, dynamic>
+            ? (response.data as Map<String, dynamic>)['error'] as String?
+            : 'Erro ao atualizar idoso (status: ${response.status})';
+        throw Exception(errorMsg ?? 'Erro ao atualizar idoso');
       }
 
       // Se chegou aqui, pode ser que a resposta não tenha o formato esperado
       throw Exception('Resposta inválida da Edge Function');
     } catch (error) {
+      // Re-throw se já for uma AppException, senão converter
+      if (error is AppException) {
+        rethrow;
+      }
       throw ErrorHandler.toAppException(error);
     }
   }
@@ -237,7 +255,7 @@ class SupabaseService {
           .select('id_idoso')
           .eq('id_familiar', familiarId);
 
-      if (vinculosResponse == null || vinculosResponse.isEmpty) {
+      if (vinculosResponse.isEmpty) {
         return [];
       }
 
@@ -257,9 +275,9 @@ class SupabaseService {
       final perfisResponse = await _client
           .from('perfis')
           .select()
-          .in_('id', idososIds);
+          .inFilter('id', idososIds);
 
-      if (perfisResponse == null || perfisResponse.isEmpty) {
+      if (perfisResponse.isEmpty) {
         return [];
       }
 

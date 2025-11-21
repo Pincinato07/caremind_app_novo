@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import '../../individual/dashboard_screen.dart';
 import '../../medication/gestao_medicamentos_screen.dart';
 import '../../individual/rotina_screen.dart';
-import '../../shared/perfil_screen.dart';
+import '../../shared/gestao_screen.dart';
 import '../../../widgets/nav_item.dart';
 
 /// Shell de navegação para o perfil INDIVIDUAL
-/// BottomBar com 4 itens, navegação padrão
+/// BottomBar com 4 itens: Início, Medicamentos, Rotina, Gestão
+/// AppBar removida - cada tela filha terá sua própria AppBar
+/// Perfil acessível apenas pela AppBar
 class IndividualNavigationShell extends StatefulWidget {
   const IndividualNavigationShell({super.key});
 
@@ -21,7 +23,7 @@ class _IndividualNavigationShellState extends State<IndividualNavigationShell> {
     IndividualDashboardScreen(),
     GestaoMedicamentosScreen(),
     RotinaScreen(),
-    PerfilScreen(),
+    GestaoScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -34,6 +36,7 @@ class _IndividualNavigationShellState extends State<IndividualNavigationShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         transitionBuilder: (child, animation) {
@@ -89,8 +92,8 @@ class _IndividualNavigationShellState extends State<IndividualNavigationShell> {
                 onTap: () => _onItemTapped(2),
               ),
               NavItem(
-                icon: Icons.person_rounded,
-                label: 'Perfil',
+                icon: Icons.settings_applications_rounded,
+                label: 'Gestão',
                 isSelected: _selectedIndex == 3,
                 onTap: () => _onItemTapped(3),
               ),

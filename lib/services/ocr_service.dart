@@ -113,7 +113,7 @@ class OcrService {
       // Verificar timeout
       final elapsed = DateTime.now().difference(startTime).inSeconds;
       if (elapsed >= timeout) {
-        throw AppException('Tempo esgotado aguardando processamento da receita.');
+        throw UnknownException(message: 'Tempo esgotado aguardando processamento da receita.');
       }
 
       // Verificar status

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/supabase_service.dart';
 import '../../services/medicamento_service.dart';
+import '../../services/historico_eventos_service.dart';
 import '../../services/accessibility_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
@@ -11,6 +12,7 @@ import '../../models/medicamento.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/glass_card.dart';
 import '../medication/gestao_medicamentos_screen.dart';
+import '../shared/configuracoes_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Dashboard do IDOSO - Foco em Acessibilidade Extrema (WCAG AAA)
@@ -77,12 +79,31 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
 
     try {
       final medicamentoService = getIt<MedicamentoService>();
+      final supabaseService = getIt<SupabaseService>();
+      final user = supabaseService.currentUser;
+      
+      if (user == null) return;
       
       // Marcar como concluído
       await medicamentoService.toggleConcluido(
         _proximoMedicamento!.id!,
         true,
       );
+
+      // Registrar evento no histórico
+      try {
+        await HistoricoEventosService.addEvento({
+          'perfil_id': user.id,
+          'tipo_evento': 'medicamento_tomado',
+          'data_hora': DateTime.now().toIso8601String(),
+          'descricao': 'Medicamento "${_proximoMedicamento!.nome}" marcado como tomado',
+          'referencia_id': _proximoMedicamento!.id.toString(),
+          'tipo_referencia': 'medicamento',
+        });
+      } catch (e) {
+        // Log erro mas não interrompe o fluxo
+        debugPrint('⚠️ Erro ao registrar evento no histórico: $e');
+      }
 
       // Feedback multissensorial: vibração longa + som
       await AccessibilityService.feedbackSucesso();
@@ -244,29 +265,53 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
               )
             : CustomScrollView(
                 slivers: [
-                  // Header simplificado
+                  // Header simplificado com botão de configurações
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
-                      child: Column(
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'O Próximo Passo',
-                            style: GoogleFonts.leagueSpartan(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: -0.5,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'O Próximo Passo',
+                                  style: GoogleFonts.leagueSpartan(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Olá, $_userName',
+                                  style: GoogleFonts.leagueSpartan(
+                                    fontSize: 20,
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Olá, $_userName',
-                            style: GoogleFonts.leagueSpartan(
-                              fontSize: 20,
-                              color: Colors.white.withValues(alpha: 0.9),
+                          // Botão discreto de configurações
+                          IconButton(
+                            icon: Icon(
+                              Icons.settings_outlined,
+                              color: Colors.white.withValues(alpha: 0.8),
+                              size: 28,
                             ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                AppNavigation.smoothRoute(
+                                  const ConfiguracoesScreen(),
+                                ),
+                              );
+                            },
+                            tooltip: 'Configurações',
                           ),
                         ],
                       ),
@@ -451,7 +496,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
             Navigator.push(
               context,
               AppNavigation.smoothRoute(
-                const GestaoMedicamentosScreen(isElderlyView: true),
+                const GestaoMedicamentosScreen(),
               ),
             );
           },

@@ -4,13 +4,21 @@ import '../../services/supabase_service.dart';
 import '../../services/rotina_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
+import '../../core/state/familiar_state.dart';
+import '../../services/historico_eventos_service.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
+import '../../widgets/banner_contexto_familiar.dart';
 import 'add_edit_rotina_form.dart';
 
 class GestaoRotinasScreen extends StatefulWidget {
   final String? idosoId; // Para familiar gerenciar rotinas do idoso
+  final bool embedded; // Se true, não mostra AppScaffoldWithWaves nem SliverAppBar
 
-  const GestaoRotinasScreen({super.key, this.idosoId});
+  const GestaoRotinasScreen({
+    super.key,
+    this.idosoId,
+    this.embedded = false,
+  });
 
   @override
   State<GestaoRotinasScreen> createState() => _GestaoRotinasScreenState();
@@ -27,6 +35,24 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
     super.initState();
     _loadUserProfile();
     _loadRotinas();
+    
+    // Escutar mudanças no FamiliarState para recarregar quando o idoso mudar
+    final familiarState = getIt<FamiliarState>();
+    familiarState.addListener(_onFamiliarStateChanged);
+  }
+
+  @override
+  void dispose() {
+    final familiarState = getIt<FamiliarState>();
+    familiarState.removeListener(_onFamiliarStateChanged);
+    super.dispose();
+  }
+
+  void _onFamiliarStateChanged() {
+    // Recarregar rotinas quando o idoso selecionado mudar
+    if (mounted && widget.idosoId == null) {
+      _loadRotinas();
+    }
   }
 
   Future<void> _loadUserProfile() async {
@@ -47,6 +73,10 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
   }
 
   bool get _isIdoso => _perfilTipo == 'idoso';
+  bool get _isFamiliar {
+    final familiarState = getIt<FamiliarState>();
+    return familiarState.hasIdosos && widget.idosoId == null;
+  }
 
   Future<void> _loadRotinas() async {
     setState(() {
@@ -60,7 +90,13 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
       final user = supabaseService.currentUser;
       
       if (user != null) {
-        final targetId = widget.idosoId ?? user.id;
+        // Prioridade: widget.idosoId > FamiliarState.idosoSelecionado > user.id
+        final familiarState = getIt<FamiliarState>();
+        final targetId = widget.idosoId ?? 
+            (familiarState.hasIdosos && familiarState.idosoSelecionado != null 
+                ? familiarState.idosoSelecionado!.id 
+                : user.id);
+        
         final rotinas = await rotinaService.getRotinas(targetId);
         
         setState(() {
@@ -87,10 +123,44 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
   Future<void> _toggleConcluida(Map<String, dynamic> rotina) async {
     try {
       final rotinaService = getIt<RotinaService>();
+      final supabaseService = getIt<SupabaseService>();
+      final familiarState = getIt<FamiliarState>();
+      
       final rotinaId = rotina['id'] as int;
       final concluida = rotina['concluida'] as bool? ?? false;
+      final titulo = rotina['titulo'] as String? ?? 'Rotina';
+      final novoEstado = !concluida;
       
-      await rotinaService.toggleConcluida(rotinaId, !concluida);
+      // Determinar o perfil_id do idoso (não do familiar)
+      final user = supabaseService.currentUser;
+      if (user == null) return;
+      
+      // Se for familiar gerenciando idoso, usar o id do idoso; senão usar o user.id
+      final targetPerfilId = widget.idosoId ?? 
+          (familiarState.hasIdosos && familiarState.idosoSelecionado != null 
+              ? familiarState.idosoSelecionado!.id 
+              : user.id);
+      
+      // Atualizar a rotina
+      await rotinaService.toggleConcluida(rotinaId, novoEstado);
+      
+      // Registrar evento no histórico
+      try {
+        await HistoricoEventosService.addEvento({
+          'perfil_id': targetPerfilId,
+          'tipo_evento': novoEstado ? 'rotina_concluida' : 'rotina_desmarcada',
+          'data_hora': DateTime.now().toIso8601String(),
+          'descricao': novoEstado 
+              ? 'Rotina "$titulo" marcada como concluída'
+              : 'Rotina "$titulo" desmarcada',
+          'referencia_id': rotinaId.toString(),
+          'tipo_referencia': 'rotina',
+        });
+      } catch (e) {
+        // Log erro mas não interrompe o fluxo
+        debugPrint('⚠️ Erro ao registrar evento no histórico: $e');
+      }
+      
       _loadRotinas();
     } catch (error) {
       final errorMessage = error is AppException
@@ -149,9 +219,18 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffoldWithWaves(
-      body: CustomScrollView(
-        slivers: [
+    final familiarState = getIt<FamiliarState>();
+    final isFamiliar = familiarState.hasIdosos && widget.idosoId == null;
+    
+    final content = CustomScrollView(
+      slivers: [
+        // Banner de contexto para perfil familiar
+        if (isFamiliar)
+          SliverToBoxAdapter(
+            child: const BannerContextoFamiliar(),
+          ),
+        // Header moderno - apenas se não estiver embedded
+        if (!widget.embedded)
           SliverAppBar(
             expandedHeight: 120,
             floating: false,
@@ -189,17 +268,31 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
               ),
             ],
           ),
-          SliverToBoxAdapter(child: _buildBody()),
-        ],
-      ),
+        SliverToBoxAdapter(child: _buildBody()),
+      ],
+    );
+
+    if (widget.embedded) {
+      // Modo embedded: retorna apenas o conteúdo, sem AppScaffoldWithWaves
+      return content;
+    }
+
+    // Modo standalone: retorna com AppScaffoldWithWaves e FAB
+    return AppScaffoldWithWaves(
+      body: content,
       floatingActionButton: _isIdoso
           ? null
           : FloatingActionButton.extended(
               onPressed: () async {
+                // Obter idosoId do FamiliarState se não foi fornecido via widget
+                final familiarState = getIt<FamiliarState>();
+                final idosoId = widget.idosoId ?? 
+                    (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
+                
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => AddEditRotinaForm(idosoId: widget.idosoId),
+                    builder: (context) => AddEditRotinaForm(idosoId: idosoId),
                   ),
                 );
                 if (result == true) {
@@ -415,7 +508,13 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => AddEditRotinaForm(rotina: rotina, idosoId: widget.idosoId),
+                      builder: (context) {
+                        // Obter idosoId do FamiliarState se não foi fornecido via widget
+                        final familiarState = getIt<FamiliarState>();
+                        final idosoId = widget.idosoId ?? 
+                            (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
+                        return AddEditRotinaForm(rotina: rotina, idosoId: idosoId);
+                      },
                     ),
                   );
                   if (result == true) {
@@ -533,6 +632,96 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                     child: Text(
                       descricao,
                       style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                    ),
+                  ),
+                ],
+                
+                // Botão de ação rápida para familiares marcarem como concluída
+                if (_isFamiliar && !concluida) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.green.shade400, Colors.green.shade600],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _toggleConcluida(rotina),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.check_circle, color: Colors.white, size: 24),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Marcar como Concluída',
+                                style: GoogleFonts.leagueSpartan(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                
+                // Botão para desmarcar (se já estiver concluída e for familiar)
+                if (_isFamiliar && concluida) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade400,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.orange.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _toggleConcluida(rotina),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.undo, color: Colors.white, size: 24),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Marcar como Pendente',
+                                style: GoogleFonts.leagueSpartan(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],

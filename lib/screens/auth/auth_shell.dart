@@ -6,6 +6,7 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/supabase_service.dart';
+import '../../services/account_manager_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
 import '../../widgets/wave_background.dart'; // Caminho correto
@@ -89,6 +90,31 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
       if (response.user != null) {
         final perfil = await supabaseService.getProfile(response.user!.id);
         if (perfil != null && mounted) {
+          // Salvar informações da conta para troca rápida
+          final accountManager = AccountManagerService();
+          String? fotoUrl;
+          if (perfil.fotoUsuario != null && perfil.fotoUsuario!.isNotEmpty) {
+            try {
+              if (perfil.fotoUsuario!.startsWith('http')) {
+                fotoUrl = perfil.fotoUsuario;
+              } else {
+                fotoUrl = supabaseService.client.storage
+                    .from('avatars')
+                    .getPublicUrl(perfil.fotoUsuario!);
+              }
+            } catch (e) {
+              // Ignora erro ao obter URL da foto
+            }
+          }
+          
+          await accountManager.saveAccount(
+            userId: response.user!.id,
+            email: response.user!.email ?? _loginEmailController.text.trim(),
+            nome: perfil.nome,
+            fotoUrl: fotoUrl,
+            tipo: perfil.tipo,
+          );
+          
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
@@ -155,6 +181,31 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         await Future.delayed(const Duration(milliseconds: 500));
         final perfil = await supabaseService.getProfile(response.user!.id);
         if (perfil != null && mounted) {
+          // Salvar informações da conta para troca rápida
+          final accountManager = AccountManagerService();
+          String? fotoUrl;
+          if (perfil.fotoUsuario != null && perfil.fotoUsuario!.isNotEmpty) {
+            try {
+              if (perfil.fotoUsuario!.startsWith('http')) {
+                fotoUrl = perfil.fotoUsuario;
+              } else {
+                fotoUrl = supabaseService.client.storage
+                    .from('avatars')
+                    .getPublicUrl(perfil.fotoUsuario!);
+              }
+            } catch (e) {
+              // Ignora erro ao obter URL da foto
+            }
+          }
+          
+          await accountManager.saveAccount(
+            userId: response.user!.id,
+            email: response.user!.email ?? email,
+            nome: perfil.nome,
+            fotoUrl: fotoUrl,
+            tipo: perfil.tipo,
+          );
+          
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),

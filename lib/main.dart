@@ -7,6 +7,12 @@ import 'screens/auth/onboarding_screen.dart';
 import 'screens/individual/dashboard_screen.dart';
 import 'screens/familiar/dashboard_screen.dart';
 import 'screens/splash_screen.dart';
+import 'screens/shared/configuracoes_screen.dart';
+import 'screens/shared/perfil_screen.dart';
+import 'screens/medication/gestao_medicamentos_screen.dart';
+import 'screens/rotinas/gestao_rotinas_screen.dart';
+import 'screens/compromissos/gestao_compromissos_screen.dart';
+import 'screens/integracoes/integracoes_screen.dart';
 import 'widgets/global_wave_background.dart';
 import 'core/injection/injection.dart';
 
@@ -66,6 +72,12 @@ class CareMindApp extends StatelessWidget {
         '/register': (context) => const AuthShell(initialMode: AuthMode.register),
         '/individual-dashboard': (context) => const IndividualDashboardScreen(),
         '/familiar-dashboard': (context) => const FamiliarDashboardScreen(),
+        '/configuracoes': (context) => const ConfiguracoesScreen(),
+        '/perfil': (context) => const PerfilScreen(),
+        '/gestao-medicamentos': (context) => const GestaoMedicamentosScreen(),
+        '/gestao-rotinas': (context) => const GestaoRotinasScreen(),
+        '/gestao-compromissos': (context) => const GestaoCompromissosScreen(),
+        '/integracoes': (context) => const IntegracoesScreen(),
       },
     );
   }

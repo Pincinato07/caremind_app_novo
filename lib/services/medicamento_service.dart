@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/medicamento.dart';
 import '../core/errors/app_exception.dart';
 import '../core/errors/error_handler.dart';
+import 'notification_service.dart';
 
 class MedicamentoService {
   final SupabaseClient _client;

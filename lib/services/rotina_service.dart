@@ -1,5 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../core/errors/app_exception.dart';
 import '../core/errors/error_handler.dart';
 
 class RotinaService {
@@ -13,7 +12,7 @@ class RotinaService {
       final response = await _client
           .from('rotinas')
           .select()
-          .eq('perfil_id', userId)
+          .eq('user_id', userId)
           .order('created_at', ascending: false);
 
       return List<Map<String, dynamic>>.from(response);

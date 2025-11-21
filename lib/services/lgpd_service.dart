@@ -34,7 +34,7 @@ class LgpdService {
         'exportado_em': DateTime.now().toIso8601String(),
         'usuario': {
           'id': userId,
-          'email': perfil?.email ?? '',
+          'user_id': userId,
           'nome': perfil?.nome ?? '',
           'tipo': perfil?.tipo ?? '',
           'criado_em': perfil?.createdAt.toIso8601String() ?? '',

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../idoso/dashboard_screen.dart';
 import '../../medication/gestao_medicamentos_screen.dart';
 import '../../idoso/compromissos_screen.dart';
@@ -22,7 +21,7 @@ class _IdosoNavigationShellState extends State<IdosoNavigationShell>
 
   final List<Widget> _pages = const [
     IdosoDashboardScreen(),
-    GestaoMedicamentosScreen(isElderlyView: true),
+    GestaoMedicamentosScreen(),
     CompromissosIdosoScreen(),
     AjudaScreen(),
   ];
@@ -71,7 +70,6 @@ class _IdosoNavigationShellState extends State<IdosoNavigationShell>
         ),
       ),
       bottomNavigationBar: Container(
-        height: 80,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -98,32 +96,24 @@ class _IdosoNavigationShellState extends State<IdosoNavigationShell>
                 label: 'Início',
                 isSelected: _selectedIndex == 0,
                 onTap: () => _onItemTapped(0),
-                iconSize: 32,
-                fontSize: 14,
               ),
               NavItem(
                 icon: Icons.medication_liquid,
                 label: 'Remédios',
                 isSelected: _selectedIndex == 1,
                 onTap: () => _onItemTapped(1),
-                iconSize: 32,
-                fontSize: 14,
               ),
               NavItem(
                 icon: Icons.calendar_today,
                 label: 'Agenda',
                 isSelected: _selectedIndex == 2,
                 onTap: () => _onItemTapped(2),
-                iconSize: 32,
-                fontSize: 14,
               ),
               NavItem(
                 icon: Icons.help_outline_rounded,
                 label: 'Ajuda',
                 isSelected: _selectedIndex == 3,
                 onTap: () => _onItemTapped(3),
-                iconSize: 32,
-                fontSize: 14,
               ),
             ],
           ),

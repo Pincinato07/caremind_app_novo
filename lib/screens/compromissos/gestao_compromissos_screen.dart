@@ -4,13 +4,21 @@ import '../../services/supabase_service.dart';
 import '../../services/compromisso_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
+import '../../core/state/familiar_state.dart';
+import '../../services/historico_eventos_service.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
+import '../../widgets/banner_contexto_familiar.dart';
 import 'add_edit_compromisso_form.dart';
 
 class GestaoCompromissosScreen extends StatefulWidget {
   final String? idosoId; // Para familiar gerenciar compromissos do idoso
+  final bool embedded; // Se true, não mostra AppScaffoldWithWaves nem SliverAppBar
 
-  const GestaoCompromissosScreen({super.key, this.idosoId});
+  const GestaoCompromissosScreen({
+    super.key,
+    this.idosoId,
+    this.embedded = false,
+  });
 
   @override
   State<GestaoCompromissosScreen> createState() => _GestaoCompromissosScreenState();
@@ -27,6 +35,24 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
     super.initState();
     _loadUserProfile();
     _loadCompromissos();
+    
+    // Escutar mudanças no FamiliarState para recarregar quando o idoso mudar
+    final familiarState = getIt<FamiliarState>();
+    familiarState.addListener(_onFamiliarStateChanged);
+  }
+
+  @override
+  void dispose() {
+    final familiarState = getIt<FamiliarState>();
+    familiarState.removeListener(_onFamiliarStateChanged);
+    super.dispose();
+  }
+
+  void _onFamiliarStateChanged() {
+    // Recarregar compromissos quando o idoso selecionado mudar
+    if (mounted && widget.idosoId == null) {
+      _loadCompromissos();
+    }
   }
 
   Future<void> _loadUserProfile() async {
@@ -47,6 +73,10 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
   }
 
   bool get _isIdoso => _perfilTipo == 'idoso';
+  bool get _isFamiliar {
+    final familiarState = getIt<FamiliarState>();
+    return familiarState.hasIdosos && widget.idosoId == null;
+  }
 
   Future<void> _loadCompromissos() async {
     setState(() {
@@ -60,8 +90,13 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
       final user = supabaseService.currentUser;
       
       if (user != null) {
-        // Se idosoId foi fornecido (familiar), usar ele; senão usar userId
-        final targetId = widget.idosoId ?? user.id;
+        // Prioridade: widget.idosoId > FamiliarState.idosoSelecionado > user.id
+        final familiarState = getIt<FamiliarState>();
+        final targetId = widget.idosoId ?? 
+            (familiarState.hasIdosos && familiarState.idosoSelecionado != null 
+                ? familiarState.idosoSelecionado!.id 
+                : user.id);
+        
         final compromissos = await compromissoService.getCompromissos(targetId);
         
         setState(() {
@@ -88,10 +123,44 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
   Future<void> _toggleConcluido(Map<String, dynamic> compromisso) async {
     try {
       final compromissoService = getIt<CompromissoService>();
+      final supabaseService = getIt<SupabaseService>();
+      final familiarState = getIt<FamiliarState>();
+      
       final compromissoId = compromisso['id'] as int;
       final concluido = compromisso['concluido'] as bool? ?? false;
+      final titulo = compromisso['titulo'] as String? ?? 'Compromisso';
+      final novoEstado = !concluido;
       
-      await compromissoService.toggleConcluido(compromissoId, !concluido);
+      // Determinar o perfil_id do idoso (não do familiar)
+      final user = supabaseService.currentUser;
+      if (user == null) return;
+      
+      // Se for familiar gerenciando idoso, usar o id do idoso; senão usar o user.id
+      final targetPerfilId = widget.idosoId ?? 
+          (familiarState.hasIdosos && familiarState.idosoSelecionado != null 
+              ? familiarState.idosoSelecionado!.id 
+              : user.id);
+      
+      // Atualizar o compromisso
+      await compromissoService.toggleConcluido(compromissoId, novoEstado);
+      
+      // Registrar evento no histórico
+      try {
+        await HistoricoEventosService.addEvento({
+          'perfil_id': targetPerfilId,
+          'tipo_evento': novoEstado ? 'compromisso_realizado' : 'compromisso_desmarcado',
+          'data_hora': DateTime.now().toIso8601String(),
+          'descricao': novoEstado 
+              ? 'Compromisso "$titulo" marcado como realizado'
+              : 'Compromisso "$titulo" desmarcado',
+          'referencia_id': compromissoId.toString(),
+          'tipo_referencia': 'compromisso',
+        });
+      } catch (e) {
+        // Log erro mas não interrompe o fluxo
+        debugPrint('⚠️ Erro ao registrar evento no histórico: $e');
+      }
+      
       _loadCompromissos();
     } catch (error) {
       final errorMessage = error is AppException
@@ -150,9 +219,18 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffoldWithWaves(
-      body: CustomScrollView(
-        slivers: [
+    final familiarState = getIt<FamiliarState>();
+    final isFamiliar = familiarState.hasIdosos && widget.idosoId == null;
+    
+    final content = CustomScrollView(
+      slivers: [
+        // Banner de contexto para perfil familiar
+        if (isFamiliar)
+          SliverToBoxAdapter(
+            child: const BannerContextoFamiliar(),
+          ),
+        // Header moderno - apenas se não estiver embedded
+        if (!widget.embedded)
           SliverAppBar(
             expandedHeight: 120,
             floating: false,
@@ -190,17 +268,31 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
               ),
             ],
           ),
-          SliverToBoxAdapter(child: _buildBody()),
-        ],
-      ),
+        SliverToBoxAdapter(child: _buildBody()),
+      ],
+    );
+
+    if (widget.embedded) {
+      // Modo embedded: retorna apenas o conteúdo, sem AppScaffoldWithWaves
+      return content;
+    }
+
+    // Modo standalone: retorna com AppScaffoldWithWaves e FAB
+    return AppScaffoldWithWaves(
+      body: content,
       floatingActionButton: _isIdoso
           ? null
           : FloatingActionButton.extended(
               onPressed: () async {
+                // Obter idosoId do FamiliarState se não foi fornecido via widget
+                final familiarState = getIt<FamiliarState>();
+                final idosoId = widget.idosoId ?? 
+                    (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
+                
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => AddEditCompromissoForm(idosoId: widget.idosoId),
+                    builder: (context) => AddEditCompromissoForm(idosoId: idosoId),
                   ),
                 );
                 if (result == true) {
@@ -227,12 +319,12 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
     if (_isLoading) {
       return Container(
         height: 300,
-        child: const Center(
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const CircularProgressIndicator(color: Colors.white),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Text(
                 'Carregando compromissos...',
                 style: GoogleFonts.leagueSpartan(
@@ -476,7 +568,13 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => AddEditCompromissoForm(compromisso: compromisso, idosoId: widget.idosoId),
+                      builder: (context) {
+                        // Obter idosoId do FamiliarState se não foi fornecido via widget
+                        final familiarState = getIt<FamiliarState>();
+                        final idosoId = widget.idosoId ?? 
+                            (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
+                        return AddEditCompromissoForm(compromisso: compromisso, idosoId: idosoId);
+                      },
                     ),
                   );
                   if (result == true) {
@@ -600,6 +698,96 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                       style: GoogleFonts.leagueSpartan(
                         fontSize: 14,
                         color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                    ),
+                  ),
+                ],
+                
+                // Botão de ação rápida para familiares marcarem como concluído
+                if (_isFamiliar && !concluido) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.green.shade400, Colors.green.shade600],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _toggleConcluido(compromisso),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.check_circle, color: Colors.white, size: 24),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Marcar como Realizado',
+                                style: GoogleFonts.leagueSpartan(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                
+                // Botão para desmarcar (se já estiver concluído e for familiar)
+                if (_isFamiliar && concluido) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade400,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.orange.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _toggleConcluido(compromisso),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.undo, color: Colors.white, size: 24),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Marcar como Pendente',
+                                style: GoogleFonts.leagueSpartan(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),

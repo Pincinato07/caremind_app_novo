@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
 import '../../services/compromisso_service.dart';
+import '../../services/historico_eventos_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
@@ -70,9 +71,30 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
   Future<void> _marcarComoConcluido(Map<String, dynamic> compromisso) async {
     try {
       final compromissoService = getIt<CompromissoService>();
+      final supabaseService = getIt<SupabaseService>();
+      final user = supabaseService.currentUser;
+      
+      if (user == null) return;
+      
       final compromissoId = compromisso['id'] as int;
+      final titulo = compromisso['titulo'] as String? ?? 'Compromisso';
       
       await compromissoService.toggleConcluido(compromissoId, true);
+      
+      // Registrar evento no histórico
+      try {
+        await HistoricoEventosService.addEvento({
+          'perfil_id': user.id,
+          'tipo_evento': 'compromisso_realizado',
+          'data_hora': DateTime.now().toIso8601String(),
+          'descricao': 'Compromisso "$titulo" marcado como realizado',
+          'referencia_id': compromissoId.toString(),
+          'tipo_referencia': 'compromisso',
+        });
+      } catch (e) {
+        // Log erro mas não interrompe o fluxo
+        debugPrint('⚠️ Erro ao registrar evento no histórico: $e');
+      }
       
       // Feedback multissensorial
       await AccessibilityService.feedbackSucesso();

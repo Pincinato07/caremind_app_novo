@@ -26,24 +26,8 @@ class AppScaffoldWithWaves extends StatelessWidget {
     return Scaffold(
       resizeToAvoidBottomInset: resizeToAvoidBottomInset,
       backgroundColor: backgroundColor ?? Colors.transparent,
-      appBar: appBar != null
-          ? PreferredSize(
-              preferredSize: appBar!.preferredSize,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      const Color(0xFFA8B8FF).withValues(alpha: 0.95),
-                      const Color(0xFF9B7EFF).withValues(alpha: 0.95),
-                    ],
-                  ),
-                ),
-                child: appBar,
-              ),
-            )
-          : null,
+      extendBodyBehindAppBar: true,
+      appBar: appBar,
       body: Stack(
         children: [
           // Fundo gradiente

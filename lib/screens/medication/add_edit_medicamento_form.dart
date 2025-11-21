@@ -231,13 +231,14 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
           ),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               // Header com ícone
               Container(
                 padding: const EdgeInsets.all(20),
@@ -461,8 +462,11 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                         ),
                 ),
               ),
+              
+              const SizedBox(height: 24), // Espaço extra antes do botão
             ],
           ),
+        ),
         ),
       ),
     );

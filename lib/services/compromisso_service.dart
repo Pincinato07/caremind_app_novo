@@ -1,5 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../core/errors/app_exception.dart';
 import '../core/errors/error_handler.dart';
 
 class CompromissoService {
@@ -7,13 +6,13 @@ class CompromissoService {
 
   CompromissoService(this._client);
 
-  // Buscar todos os compromissos de um perfil
-  Future<List<Map<String, dynamic>>> getCompromissos(String perfilId) async {
+  // Buscar todos os compromissos de um usuário
+  Future<List<Map<String, dynamic>>> getCompromissos(String userId) async {
     try {
       final response = await _client
           .from('compromissos')
           .select()
-          .eq('perfil_id', perfilId)
+          .eq('user_id', userId)
           .order('data_hora', ascending: true);
 
       return List<Map<String, dynamic>>.from(response);
@@ -24,13 +23,13 @@ class CompromissoService {
 
   // Buscar compromissos futuros
   Future<List<Map<String, dynamic>>> getProximosCompromissos(
-      String perfilId) async {
+      String userId) async {
     try {
       final now = DateTime.now().toIso8601String();
       final response = await _client
           .from('compromissos')
           .select()
-          .eq('perfil_id', perfilId)
+          .eq('user_id', userId)
           .gte('data_hora', now)
           .order('data_hora', ascending: true);
 

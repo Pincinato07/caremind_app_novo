@@ -6,6 +6,8 @@ class Perfil {
   final String? codigoVinculacao;
   final String? fotoUsuario;
   final DateTime? codigoVinculacaoExpiraEm;
+  final String? telefone;
+  final String? dataNascimento; // Formato ISO: YYYY-MM-DD
 
   Perfil({
     required this.id,
@@ -15,6 +17,8 @@ class Perfil {
     this.codigoVinculacao,
     this.fotoUsuario,
     this.codigoVinculacaoExpiraEm,
+    this.telefone,
+    this.dataNascimento,
   });
 
   factory Perfil.fromMap(Map<String, dynamic> map) {
@@ -28,6 +32,8 @@ class Perfil {
       codigoVinculacaoExpiraEm: map['codigo_vinculacao_expira_em'] != null
           ? DateTime.parse(map['codigo_vinculacao_expira_em'] as String)
           : null,
+      telefone: map['telefone'] as String?,
+      dataNascimento: map['data_nascimento'] as String?,
     );
   }
 
@@ -40,6 +46,8 @@ class Perfil {
       'codigo_vinculacao': codigoVinculacao,
       'foto_usuario': fotoUsuario,
       'codigo_vinculacao_expira_em': codigoVinculacaoExpiraEm?.toIso8601String(),
+      'telefone': telefone,
+      'data_nascimento': dataNascimento,
     };
   }
 
@@ -51,6 +59,8 @@ class Perfil {
     String? codigoVinculacao,
     String? fotoUsuario,
     DateTime? codigoVinculacaoExpiraEm,
+    String? telefone,
+    String? dataNascimento,
   }) {
     return Perfil(
       id: id ?? this.id,
@@ -60,6 +70,8 @@ class Perfil {
       codigoVinculacao: codigoVinculacao ?? this.codigoVinculacao,
       fotoUsuario: fotoUsuario ?? this.fotoUsuario,
       codigoVinculacaoExpiraEm: codigoVinculacaoExpiraEm ?? this.codigoVinculacaoExpiraEm,
+      telefone: telefone ?? this.telefone,
+      dataNascimento: dataNascimento ?? this.dataNascimento,
     );
   }
 }

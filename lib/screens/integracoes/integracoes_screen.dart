@@ -8,13 +8,21 @@ import '../../widgets/glass_card.dart';
 import '../../core/injection/injection.dart';
 import '../../services/ocr_service.dart';
 import '../../services/supabase_service.dart';
-import '../../services/medicamento_service.dart';
 import '../../core/errors/app_exception.dart';
 
 /// Tela de Integrações com OCR
 /// Permite tirar foto de uma receita/caixa de remédio e preencher automaticamente
 class IntegracoesScreen extends StatefulWidget {
-  const IntegracoesScreen({super.key});
+  final File? initialImage;
+  final String? idosoId; // ID do idoso quando familiar está adicionando remédio
+  final VoidCallback? onMedicamentosUpdated;
+
+  const IntegracoesScreen({
+    super.key,
+    this.initialImage,
+    this.idosoId,
+    this.onMedicamentosUpdated,
+  });
 
   @override
   State<IntegracoesScreen> createState() => _IntegracoesScreenState();
@@ -28,9 +36,15 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
   String? _currentStatus;
   String? _error;
   String? _ocrId;
-  
-  // Callback para atualizar lista de medicamentos quando processar
-  Function()? _onMedicamentosUpdated;
+
+  @override
+  void initState() {
+    super.initState();
+    // Se uma imagem inicial foi fornecida, usar ela
+    if (widget.initialImage != null) {
+      _selectedImage = widget.initialImage;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -439,31 +453,33 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
   Future<void> _processImage() async {
     if (_selectedImage == null) return;
 
-    final ocrService = getIt<OcrService>();
-    final supabaseService = getIt<SupabaseService>();
-    final user = supabaseService.currentUser;
+      final ocrService = getIt<OcrService>();
+      final supabaseService = getIt<SupabaseService>();
+      final user = supabaseService.currentUser;
 
-    if (user == null) {
+      if (user == null) {
+        setState(() {
+          _error = 'Usuário não autenticado';
+          _isProcessing = false;
+        });
+        return;
+      }
+
       setState(() {
-        _error = 'Usuário não autenticado';
-        _isProcessing = false;
+        _isProcessing = true;
+        _error = null;
+        _currentStatus = null;
       });
-      return;
-    }
 
-    setState(() {
-      _isProcessing = true;
-      _error = null;
-      _currentStatus = null;
-    });
-
-    try {
-      // 1. Upload da imagem e registro no banco
-      debugPrint('📤 Fazendo upload e registro...');
-      final ocrId = await ocrService.uploadImageAndRegister(
-        imageFile: _selectedImage!,
-        userId: user.id,
-      );
+      try {
+        // 1. Upload da imagem e registro no banco
+        // Se idosoId foi fornecido (familiar), usar ele; senão usar userId
+        final targetId = widget.idosoId ?? user.id;
+        debugPrint('📤 Fazendo upload e registro...');
+        final ocrId = await ocrService.uploadImageAndRegister(
+          imageFile: _selectedImage!,
+          userId: targetId,
+        );
 
       setState(() {
         _ocrId = ocrId;
@@ -512,7 +528,12 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
           });
 
           // Chamar callback para atualizar lista de medicamentos
-          _onMedicamentosUpdated?.call();
+          widget.onMedicamentosUpdated?.call();
+          
+          // Retornar true para indicar sucesso
+          if (mounted) {
+            Navigator.pop(context, true);
+          }
         } else {
           // Erro no processamento
           final errorMsg = resultado['error_message'] as String? ?? 

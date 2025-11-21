@@ -3,10 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../services/supabase_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
+import '../../core/state/familiar_state.dart';
 import '../../models/perfil.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/app_button.dart';
+import '../../widgets/caremind_app_bar.dart';
 import 'adicionar_idoso_form.dart';
 import 'editar_idoso_form.dart';
 
@@ -36,12 +38,14 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
 
     try {
       final supabaseService = getIt<SupabaseService>();
+      final familiarState = getIt<FamiliarState>();
       final user = supabaseService.currentUser;
       
       if (user != null) {
-        final idosos = await supabaseService.getIdososVinculados(user.id);
+        // Carregar idosos e atualizar o FamiliarState
+        await familiarState.carregarIdosos(user.id);
         setState(() {
-          _idosos = idosos;
+          _idosos = familiarState.idososVinculados;
           _isLoading = false;
         });
       } else {
@@ -254,16 +258,12 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final familiarState = getIt<FamiliarState>();
+    
     return AppScaffoldWithWaves(
-      appBar: AppBar(
-        title: const Text('Gerenciar Família'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadIdosos,
-            tooltip: 'Atualizar',
-          ),
-        ],
+      appBar: CareMindAppBar(
+        title: 'Família',
+        isFamiliar: true,
       ),
       body: SafeArea(
         child: _isLoading
@@ -466,7 +466,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                                       horizontal: 24,
                                       vertical: 8,
                                     ),
-                                    child: _buildIdosoCard(idoso),
+                                    child: _buildIdosoCard(idoso, familiarState),
                                   );
                                 },
                                 childCount: _idosos.length,
@@ -492,9 +492,17 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
     );
   }
 
-  Widget _buildIdosoCard(Perfil idoso) {
+  Widget _buildIdosoCard(Perfil idoso, FamiliarState familiarState) {
+    final isSelected = familiarState.idosoSelecionado?.id == idoso.id;
+    
     return GlassCard(
-      onTap: () => _showOptionsMenu(idoso),
+      onTap: () {
+        // Selecionar o idoso ao tocar no card
+        familiarState.selecionarIdoso(idoso);
+        // Mostrar menu de opções
+        _showOptionsMenu(idoso);
+      },
+      borderColor: isSelected ? Colors.green.withValues(alpha: 0.6) : null,
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [

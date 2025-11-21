@@ -1,15 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../models/medicamento.dart';
 import '../../services/medicamento_service.dart';
 import '../../services/supabase_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
+import '../../core/navigation/app_navigation.dart';
+import '../../core/state/familiar_state.dart';
+import '../../services/historico_eventos_service.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
+import '../../widgets/glass_card.dart';
+import '../../widgets/banner_contexto_familiar.dart';
+import '../integracoes/integracoes_screen.dart';
 import 'add_edit_medicamento_form.dart';
 
 class GestaoMedicamentosScreen extends StatefulWidget {
-  const GestaoMedicamentosScreen({super.key});
+  final String? idosoId; // Para familiar gerenciar medicamentos do idoso
+  final bool embedded; // Se true, não mostra AppScaffoldWithWaves nem SliverAppBar
+
+  const GestaoMedicamentosScreen({
+    super.key,
+    this.idosoId,
+    this.embedded = false,
+  });
 
   @override
   State<GestaoMedicamentosScreen> createState() => _GestaoMedicamentosScreenState();
@@ -26,6 +41,24 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
     super.initState();
     _loadUserProfile();
     _loadMedicamentos();
+    
+    // Escutar mudanças no FamiliarState para recarregar quando o idoso mudar
+    final familiarState = getIt<FamiliarState>();
+    familiarState.addListener(_onFamiliarStateChanged);
+  }
+
+  @override
+  void dispose() {
+    final familiarState = getIt<FamiliarState>();
+    familiarState.removeListener(_onFamiliarStateChanged);
+    super.dispose();
+  }
+
+  void _onFamiliarStateChanged() {
+    // Recarregar medicamentos quando o idoso selecionado mudar
+    if (mounted && widget.idosoId == null) {
+      _loadMedicamentos();
+    }
   }
 
   Future<void> _loadUserProfile() async {
@@ -46,6 +79,10 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
   }
 
   bool get _isIdoso => _perfilTipo == 'idoso';
+  bool get _isFamiliar {
+    final familiarState = getIt<FamiliarState>();
+    return familiarState.hasIdosos && widget.idosoId == null;
+  }
 
   Future<void> _loadMedicamentos() async {
     setState(() {
@@ -56,9 +93,17 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
     try {
       final supabaseService = getIt<SupabaseService>();
       final medicamentoService = getIt<MedicamentoService>();
+      final familiarState = getIt<FamiliarState>();
       final user = supabaseService.currentUser;
+      
       if (user != null) {
-        final medicamentos = await medicamentoService.getMedicamentos(user.id);
+        // Prioridade: widget.idosoId > FamiliarState.idosoSelecionado > user.id
+        final targetId = widget.idosoId ?? 
+            (familiarState.hasIdosos && familiarState.idosoSelecionado != null 
+                ? familiarState.idosoSelecionado!.id 
+                : user.id);
+        
+        final medicamentos = await medicamentoService.getMedicamentos(targetId);
         setState(() {
           _medicamentos = medicamentos;
           _isLoading = false;
@@ -83,10 +128,44 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
   Future<void> _toggleConcluido(Medicamento medicamento) async {
     try {
       final medicamentoService = getIt<MedicamentoService>();
+      final supabaseService = getIt<SupabaseService>();
+      final familiarState = getIt<FamiliarState>();
+      
+      // Determinar o perfil_id do idoso (não do familiar)
+      final user = supabaseService.currentUser;
+      if (user == null) return;
+      
+      // Se for familiar gerenciando idoso, usar o id do idoso; senão usar o user.id
+      final targetPerfilId = widget.idosoId ?? 
+          (familiarState.hasIdosos && familiarState.idosoSelecionado != null 
+              ? familiarState.idosoSelecionado!.id 
+              : user.id);
+      
+      final novoEstado = !medicamento.concluido;
+      
+      // Atualizar o medicamento
       await medicamentoService.toggleConcluido(
         medicamento.id!,
-        !medicamento.concluido,
+        novoEstado,
       );
+      
+      // Registrar evento no histórico
+      try {
+        await HistoricoEventosService.addEvento({
+          'perfil_id': targetPerfilId,
+          'tipo_evento': novoEstado ? 'medicamento_tomado' : 'medicamento_desmarcado',
+          'data_hora': DateTime.now().toIso8601String(),
+          'descricao': novoEstado 
+              ? 'Medicamento "${medicamento.nome}" marcado como tomado'
+              : 'Medicamento "${medicamento.nome}" desmarcado',
+          'referencia_id': medicamento.id.toString(),
+          'tipo_referencia': 'medicamento',
+        });
+      } catch (e) {
+        // Log erro mas não interrompe o fluxo
+        debugPrint('⚠️ Erro ao registrar evento no histórico: $e');
+      }
+      
       _loadMedicamentos(); // Recarrega a lista
     } catch (error) {
       final errorMessage = error is AppException
@@ -149,12 +228,377 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
     );
   }
 
+  /// Mostra diálogo com opções: Formulário ou OCR
+  Future<void> _showAddMedicamentoOptions() async {
+    final option = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFA8B8FF), Color(0xFF9B7EFF)],
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Como deseja adicionar?',
+                  style: GoogleFonts.leagueSpartan(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Opção: Formulário
+                GlassCard(
+                  onTap: () => Navigator.pop(context, 'formulario'),
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.edit_note,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Formulário',
+                              style: GoogleFonts.leagueSpartan(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Preencher manualmente',
+                              style: GoogleFonts.leagueSpartan(
+                                fontSize: 14,
+                                color: Colors.white.withValues(alpha: 0.9),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Opção: OCR
+                GlassCard(
+                  onTap: () => Navigator.pop(context, 'ocr'),
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Por Foto',
+                              style: GoogleFonts.leagueSpartan(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Ler receita com inteligência artificial',
+                              style: GoogleFonts.leagueSpartan(
+                                fontSize: 14,
+                                color: Colors.white.withValues(alpha: 0.9),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Cancelar',
+                    style: GoogleFonts.leagueSpartan(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (option == null) return;
+
+    if (option == 'formulario') {
+      // Abrir formulário padrão
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddEditMedicamentoForm(idosoId: widget.idosoId),
+        ),
+      );
+      if (result == true) {
+        _loadMedicamentos();
+      }
+    } else if (option == 'ocr') {
+      // Mostrar opções de câmera ou galeria
+      await _showOcrImageSource();
+    }
+  }
+
+  /// Mostra opções para escolher câmera ou galeria para OCR
+  Future<void> _showOcrImageSource() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFA8B8FF), Color(0xFF9B7EFF)],
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Escolha a origem da imagem',
+                  style: GoogleFonts.leagueSpartan(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Opção: Câmera
+                GlassCard(
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Tirar Foto',
+                              style: GoogleFonts.leagueSpartan(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Abrir a câmera',
+                              style: GoogleFonts.leagueSpartan(
+                                fontSize: 14,
+                                color: Colors.white.withValues(alpha: 0.9),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Opção: Galeria
+                GlassCard(
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.photo_library,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Escolher da Galeria',
+                              style: GoogleFonts.leagueSpartan(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Selecionar do dispositivo',
+                              style: GoogleFonts.leagueSpartan(
+                                fontSize: 14,
+                                color: Colors.white.withValues(alpha: 0.9),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Cancelar',
+                    style: GoogleFonts.leagueSpartan(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    // Capturar/selecionar imagem
+    final ImagePicker picker = ImagePicker();
+    try {
+      final XFile? image = await picker.pickImage(
+        source: source,
+        imageQuality: 85,
+      );
+
+      if (image != null && mounted) {
+        // Obter idosoId do FamiliarState se não foi fornecido via widget
+        final familiarState = getIt<FamiliarState>();
+        final idosoId = widget.idosoId ?? 
+            (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
+        
+        // Abrir tela de OCR com a imagem selecionada
+        final result = await Navigator.push(
+          context,
+          AppNavigation.smoothRoute(
+            IntegracoesScreen(
+              initialImage: File(image.path),
+              idosoId: idosoId,
+              onMedicamentosUpdated: _loadMedicamentos,
+            ),
+          ),
+        );
+
+        // Se medicamentos foram adicionados, recarregar lista
+        if (result == true) {
+          _loadMedicamentos();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        _showError('Erro ao ${source == ImageSource.camera ? 'capturar' : 'selecionar'} imagem: $e');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AppScaffoldWithWaves(
-      body: CustomScrollView(
-        slivers: [
-          // Header moderno
+    final familiarState = getIt<FamiliarState>();
+    final isFamiliar = familiarState.hasIdosos && widget.idosoId == null;
+    
+    final content = CustomScrollView(
+      slivers: [
+        // Banner de contexto para perfil familiar
+        if (isFamiliar)
+          SliverToBoxAdapter(
+            child: const BannerContextoFamiliar(),
+          ),
+        // Header moderno - apenas se não estiver embedded
+        if (!widget.embedded)
           SliverAppBar(
             expandedHeight: 120,
             floating: false,
@@ -197,26 +641,25 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
             ],
           ),
 
-          // Conteúdo principal
-          SliverToBoxAdapter(
-            child: _buildBody(),
-          ),
-        ],
-      ),
+        // Conteúdo principal
+        SliverToBoxAdapter(
+          child: _buildBody(),
+        ),
+      ],
+    );
+
+    if (widget.embedded) {
+      // Modo embedded: retorna apenas o conteúdo, sem AppScaffoldWithWaves
+      return content;
+    }
+
+    // Modo standalone: retorna com AppScaffoldWithWaves e FAB
+    return AppScaffoldWithWaves(
+      body: content,
       floatingActionButton: _isIdoso
           ? null // Idoso não pode adicionar medicamentos
           : FloatingActionButton.extended(
-              onPressed: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AddEditMedicamentoForm(),
-                  ),
-                );
-                if (result == true) {
-                  _loadMedicamentos();
-                }
-              },
+              onPressed: _showAddMedicamentoOptions,
               backgroundColor: Colors.white,
               foregroundColor: const Color(0xFF0400BA),
               elevation: 4,
@@ -237,7 +680,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
     if (_isLoading) {
       return Container(
         height: 300,
-        child: const Center(
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -552,7 +995,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
               child: _buildMedicamentoCard(medicamento),
             ))),
 
-        const SizedBox(height: 100), // Espaço para o FAB
+        const SizedBox(height: 100), // Espaço para o FAB e navbar
       ],
     );
   }
@@ -628,10 +1071,18 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                 }
               : () async {
                   // Outros perfis podem editar
+                  // Obter idosoId do FamiliarState se não foi fornecido via widget
+                  final familiarState = getIt<FamiliarState>();
+                  final idosoId = widget.idosoId ?? 
+                      (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
+                  
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => AddEditMedicamentoForm(medicamento: medicamento),
+                      builder: (context) => AddEditMedicamentoForm(
+                        medicamento: medicamento,
+                        idosoId: idosoId,
+                      ),
                     ),
                   );
                   if (result == true) {
@@ -878,6 +1329,96 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     ],
                   ),
                 ),
+                
+                // Botão de ação rápida para familiares marcarem como concluído
+                if (_isFamiliar && !medicamento.concluido) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.green.shade400, Colors.green.shade600],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _toggleConcluido(medicamento),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.check_circle, color: Colors.white, size: 24),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Marcar como Tomado',
+                                style: GoogleFonts.leagueSpartan(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                
+                // Botão para desmarcar (se já estiver concluído e for familiar)
+                if (_isFamiliar && medicamento.concluido) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade400,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.orange.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _toggleConcluido(medicamento),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.undo, color: Colors.white, size: 24),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Marcar como Pendente',
+                                style: GoogleFonts.leagueSpartan(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

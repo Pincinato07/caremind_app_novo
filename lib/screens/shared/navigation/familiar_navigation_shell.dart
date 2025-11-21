@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import '../../familiar/dashboard_screen.dart';
 import '../../familia_gerenciamento/familiares_screen.dart';
 import '../../shared/alertas_screen.dart';
-import '../../shared/perfil_screen.dart';
+import '../../shared/gestao_screen.dart';
 import '../../../widgets/nav_item.dart';
+import '../../../core/state/familiar_state.dart';
+import '../../../core/injection/injection.dart';
+import '../../../services/supabase_service.dart';
 
 /// Shell de navegação para o perfil FAMILIAR/CUIDADOR
-/// BottomBar com 4 itens, dashboard de gestão
+/// BottomBar com 4 itens: Início, Família, Notificações, Gestão
+/// AppBar removida - cada tela filha terá sua própria AppBar
+/// Perfil acessível apenas pela AppBar
 class FamiliarNavigationShell extends StatefulWidget {
   const FamiliarNavigationShell({super.key});
 
@@ -16,13 +21,40 @@ class FamiliarNavigationShell extends StatefulWidget {
 
 class _FamiliarNavigationShellState extends State<FamiliarNavigationShell> {
   int _selectedIndex = 0;
+  bool _isInitialized = false;
 
   final List<Widget> _pages = const [
     FamiliarDashboardScreen(),
     FamiliaresScreen(),
     AlertasScreen(),
-    PerfilScreen(),
+    GestaoScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeFamiliarState();
+  }
+
+  Future<void> _initializeFamiliarState() async {
+    try {
+      final supabaseService = getIt<SupabaseService>();
+      final familiarState = getIt<FamiliarState>();
+      final user = supabaseService.currentUser;
+
+      if (user != null && !_isInitialized) {
+        await familiarState.carregarIdosos(user.id);
+        setState(() {
+          _isInitialized = true;
+        });
+      }
+    } catch (e) {
+      // Erro ao inicializar - continuar mesmo assim
+      setState(() {
+        _isInitialized = true;
+      });
+    }
+  }
 
   void _onItemTapped(int index) {
     if (_selectedIndex == index) return;
@@ -34,6 +66,7 @@ class _FamiliarNavigationShellState extends State<FamiliarNavigationShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         transitionBuilder: (child, animation) {
@@ -78,7 +111,7 @@ class _FamiliarNavigationShellState extends State<FamiliarNavigationShell> {
               ),
               NavItem(
                 icon: Icons.groups_rounded,
-                label: 'Idosos',
+                label: 'Família',
                 isSelected: _selectedIndex == 1,
                 onTap: () => _onItemTapped(1),
               ),
@@ -89,8 +122,8 @@ class _FamiliarNavigationShellState extends State<FamiliarNavigationShell> {
                 onTap: () => _onItemTapped(2),
               ),
               NavItem(
-                icon: Icons.account_circle_rounded,
-                label: 'Perfil',
+                icon: Icons.settings_applications_rounded,
+                label: 'Gestão',
                 isSelected: _selectedIndex == 3,
                 onTap: () => _onItemTapped(3),
               ),
