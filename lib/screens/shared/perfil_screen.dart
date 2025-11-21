@@ -43,6 +43,22 @@ class _PerfilScreenState extends State<PerfilScreen> {
   final _telefoneController = TextEditingController();
   String? _fotoUrl;
   File? _fotoLocal;
+  String? _selectedTimezone;
+  
+  // Lista de timezones brasileiros principais
+  static const List<Map<String, String>> _timezones = [
+    {'value': 'America/Sao_Paulo', 'label': 'Brasília (UTC-3)'},
+    {'value': 'America/Manaus', 'label': 'Manaus (UTC-4)'},
+    {'value': 'America/Campo_Grande', 'label': 'Campo Grande (UTC-4)'},
+    {'value': 'America/Rio_Branco', 'label': 'Rio Branco (UTC-5)'},
+    {'value': 'America/Fortaleza', 'label': 'Fortaleza (UTC-3)'},
+    {'value': 'America/Recife', 'label': 'Recife (UTC-3)'},
+    {'value': 'America/Bahia', 'label': 'Bahia (UTC-3)'},
+    {'value': 'America/Belem', 'label': 'Belém (UTC-3)'},
+    {'value': 'America/Araguaina', 'label': 'Araguaína (UTC-3)'},
+    {'value': 'America/Maceio', 'label': 'Maceió (UTC-3)'},
+    {'value': 'America/Noronha', 'label': 'Fernando de Noronha (UTC-2)'},
+  ];
 
   @override
   void initState() {
@@ -80,7 +96,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
           _perfil = perfil;
           _nomeController.text = perfil.nome ?? '';
           _emailController.text = user.email ?? '';
-          _telefoneController.text = ''; // Telefone não está no modelo Perfil atual
+          _telefoneController.text = perfil.telefone ?? '';
+          _selectedTimezone = perfil.timezone ?? 'America/Sao_Paulo';
           
           // Obter URL da foto se existir
           if (perfil.fotoUsuario != null && perfil.fotoUsuario!.isNotEmpty) {
@@ -223,8 +240,18 @@ class _PerfilScreenState extends State<PerfilScreen> {
             nome: value,
           );
           break;
-        // Telefone e email podem precisar de tratamento diferente
-        // Por enquanto, apenas nome é suportado no updateProfile
+        case 'telefone':
+          await _supabaseService.updateProfile(
+            userId: user.id,
+            telefone: value,
+          );
+          break;
+        case 'timezone':
+          await _supabaseService.updateProfile(
+            userId: user.id,
+            timezone: value,
+          );
+          break;
       }
 
       if (mounted) {
@@ -386,6 +413,15 @@ class _PerfilScreenState extends State<PerfilScreen> {
                             icon: Icons.email_outlined,
                           ),
                           const SizedBox(height: 16),
+                          _buildEditableField(
+                            label: 'Telefone de Emergência',
+                            controller: _telefoneController,
+                            icon: Icons.phone_outlined,
+                            onSave: () => _saveField('telefone', _telefoneController.text),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTimezoneField(),
+                          const SizedBox(height: 16),
                           _buildReadOnlyField(
                             label: 'Tipo de Conta',
                             value: _perfil?.tipo == 'individual'
@@ -534,6 +570,66 @@ class _PerfilScreenState extends State<PerfilScreen> {
             ),
             onPressed: onSave,
             tooltip: 'Salvar',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimezoneField() {
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.access_time, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Fuso Horário',
+                  style: GoogleFonts.leagueSpartan(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.7),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                DropdownButton<String>(
+                  value: _selectedTimezone ?? 'America/Sao_Paulo',
+                  isExpanded: true,
+                  dropdownColor: const Color(0xFF1A1A2E),
+                  style: GoogleFonts.leagueSpartan(
+                    fontSize: 16,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  underline: Container(),
+                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                  items: _timezones.map((tz) {
+                    return DropdownMenuItem<String>(
+                      value: tz['value'],
+                      child: Text(tz['label']!),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _selectedTimezone = newValue;
+                      });
+                      _saveField('timezone', newValue);
+                    }
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),

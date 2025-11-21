@@ -8,6 +8,7 @@ import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/glass_card.dart';
+import '../../widgets/voice_interface_widget.dart';
 import '../../services/accessibility_service.dart';
 
 /// Tela de Compromissos para IDOSO - Visual simples com agenda
@@ -129,16 +130,22 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final supabaseService = getIt<SupabaseService>();
+    final user = supabaseService.currentUser;
+    final userId = user?.id ?? '';
+
     return AppScaffoldWithWaves(
       body: SafeArea(
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                ),
-              )
-            : CustomScrollView(
-                slivers: [
+        child: Stack(
+          children: [
+            _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                    ),
+                  )
+                : CustomScrollView(
+                    slivers: [
                   // Header
                   SliverToBoxAdapter(
                     child: Padding(
@@ -281,8 +288,16 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                     ),
 
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                ],
+                    ],
+                  ),
+            // Interface de voz para idosos
+            if (userId.isNotEmpty && !_isLoading)
+              VoiceInterfaceWidget(
+                userId: userId,
+                showAsFloatingButton: true,
               ),
+          ],
+        ),
       ),
     );
   }

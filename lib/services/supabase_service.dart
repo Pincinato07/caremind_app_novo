@@ -223,6 +223,8 @@ class SupabaseService {
     String? codigoVinculacao,
     String? fotoUsuario,
     DateTime? codigoVinculacaoExpiraEm,
+    String? telefone,
+    String? timezone,
   }) async {
     try {
       final Map<String, dynamic> updates = {};
@@ -237,6 +239,8 @@ class SupabaseService {
         updates['codigo_vinculacao_expira_em'] =
             codigoVinculacaoExpiraEm.toIso8601String();
       }
+      if (telefone != null) updates['telefone'] = telefone;
+      if (timezone != null) updates['timezone'] = timezone;
 
       if (updates.isNotEmpty) {
         await _client.from('perfis').update(updates).eq('id', userId);

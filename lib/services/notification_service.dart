@@ -4,18 +4,33 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../models/medicamento.dart';
 
-/// Serviço de Notificações Locais para Lembretes de Medicamentos
+/// Serviço de Notificações (Locais + Push Remotas FCM) para Lembretes de Medicamentos
 /// 
-/// Responsável por agendar notificações diárias repetitivas com som e vibração fortes.
-/// Funciona mesmo com o app fechado.
+/// Responsável por:
+/// - Agendar notificações locais diárias repetitivas com som e vibração fortes
+/// - Receber notificações push remotas (FCM) mesmo com o app fechado
+/// - Gerenciar tokens FCM e sincronizar com backend
+/// 
+/// Funciona mesmo com o app fechado através de:
+/// - Notificações locais agendadas (flutter_local_notifications)
+/// - Push notifications remotas (Firebase Cloud Messaging)
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
+  
+  // Firebase Messaging
+  static FirebaseMessaging? _firebaseMessaging;
+  static String? _fcmToken;
+  static bool _fcmInitialized = false;
 
   static bool _initialized = false;
+  
+  // Callback para quando o token FCM é atualizado (para enviar ao backend)
+  static Function(String token)? onFcmTokenUpdated;
 
   // ID do canal Android para medicamentos (CRÍTICO para som e vibração)
   static const String _medicamentoChannelId = 'lembrete_medicamento_channel';
@@ -23,7 +38,7 @@ class NotificationService {
   static const String _medicamentoChannelDescription =
       'Notificações de horários de medicamentos com som e vibração';
 
-  /// Inicializar o serviço de notificações
+  /// Inicializar o serviço de notificações (Locais + FCM)
   static Future<void> initialize() async {
     if (_initialized) return;
 
@@ -47,14 +62,14 @@ class NotificationService {
         iOS: iosSettings,
       );
 
-      // Inicializar plugin
+      // Inicializar plugin de notificações locais
       final initialized = await _notifications.initialize(
         initSettings,
         onDidReceiveNotificationResponse: _onNotificationTapped,
       );
 
       if (initialized != true) {
-        debugPrint('⚠️ NotificationService: Falha ao inicializar notificações');
+        debugPrint('⚠️ NotificationService: Falha ao inicializar notificações locais');
         return;
       }
 
@@ -64,12 +79,152 @@ class NotificationService {
       // Solicitar permissões
       await requestPermissions();
 
+      // Inicializar Firebase Messaging (Push Notifications Remotas)
+      await _initializeFCM();
+
       _initialized = true;
-      debugPrint('✅ NotificationService: Inicializado com sucesso');
+      debugPrint('✅ NotificationService: Inicializado com sucesso (Local + FCM)');
     } catch (e) {
       debugPrint('❌ NotificationService: Erro ao inicializar - $e');
       _initialized = true; // Continua mesmo com erro
     }
+  }
+  
+  /// Inicializar Firebase Cloud Messaging (FCM) para Push Notifications Remotas
+  static Future<void> _initializeFCM() async {
+    try {
+      // Verificar se Firebase já foi inicializado
+      if (Firebase.apps.isEmpty) {
+        debugPrint('⚠️ Firebase não foi inicializado. Certifique-se de chamar Firebase.initializeApp() no main.dart');
+        return;
+      }
+
+      _firebaseMessaging = FirebaseMessaging.instance;
+
+      // Solicitar permissão de notificações (iOS e Android 13+)
+      final settings = await _firebaseMessaging!.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
+
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        debugPrint('✅ Permissão FCM concedida');
+      } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
+        debugPrint('⚠️ Permissão FCM provisória');
+      } else {
+        debugPrint('❌ Permissão FCM negada');
+        return;
+      }
+
+      // Configurar handlers para notificações FCM
+      // Foreground: quando o app está aberto
+      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+      
+      // Background: quando o app está em background (já configurado via top-level function)
+      FirebaseMessaging.onMessageOpenedApp.listen(_handleBackgroundMessageOpened);
+
+      // Obter token FCM
+      await _getFCMToken();
+
+      // Listener para quando o token é atualizado
+      _firebaseMessaging!.onTokenRefresh.listen((newToken) {
+        _fcmToken = newToken;
+        debugPrint('🔄 Token FCM atualizado: $newToken');
+        onFcmTokenUpdated?.call(newToken);
+      });
+
+      _fcmInitialized = true;
+      debugPrint('✅ FCM inicializado com sucesso');
+    } catch (e) {
+      debugPrint('❌ Erro ao inicializar FCM: $e');
+      // Continua mesmo sem FCM (notificações locais ainda funcionam)
+    }
+  }
+  
+  /// Obter token FCM atual
+  static Future<String?> _getFCMToken() async {
+    try {
+      if (_firebaseMessaging == null) return null;
+      
+      _fcmToken = await _firebaseMessaging!.getToken();
+      if (_fcmToken != null) {
+        debugPrint('✅ Token FCM obtido: $_fcmToken');
+        onFcmTokenUpdated?.call(_fcmToken!);
+      }
+      return _fcmToken;
+    } catch (e) {
+      debugPrint('❌ Erro ao obter token FCM: $e');
+      return null;
+    }
+  }
+  
+  /// Obter token FCM (método público)
+  static Future<String?> getFCMToken() async {
+    if (!_fcmInitialized) {
+      await _initializeFCM();
+    }
+    return _fcmToken ?? await _getFCMToken();
+  }
+  
+  /// Handler para notificações FCM quando o app está em foreground
+  static Future<void> _handleForegroundMessage(RemoteMessage message) async {
+    debugPrint('📨 Notificação FCM recebida (foreground): ${message.notification?.title}');
+    
+    // Mostrar notificação local mesmo quando em foreground
+    // Isso garante que o usuário veja a notificação mesmo com o app aberto
+    if (message.notification != null) {
+      await _showLocalNotificationFromFCM(message);
+    }
+  }
+  
+  /// Handler para quando o usuário toca em uma notificação FCM com o app em background
+  static void _handleBackgroundMessageOpened(RemoteMessage message) {
+    debugPrint('🔔 Notificação FCM tocada (background): ${message.notification?.title}');
+    debugPrint('📦 Payload: ${message.data}');
+    // Aqui você pode navegar para a tela apropriada baseado no payload
+  }
+  
+  /// Mostrar notificação local a partir de uma mensagem FCM
+  static Future<void> _showLocalNotificationFromFCM(RemoteMessage message) async {
+    if (!_initialized) await initialize();
+    
+    final notification = message.notification;
+    if (notification == null) return;
+
+    final androidDetails = AndroidNotificationDetails(
+      _medicamentoChannelId,
+      _medicamentoChannelName,
+      channelDescription: _medicamentoChannelDescription,
+      importance: Importance.max,
+      priority: Priority.max,
+      icon: '@mipmap/ic_launcher',
+      playSound: true,
+      enableVibration: true,
+      vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]),
+      styleInformation: BigTextStyleInformation(
+        notification.body ?? '',
+        contentTitle: notification.title ?? '💊 Caremind',
+      ),
+      category: AndroidNotificationCategory.alarm,
+      visibility: NotificationVisibility.public,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+      interruptionLevel: InterruptionLevel.critical,
+    );
+
+    await _notifications.show(
+      message.hashCode, // ID único baseado na mensagem
+      notification.title ?? '💊 Caremind',
+      notification.body ?? '',
+      NotificationDetails(android: androidDetails, iOS: iosDetails),
+      payload: message.data.toString(),
+    );
   }
 
   /// Criar canal Android com importância máxima (CRÍTICO)
@@ -409,6 +564,87 @@ class NotificationService {
       '💊 Teste - Hora do Medicamento!',
       '${medicamentoNome ?? "Medicamento Teste"} - ${dosagem ?? "Dosagem teste"}',
       notificationDetails,
+    );
+  }
+}
+
+/// Handler top-level para notificações FCM em background (quando o app está completamente fechado)
+/// 
+/// Esta função DEVE estar no nível superior do arquivo (não dentro de uma classe)
+/// e DEVE ser uma função top-level ou estática para funcionar corretamente.
+/// 
+/// IMPORTANTE: Esta função é chamada automaticamente pelo Firebase quando uma
+/// notificação chega com o app em background ou fechado.
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // IMPORTANTE: Inicializar Firebase se ainda não foi inicializado
+  // Isso é necessário porque esta função roda em um isolate separado
+  await Firebase.initializeApp();
+  
+  debugPrint('📨 Notificação FCM recebida (background/terminated): ${message.notification?.title}');
+  debugPrint('📦 Payload: ${message.data}');
+  
+  // Mostrar notificação local mesmo quando em background
+  // Isso garante que o usuário veja a notificação mesmo com o app fechado
+  final FlutterLocalNotificationsPlugin localNotifications = 
+      FlutterLocalNotificationsPlugin();
+  
+  // Inicializar timezone se necessário
+  tz.initializeTimeZones();
+  tz.setLocalLocation(tz.getLocation('America/Sao_Paulo'));
+  
+  // Configurar canal Android
+  const androidChannel = AndroidNotificationChannel(
+    'lembrete_medicamento_channel',
+    'Lembretes de Medicamentos',
+    description: 'Notificações de horários de medicamentos com som e vibração',
+    importance: Importance.max,
+    playSound: true,
+    enableVibration: true,
+  );
+  
+  final androidImplementation = localNotifications.resolvePlatformSpecificImplementation<
+      AndroidFlutterLocalNotificationsPlugin>();
+  
+  if (androidImplementation != null) {
+    await androidImplementation.createNotificationChannel(androidChannel);
+  }
+  
+  // Mostrar notificação
+  if (message.notification != null) {
+    final notification = message.notification!;
+    
+    final androidDetails = AndroidNotificationDetails(
+      'lembrete_medicamento_channel',
+      'Lembretes de Medicamentos',
+      channelDescription: 'Notificações de horários de medicamentos com som e vibração',
+      importance: Importance.max,
+      priority: Priority.max,
+      icon: '@mipmap/ic_launcher',
+      playSound: true,
+      enableVibration: true,
+      vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]),
+      styleInformation: BigTextStyleInformation(
+        notification.body ?? '',
+        contentTitle: notification.title ?? '💊 Caremind',
+      ),
+      category: AndroidNotificationCategory.alarm,
+      visibility: NotificationVisibility.public,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+      interruptionLevel: InterruptionLevel.critical,
+    );
+
+    await localNotifications.show(
+      message.hashCode,
+      notification.title ?? '💊 Caremind',
+      notification.body ?? '',
+      NotificationDetails(android: androidDetails, iOS: iosDetails),
+      payload: message.data.toString(),
     );
   }
 }

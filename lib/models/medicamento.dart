@@ -2,7 +2,8 @@ class Medicamento {
   final int? id;
   final DateTime createdAt;
   final String nome;
-  final String userId;
+  final String userId; // Mantido para compatibilidade durante transição
+  final String? perfilId; // Novo campo preferencial
   final String dosagem;
   final Map<String, dynamic> frequencia;
   final int quantidade;
@@ -13,6 +14,7 @@ class Medicamento {
     required this.createdAt,
     required this.nome,
     required this.userId,
+    this.perfilId,
     required this.dosagem,
     required this.frequencia,
     required this.quantidade,
@@ -24,7 +26,8 @@ class Medicamento {
       id: map['id'] as int?,
       createdAt: DateTime.parse(map['created_at'] as String),
       nome: map['nome'] as String,
-      userId: map['user_id'] as String,
+      userId: map['user_id'] as String? ?? '',
+      perfilId: map['perfil_id'] as String?,
       dosagem: map['dosagem'] as String,
       frequencia: Map<String, dynamic>.from(map['frequencia'] as Map),
       quantidade: map['quantidade'] as int,
@@ -37,7 +40,8 @@ class Medicamento {
       if (id != null) 'id': id,
       'created_at': createdAt.toIso8601String(),
       'nome': nome,
-      'user_id': userId,
+      if (userId.isNotEmpty) 'user_id': userId, // Mantido para compatibilidade
+      if (perfilId != null) 'perfil_id': perfilId, // Preferencial
       'dosagem': dosagem,
       'frequencia': frequencia,
       'quantidade': quantidade,
@@ -50,6 +54,7 @@ class Medicamento {
     DateTime? createdAt,
     String? nome,
     String? userId,
+    String? perfilId,
     String? dosagem,
     Map<String, dynamic>? frequencia,
     int? quantidade,
@@ -60,6 +65,7 @@ class Medicamento {
       createdAt: createdAt ?? this.createdAt,
       nome: nome ?? this.nome,
       userId: userId ?? this.userId,
+      perfilId: perfilId ?? this.perfilId,
       dosagem: dosagem ?? this.dosagem,
       frequencia: frequencia ?? this.frequencia,
       quantidade: quantidade ?? this.quantidade,

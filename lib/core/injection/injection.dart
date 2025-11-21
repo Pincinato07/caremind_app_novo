@@ -10,6 +10,7 @@ import '../../services/account_manager_service.dart';
 import '../../services/lgpd_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/ocr_service.dart';
+import '../../services/fcm_token_service.dart';
 import '../../core/state/familiar_state.dart';
 
 final getIt = GetIt.instance;
@@ -55,6 +56,10 @@ Future<void> configureDependencies() async {
 
   getIt.registerLazySingleton<OcrService>(
     () => OcrService(getIt<SupabaseClient>()),
+  );
+
+  getIt.registerLazySingleton<FCMTokenService>(
+    () => FCMTokenService(getIt<SupabaseClient>()),
   );
 
   // Registra LgpdService como factory (pode precisar ser recriado)

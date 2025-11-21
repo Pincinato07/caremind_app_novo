@@ -11,6 +11,7 @@ import '../../core/navigation/app_navigation.dart';
 import '../../models/medicamento.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/glass_card.dart';
+import '../../widgets/voice_interface_widget.dart';
 import '../medication/gestao_medicamentos_screen.dart';
 import '../shared/configuracoes_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -255,16 +256,22 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final supabaseService = getIt<SupabaseService>();
+    final user = supabaseService.currentUser;
+    final userId = user?.id ?? '';
+
     return AppScaffoldWithWaves(
       body: SafeArea(
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                ),
-              )
-            : CustomScrollView(
-                slivers: [
+        child: Stack(
+          children: [
+            _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                    ),
+                  )
+                : CustomScrollView(
+                    slivers: [
                   // Header simplificado com botão de configurações
                   SliverToBoxAdapter(
                     child: Padding(
@@ -336,9 +343,17 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
                     ),
                   ),
 
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                ],
+                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                    ],
+                  ),
+            // Interface de voz flutuante
+            if (userId.isNotEmpty && !_isLoading)
+              VoiceInterfaceWidget(
+                userId: userId,
+                showAsFloatingButton: true,
               ),
+          ],
+        ),
       ),
     );
   }
@@ -473,14 +488,17 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Botão de Voz (Destaque)
+        // Botão de Voz (Destaque) - Agora com interface completa
         _buildActionButton(
           icon: Icons.mic,
           label: 'Falar com CareMind',
+          subtitle: 'Toque para ativar o assistente de voz',
           color: const Color(0xFF0400B9),
           onTap: () {
+            // A interface de voz flutuante já está disponível
+            // Este botão serve como atalho visual
             AccessibilityService.speak(
-              'Olá! Como posso ajudá-lo hoje?',
+              'Assistente de voz ativado. Toque no botão de microfone no canto da tela para começar.',
             );
           },
           isLarge: true,
@@ -517,6 +535,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
   Widget _buildActionButton({
     required IconData icon,
     required String label,
+    String? subtitle,
     required Color color,
     required VoidCallback onTap,
     bool isLarge = false,
@@ -530,21 +549,36 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
         horizontal: 24,
         vertical: isLarge ? 24 : 20,
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: isLarge ? 36 : 28, color: Colors.white),
-          const SizedBox(width: 16),
-          Flexible(
-            child: Text(
-              label,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: isLarge ? 36 : 28, color: Colors.white),
+              const SizedBox(width: 16),
+              Flexible(
+                child: Text(
+                  label,
+                  style: GoogleFonts.leagueSpartan(
+                    fontSize: isLarge ? 24 : 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
               style: GoogleFonts.leagueSpartan(
-                fontSize: isLarge ? 24 : 20,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
+                fontSize: 14,
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'firebase_options.dart';
 import 'theme/app_theme.dart';
 import 'screens/auth/auth_shell.dart';
 import 'screens/auth/onboarding_screen.dart';
@@ -15,6 +18,9 @@ import 'screens/compromissos/gestao_compromissos_screen.dart';
 import 'screens/integracoes/integracoes_screen.dart';
 import 'widgets/global_wave_background.dart';
 import 'core/injection/injection.dart';
+import 'services/notification_service.dart';
+import 'services/fcm_token_service.dart';
+import 'package:get_it/get_it.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,15 +28,48 @@ void main() async {
   // Carregar variáveis de ambiente
   await dotenv.load(fileName: ".env");
 
-  // Inicializar Supabase (já feito antes da splash)
+  // IMPORTANTE: Firebase é usado APENAS para FCM (Firebase Cloud Messaging)
+  // Isso é necessário tecnicamente para push notifications remotas funcionarem
+  // TODO o backend e gerenciamento usa Supabase
+  // 
+  // Você precisa adicionar os arquivos de configuração FCM:
+  // - android/app/google-services.json (obtido do Firebase Console - apenas para FCM)
+  // - ios/Runner/GoogleService-Info.plist (obtido do Firebase Console - apenas para FCM)
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    debugPrint('✅ Firebase inicializado (apenas para FCM - push notifications)');
+    
+    // Configurar handler para notificações FCM em background/terminated
+    // Esta função DEVE estar no nível superior (definida em notification_service.dart)
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    debugPrint('✅ Handler de background FCM configurado');
+  } catch (e) {
+    debugPrint('⚠️ Erro ao inicializar Firebase (FCM): $e');
+    debugPrint('⚠️ Notificações push podem não funcionar. Verifique os arquivos de configuração do FCM.');
+  }
+
+  // Inicializar Supabase (backend principal - autenticação, banco de dados, Edge Functions)
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
+  debugPrint('✅ Supabase inicializado (backend principal)');
 
   // Configurar injeção de dependências (já feito antes da splash)
   // A splash screen agora vai fazer verificações de autenticação
   await configureDependencies();
+  
+  // Inicializar FCM Token Service para sincronizar tokens FCM com Supabase
+  // Os tokens são armazenados no Supabase e usados pelas Edge Functions para enviar push notifications
+  try {
+    final fcmTokenService = GetIt.instance<FCMTokenService>();
+    await fcmTokenService.initialize();
+    debugPrint('✅ FCMTokenService inicializado (tokens sincronizados com Supabase)');
+  } catch (e) {
+    debugPrint('⚠️ Erro ao inicializar FCMTokenService: $e');
+  }
   
   runApp(const CareMindApp());
 }

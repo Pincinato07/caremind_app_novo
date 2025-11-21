@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "9674127480",
+    "project_id": "caremind-ef604",
+    "storage_bucket": "caremind-ef604.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:9674127480:android:cefb1db0cf503247ab558d",
+        "android_client_info": {
+          "package_name": "com.example.caremind"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXw4ng7sYRWtTbW68mlKAqykVkaByCagg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

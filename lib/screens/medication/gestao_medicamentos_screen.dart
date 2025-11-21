@@ -13,6 +13,7 @@ import '../../services/historico_eventos_service.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/banner_contexto_familiar.dart';
+import '../../widgets/voice_interface_widget.dart';
 import '../integracoes/integracoes_screen.dart';
 import 'add_edit_medicamento_form.dart';
 
@@ -654,8 +655,22 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
     }
 
     // Modo standalone: retorna com AppScaffoldWithWaves e FAB
+    final supabaseService = getIt<SupabaseService>();
+    final user = supabaseService.currentUser;
+    final userId = user?.id ?? '';
+
     return AppScaffoldWithWaves(
-      body: content,
+      body: Stack(
+        children: [
+          content,
+          // Interface de voz para idosos
+          if (_isIdoso && userId.isNotEmpty)
+            VoiceInterfaceWidget(
+              userId: userId,
+              showAsFloatingButton: true,
+            ),
+        ],
+      ),
       floatingActionButton: _isIdoso
           ? null // Idoso não pode adicionar medicamentos
           : FloatingActionButton.extended(

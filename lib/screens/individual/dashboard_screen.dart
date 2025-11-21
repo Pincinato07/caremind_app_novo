@@ -8,6 +8,7 @@ import '../../models/medicamento.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/caremind_app_bar.dart';
+import '../../widgets/voice_interface_widget.dart';
 
 class IndividualDashboardScreen extends StatefulWidget {
   const IndividualDashboardScreen({super.key});
@@ -177,13 +178,19 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final supabaseService = getIt<SupabaseService>();
+    final user = supabaseService.currentUser;
+    final userId = user?.id ?? '';
+
     return AppScaffoldWithWaves(
       appBar: const CareMindAppBar(),
       body: SafeArea(
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.white))
-            : CustomScrollView(
-                slivers: [
+        child: Stack(
+          children: [
+            _isLoading
+                ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                : CustomScrollView(
+                    slivers: [
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
@@ -232,11 +239,19 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       child: _buildTimelineRotina(),
                     ),
                   ),
-                  SliverToBoxAdapter(
-                    child: SizedBox(height: 100), // Padding inferior para evitar corte pela navbar
+                      SliverToBoxAdapter(
+                        child: SizedBox(height: 100), // Padding inferior para evitar corte pela navbar
+                      ),
+                    ],
                   ),
-                ],
+            // Interface de voz flutuante
+            if (userId.isNotEmpty && !_isLoading)
+              VoiceInterfaceWidget(
+                userId: userId,
+                showAsFloatingButton: true,
               ),
+          ],
+        ),
       ),
     );
   }

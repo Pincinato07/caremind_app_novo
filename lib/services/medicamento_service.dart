@@ -10,12 +10,25 @@ class MedicamentoService {
   MedicamentoService(this._client);
 
   // Buscar todos os medicamentos de um usuário
+  // Atualizado para usar perfil_id (com fallback para user_id durante transição)
   Future<List<Medicamento>> getMedicamentos(String userId) async {
     try {
+      // Primeiro, obter o perfil_id do usuário
+      final perfilResponse = await _client
+          .from('perfis')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+      
+      final perfilId = perfilResponse?['id'] as String?;
+      
+      // Usar perfil_id se disponível, senão usar user_id (compatibilidade durante transição)
       final response = await _client
           .from('medicamentos')
           .select()
-          .eq('user_id', userId)
+          .or(perfilId != null 
+              ? 'perfil_id.eq.$perfilId,user_id.eq.$userId'
+              : 'user_id.eq.$userId')
           .order('created_at', ascending: false);
 
       return (response as List)
@@ -31,6 +44,19 @@ class MedicamentoService {
     try {
       final data = medicamento.toMap();
       data.remove('id'); // Remove o ID para inserção
+      
+      // Se não tem perfil_id, buscar do user_id
+      if (data['perfil_id'] == null && medicamento.userId.isNotEmpty) {
+        final perfilResponse = await _client
+            .from('perfis')
+            .select('id')
+            .eq('user_id', medicamento.userId)
+            .maybeSingle();
+        
+        if (perfilResponse != null) {
+          data['perfil_id'] = perfilResponse['id'] as String;
+        }
+      }
 
       final response = await _client
           .from('medicamentos')
@@ -129,8 +155,10 @@ class MedicamentoService {
         // Verificar se estoque está baixo (<= 5 unidades)
         if (novaQuantidade <= 5 && novaQuantidade > 0) {
           try {
+            // Obter perfil_id do medicamento
+            final perfilId = medicamentoAtual.perfilId ?? medicamentoAtual.userId;
             await HistoricoEventosService.addEvento({
-              'perfil_id': medicamentoAtual.userId,
+              'perfil_id': perfilId,
               'tipo_evento': 'estoque_baixo',
               'data_hora': DateTime.now().toIso8601String(),
               'descricao': 'Estoque de "${medicamentoAtual.nome}" está baixo (${novaQuantidade} unidade(s) restante(s))',
@@ -158,15 +186,28 @@ class MedicamentoService {
   }
 
   // Buscar medicamentos por status (concluído/pendente)
+  // Atualizado para usar perfil_id (com fallback para user_id durante transição)
   Future<List<Medicamento>> getMedicamentosPorStatus(
     String userId,
     bool concluido,
   ) async {
     try {
+      // Primeiro, obter o perfil_id do usuário
+      final perfilResponse = await _client
+          .from('perfis')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+      
+      final perfilId = perfilResponse?['id'] as String?;
+      
+      // Usar perfil_id se disponível, senão usar user_id (compatibilidade durante transição)
       final response = await _client
           .from('medicamentos')
           .select()
-          .eq('user_id', userId)
+          .or(perfilId != null 
+              ? 'perfil_id.eq.$perfilId,user_id.eq.$userId'
+              : 'user_id.eq.$userId')
           .eq('concluido', concluido)
           .order('created_at', ascending: false);
 

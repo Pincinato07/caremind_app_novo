@@ -49,5 +49,13 @@
 		<false/>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
+		<!-- Firebase Cloud Messaging: Configurações de Push Notifications -->
+		<key>FirebaseAppDelegateProxyEnabled</key>
+		<false/>
+		<!-- Permissões para notificações push -->
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>remote-notification</string>
+		</array>
 	</dict>
 </plist>

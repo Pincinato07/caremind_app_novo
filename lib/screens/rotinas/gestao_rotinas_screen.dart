@@ -8,6 +8,7 @@ import '../../core/state/familiar_state.dart';
 import '../../services/historico_eventos_service.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/banner_contexto_familiar.dart';
+import '../../widgets/voice_interface_widget.dart';
 import 'add_edit_rotina_form.dart';
 
 class GestaoRotinasScreen extends StatefulWidget {
@@ -278,8 +279,22 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
     }
 
     // Modo standalone: retorna com AppScaffoldWithWaves e FAB
+    final supabaseService = getIt<SupabaseService>();
+    final user = supabaseService.currentUser;
+    final userId = user?.id ?? '';
+
     return AppScaffoldWithWaves(
-      body: content,
+      body: Stack(
+        children: [
+          content,
+          // Interface de voz para idosos
+          if (_isIdoso && userId.isNotEmpty)
+            VoiceInterfaceWidget(
+              userId: userId,
+              showAsFloatingButton: true,
+            ),
+        ],
+      ),
       floatingActionButton: _isIdoso
           ? null
           : FloatingActionButton.extended(
