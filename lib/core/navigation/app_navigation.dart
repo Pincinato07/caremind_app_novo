@@ -1,52 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 
 /// Helper centralizado para navegação com transições suaves e consistentes
 class AppNavigation {
-  // Transição padrão suave (fade + slide)
+  // Transição padrão otimizada (fade simples - mais rápida e leve)
   static PageRoute<T> smoothRoute<T extends Object?>(
     Widget page, {
-    Duration duration = const Duration(milliseconds: 300),
-    Curve curve = Curves.easeInOutCubic,
+    Duration duration = const Duration(milliseconds: 200), // Reduzido de 300ms para 200ms
+    Curve curve = Curves.easeOut, // Curva mais simples e rápida
   }) {
     return PageRouteBuilder<T>(
       pageBuilder: (context, animation, secondaryAnimation) => page,
       transitionDuration: duration,
       reverseTransitionDuration: duration,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        // Fade
-        final fadeAnimation = Tween<double>(
-          begin: 0.0,
-          end: 1.0,
-        ).animate(CurvedAnimation(
-          parent: animation,
-          curve: curve,
-        ));
-
-        // Slide (sutil)
-        final slideAnimation = Tween<Offset>(
-          begin: const Offset(0.0, 0.02),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: animation,
-          curve: curve,
-        ));
-
+        // Apenas fade - mais leve que fade + slide
         return FadeTransition(
-          opacity: fadeAnimation,
-          child: SlideTransition(
-            position: slideAnimation,
-            child: child,
-          ),
+          opacity: animation,
+          child: child,
         );
       },
     );
   }
 
-  // Transição modal (de baixo para cima)
+  // Transição modal (de baixo para cima) - otimizada
   static PageRoute<T> modalRoute<T extends Object?>(
     Widget page, {
-    Duration duration = const Duration(milliseconds: 250),
+    Duration duration = const Duration(milliseconds: 200), // Reduzido de 250ms para 200ms
     bool barrierDismissible = true,
   }) {
     return PageRouteBuilder<T>(
@@ -134,14 +114,14 @@ class AppNavigation {
         ),
         title: Text(
           title,
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             fontSize: 20,
             fontWeight: FontWeight.w700,
           ),
         ),
         content: Text(
           message,
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             fontSize: 16,
             height: 1.5,
           ),
@@ -155,7 +135,7 @@ class AppNavigation {
               },
               child: Text(
                 cancelText,
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -170,7 +150,7 @@ class AppNavigation {
             ),
             child: Text(
               confirmText ?? 'OK',
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontWeight: FontWeight.w700,
               ),
             ),

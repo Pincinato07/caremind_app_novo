@@ -62,6 +62,42 @@ class AppTextStyles {
   static const TextStyle labelSmall = TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textPrimary, fontFamily: fontFamily);
 
   static const TextStyle link = TextStyle(fontSize: 14, color: AppColors.primary, fontWeight: FontWeight.w600, decoration: TextDecoration.underline, fontFamily: fontFamily);
+
+  // Helper methods para criar TextStyles com a fonte LeagueSpartan já carregada
+  // Estes métodos usam a fonte do tema, evitando downloads repetidos
+  static TextStyle leagueSpartan({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? height,
+    TextDecoration? decoration,
+  }) {
+    return TextStyle(
+      fontFamily: fontFamily,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: height,
+      decoration: decoration,
+    );
+  }
+
+  // TextStyles pré-definidos comuns para uso rápido
+  static TextStyle get h1 => leagueSpartan(fontSize: 32, fontWeight: FontWeight.w700, height: 1.2);
+  static TextStyle get h2 => leagueSpartan(fontSize: 24, fontWeight: FontWeight.w700, height: 1.2);
+  static TextStyle get h3 => leagueSpartan(fontSize: 20, fontWeight: FontWeight.w600, height: 1.25);
+  static TextStyle get h4 => leagueSpartan(fontSize: 18, fontWeight: FontWeight.w600, height: 1.25);
+  static TextStyle get h5 => leagueSpartan(fontSize: 16, fontWeight: FontWeight.w600, height: 1.25);
+  static TextStyle get h6 => leagueSpartan(fontSize: 14, fontWeight: FontWeight.w600, height: 1.25);
+  
+  static TextStyle get body1 => leagueSpartan(fontSize: 16, height: 1.6);
+  static TextStyle get body2 => leagueSpartan(fontSize: 14, height: 1.6);
+  static TextStyle get caption => leagueSpartan(fontSize: 12, height: 1.5);
+  static TextStyle get overline => leagueSpartan(fontSize: 10, fontWeight: FontWeight.w600, height: 1.5);
+  
+  static TextStyle get button => leagueSpartan(fontSize: 14, fontWeight: FontWeight.w600);
+  static TextStyle get subtitle1 => leagueSpartan(fontSize: 16, fontWeight: FontWeight.w500);
+  static TextStyle get subtitle2 => leagueSpartan(fontSize: 14, fontWeight: FontWeight.w500);
 }
 
 /// Bordas e raios padronizados

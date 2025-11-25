@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../core/utils/data_cleaner.dart';
 
 class HistoricoEventosService {
   static final SupabaseClient _client = Supabase.instance.client;
@@ -22,9 +23,12 @@ class HistoricoEventosService {
   static Future<Map<String, dynamic>> addEvento(
       Map<String, dynamic> evento) async {
     try {
+      // Limpar dados antes de inserir (remove strings vazias)
+      final cleanedData = DataCleaner.cleanData(evento);
+      
       final response = await _client
           .from('historico_eventos')
-          .insert(evento)
+          .insert(cleanedData)
           .select()
           .single();
 
@@ -40,9 +44,12 @@ class HistoricoEventosService {
     Map<String, dynamic> updates,
   ) async {
     try {
+      // Limpar dados antes de atualizar (remove strings vazias)
+      final cleanedUpdates = DataCleaner.cleanData(updates);
+      
       final response = await _client
           .from('historico_eventos')
-          .update(updates)
+          .update(cleanedUpdates)
           .eq('id', eventoId)
           .select()
           .single();

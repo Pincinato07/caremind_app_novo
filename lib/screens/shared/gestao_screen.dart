@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import '../../core/state/familiar_state.dart';
 import '../../core/injection/injection.dart';
 import '../../services/supabase_service.dart';
@@ -113,7 +113,7 @@ class _GestaoScreenState extends State<GestaoScreen> {
           icon: const Icon(Icons.add),
           label: Text(
             'Adicionar',
-            style: GoogleFonts.leagueSpartan(
+            style: AppTextStyles.leagueSpartan(
               color: const Color(0xFF0400BA),
               fontWeight: FontWeight.w700,
               fontSize: 16,
@@ -166,7 +166,7 @@ class _GestaoScreenState extends State<GestaoScreen> {
           icon: const Icon(Icons.add),
           label: Text(
             'Adicionar',
-            style: GoogleFonts.leagueSpartan(
+            style: AppTextStyles.leagueSpartan(
               color: const Color(0xFF0400BA),
               fontWeight: FontWeight.w700,
               fontSize: 16,
@@ -213,7 +213,7 @@ class _GestaoScreenState extends State<GestaoScreen> {
               children: [
                 Text(
                   'O que deseja gerenciar?',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 24,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -222,7 +222,7 @@ class _GestaoScreenState extends State<GestaoScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Acesse rapidamente os principais módulos',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 16,
                     color: Colors.white.withValues(alpha: 0.9),
                   ),
@@ -339,7 +339,7 @@ class _GestaoScreenState extends State<GestaoScreen> {
           Flexible(
             child: Text(
               title,
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
@@ -352,7 +352,7 @@ class _GestaoScreenState extends State<GestaoScreen> {
           Flexible(
             child: Text(
               subtitle,
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontSize: 12,
                 color: Colors.white.withValues(alpha: 0.85),
               ),

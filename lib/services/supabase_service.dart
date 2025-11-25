@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/perfil.dart';
 import '../core/errors/app_exception.dart';
 import '../core/errors/error_handler.dart';
+import '../core/utils/data_cleaner.dart';
 
 class SupabaseService {
   final SupabaseClient _client;
@@ -243,7 +244,9 @@ class SupabaseService {
       if (timezone != null) updates['timezone'] = timezone;
 
       if (updates.isNotEmpty) {
-        await _client.from('perfis').update(updates).eq('id', userId);
+        // Limpar dados antes de atualizar (remove strings vazias)
+        final cleanedUpdates = DataCleaner.cleanData(updates);
+        await _client.from('perfis').update(cleanedUpdates).eq('id', userId);
       }
     } catch (error) {
       throw ErrorHandler.toAppException(error);

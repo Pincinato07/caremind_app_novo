@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../services/relatorios_service.dart';
@@ -177,7 +177,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                         const SizedBox(height: 16),
                         Text(
                           _error!,
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 16,
                             color: Colors.white,
                           ),
@@ -231,7 +231,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                                       children: [
                                         Text(
                                           'Período',
-                                          style: GoogleFonts.leagueSpartan(
+                                          style: AppTextStyles.leagueSpartan(
                                             fontSize: 14,
                                             color: Colors.white.withValues(alpha: 0.8),
                                           ),
@@ -239,7 +239,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                                         const SizedBox(height: 4),
                                         Text(
                                           '${DateFormat('dd/MM/yyyy').format(_dataInicio)} - ${DateFormat('dd/MM/yyyy').format(_dataFim)}',
-                                          style: GoogleFonts.leagueSpartan(
+                                          style: AppTextStyles.leagueSpartan(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
                                             color: Colors.white,
@@ -299,7 +299,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
       children: [
         Text(
           'Indicadores Principais',
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: Colors.white,
@@ -361,7 +361,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
           const SizedBox(height: 12),
           Text(
             value,
-            style: GoogleFonts.leagueSpartan(
+            style: AppTextStyles.leagueSpartan(
               fontSize: 24,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -370,7 +370,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
           const SizedBox(height: 4),
           Text(
             title,
-            style: GoogleFonts.leagueSpartan(
+            style: AppTextStyles.leagueSpartan(
               fontSize: 12,
               color: Colors.white.withValues(alpha: 0.8),
             ),
@@ -387,7 +387,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
       children: [
         Text(
           'Análises Gráficas',
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: Colors.white,
@@ -432,7 +432,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
         children: [
           Text(
             'Tendência Diária de Adesão',
-            style: GoogleFonts.leagueSpartan(
+            style: AppTextStyles.leagueSpartan(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.white,
@@ -470,7 +470,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                         final data = tendencia[value.toInt()]['data'] as String;
                         return Text(
                           DateFormat('dd/MM').format(DateTime.parse(data)),
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 10,
                             color: Colors.white.withValues(alpha: 0.7),
                           ),
@@ -485,7 +485,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                       getTitlesWidget: (value, meta) {
                         return Text(
                           '${value.toInt()}%',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 10,
                             color: Colors.white.withValues(alpha: 0.7),
                           ),
@@ -555,7 +555,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
         children: [
           Text(
             'Performance por Turno',
-            style: GoogleFonts.leagueSpartan(
+            style: AppTextStyles.leagueSpartan(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.white,
@@ -578,7 +578,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                     children: [
                       Text(
                         turno['nome'] as String,
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
@@ -586,7 +586,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                       ),
                       Text(
                         '${percentual.toStringAsFixed(1)}%',
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -613,7 +613,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                   const SizedBox(height: 4),
                   Text(
                     '$confirmados de $total eventos',
-                    style: GoogleFonts.leagueSpartan(
+                    style: AppTextStyles.leagueSpartan(
                       fontSize: 12,
                       color: Colors.white.withValues(alpha: 0.7),
                     ),
@@ -641,7 +641,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
         children: [
           Text(
             'Resumo por Tipo',
-            style: GoogleFonts.leagueSpartan(
+            style: AppTextStyles.leagueSpartan(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.white,
@@ -664,7 +664,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                       children: [
                         Text(
                           tipo['nome'] as String,
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -673,7 +673,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                         const SizedBox(height: 4),
                         Text(
                           '$confirmados de $total',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 12,
                             color: Colors.white.withValues(alpha: 0.7),
                           ),
@@ -686,7 +686,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                     alignment: Alignment.centerRight,
                     child: Text(
                       '${percentual.toStringAsFixed(0)}%',
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -708,7 +708,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
       children: [
         Text(
           'Histórico de Eventos',
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: Colors.white,
@@ -770,7 +770,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                         children: [
                           Text(
                             tipoEvento.toUpperCase(),
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: Colors.white.withValues(alpha: 0.8),
@@ -782,7 +782,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                               DateFormat('dd/MM/yyyy HH:mm').format(
                                 DateTime.parse(dataPrevista),
                               ),
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 14,
                                 color: Colors.white,
                               ),
@@ -792,7 +792,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                     ),
                     Text(
                       status.toUpperCase(),
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: statusColor,

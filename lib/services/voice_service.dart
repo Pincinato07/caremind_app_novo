@@ -3,6 +3,8 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:permission_handler/permission_handler.dart';
 import 'medicamento_service.dart';
 import 'rotina_service.dart';
+import 'settings_service.dart';
+import '../core/injection/injection.dart';
 
 /// Serviço completo de interface de voz (Voice-First)
 /// Integra Speech-to-Text (STT) e Text-to-Speech (TTS)
@@ -18,9 +20,22 @@ class VoiceService {
   bool _isListening = false;
   bool _isInitialized = false;
   bool _isAvailable = false;
+  SettingsService? _settingsService;
   
   Function(String)? _onResult;
   Function(String)? _onError;
+
+  /// Obtém o SettingsService (lazy)
+  SettingsService? _getSettingsService() {
+    if (_settingsService == null) {
+      try {
+        _settingsService = getIt<SettingsService>();
+      } catch (e) {
+        // SettingsService pode não estar disponível ainda
+      }
+    }
+    return _settingsService;
+  }
 
   /// Inicializa o serviço de voz
   Future<bool> initialize() async {
@@ -50,9 +65,11 @@ class VoiceService {
         },
       );
 
-      // Configurar TTS
+      // Configurar TTS com velocidade das configurações
       await _tts.setLanguage("pt-BR");
-      await _tts.setSpeechRate(0.5); // Velocidade mais lenta para idosos
+      final settings = _getSettingsService();
+      final speed = settings?.accessibilityVoiceSpeed ?? 0.5;
+      await _tts.setSpeechRate(speed);
       await _tts.setVolume(1.0);
       await _tts.setPitch(1.0);
 
@@ -128,8 +145,18 @@ class VoiceService {
     }
   }
 
-  /// Fala um texto usando TTS
+  /// Fala um texto usando TTS (respeita configuração de TTS)
   Future<void> speak(String text) async {
+    // Verificar se TTS está habilitado
+    final settings = _getSettingsService();
+    if (settings != null && !settings.accessibilityTtsEnabled) {
+      return; // TTS desabilitado
+    }
+
+    // Atualizar velocidade se necessário
+    final speed = settings?.accessibilityVoiceSpeed ?? 0.5;
+    await _tts.setSpeechRate(speed);
+    
     await _tts.speak(text);
   }
 

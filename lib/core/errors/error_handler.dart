@@ -118,10 +118,29 @@ class ErrorHandler {
         return 'Campos obrigatórios não foram preenchidos.';
       case '42P01':
         return 'Tabela não encontrada.';
+      case 'PGRST301':
+      case 'PGRST302':
+        return 'Erro na requisição. Verifique os dados enviados.';
       default:
         // Tenta extrair mensagem do detalhe, senão usa a mensagem padrão
         if (error.details != null && error.details.toString().isNotEmpty) {
-          return error.details.toString();
+          final details = error.details.toString();
+          // Se contém informações sobre campos faltando, destacar
+          if (details.toLowerCase().contains('null value') || 
+              details.toLowerCase().contains('violates not-null')) {
+            return 'Campos obrigatórios não foram preenchidos. Detalhes: $details';
+          }
+          return details;
+        }
+        // Se a mensagem contém "Bad Request" ou similar, fornecer mensagem mais amigável
+        if (error.message.toLowerCase().contains('bad request') ||
+            error.message.toLowerCase().contains('400')) {
+          return 'Erro na requisição. Verifique se todos os campos obrigatórios foram preenchidos corretamente.';
+        }
+        // Verificar se é erro de campo obrigatório
+        if (error.message.toLowerCase().contains('null value') ||
+            error.message.toLowerCase().contains('not-null constraint')) {
+          return 'Campos obrigatórios não foram preenchidos. Verifique todos os campos do formulário.';
         }
         return error.message.isNotEmpty
             ? error.message

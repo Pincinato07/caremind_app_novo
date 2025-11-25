@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
 
 /// Item de navegação padronizado com animação suave
 class NavItem extends StatefulWidget {
@@ -72,10 +72,15 @@ class _NavItemState extends State<NavItem>
     final fontSize = widget.fontSize ?? 12.0;
 
     return Expanded(
-      child: GestureDetector(
-        onTapDown: _handleTapDown,
-        onTapUp: _handleTapUp,
-        onTapCancel: _handleTapCancel,
+      child: Semantics(
+        label: widget.label,
+        hint: widget.isSelected ? 'Selecionado. Toque para navegar' : 'Toque para navegar para ${widget.label}',
+        button: true,
+        selected: widget.isSelected,
+        child: GestureDetector(
+          onTapDown: _handleTapDown,
+          onTapUp: _handleTapUp,
+          onTapCancel: _handleTapCancel,
         child: ScaleTransition(
           scale: _scaleAnimation,
           child: AnimatedContainer(
@@ -109,7 +114,7 @@ class _NavItemState extends State<NavItem>
                 const SizedBox(height: 4),
                 AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 200),
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: fontSize,
                     fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w400,
                     color: widget.isSelected ? selectedColor : unselectedColor,
@@ -120,6 +125,7 @@ class _NavItemState extends State<NavItem>
             ),
           ),
         ),
+      ),
       ),
     );
   }

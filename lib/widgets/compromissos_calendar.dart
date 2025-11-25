@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 
@@ -214,7 +214,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
               const SizedBox(width: 6),
               Text(
                 label,
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: isActive ? Colors.white : Colors.white.withOpacity(0.7),
@@ -246,7 +246,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
               ),
               Text(
                 DateFormat('EEEE, d \'de\' MMMM \'de\' yyyy', 'pt_BR').format(_selectedDay),
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -273,7 +273,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                     padding: const EdgeInsets.all(32),
                     child: Text(
                       'Nenhum compromisso neste dia',
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         color: Colors.white.withOpacity(0.7),
                         fontSize: 16,
                       ),
@@ -350,7 +350,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                       Expanded(
                         child: Text(
                           compromisso['titulo'] as String? ?? 'Compromisso',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -367,7 +367,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                           ),
                           child: Text(
                             '✓',
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               color: Colors.white,
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -383,7 +383,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                           ),
                           child: Text(
                             'Atrasado',
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               color: Colors.white,
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
@@ -403,7 +403,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                       const SizedBox(width: 4),
                       Text(
                         DateFormat('HH:mm').format(dataHora),
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 14,
                           color: Colors.white.withOpacity(0.8),
                         ),
@@ -419,7 +419,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                         Expanded(
                           child: Text(
                             compromisso['local'] as String,
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               fontSize: 14,
                               color: Colors.white.withOpacity(0.8),
                             ),
@@ -434,7 +434,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                     const SizedBox(height: 8),
                     Text(
                       compromisso['descricao'] as String,
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 12,
                         color: Colors.white.withOpacity(0.7),
                       ),
@@ -472,7 +472,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
               ),
               Text(
                 '${DateFormat('d MMM', 'pt_BR').format(weekDays.first)} - ${DateFormat('d MMM yyyy', 'pt_BR').format(weekDays.last)}',
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -532,7 +532,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                         children: [
                           Text(
                             DateFormat('EEE', 'pt_BR').format(day),
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: Colors.white.withOpacity(0.8),
@@ -541,7 +541,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                           const SizedBox(height: 4),
                           Text(
                             '${day.day}',
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
@@ -557,7 +557,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                               ),
                               child: Text(
                                 '${dayEvents.length}',
-                                style: GoogleFonts.leagueSpartan(
+                                style: AppTextStyles.leagueSpartan(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,
@@ -587,7 +587,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                                   children: [
                                     Text(
                                       DateFormat('HH:mm').format(dataHora),
-                                      style: GoogleFonts.leagueSpartan(
+                                      style: AppTextStyles.leagueSpartan(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
                                         color: Colors.white,
@@ -596,7 +596,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                                     const SizedBox(height: 2),
                                     Text(
                                       comp['titulo'] as String? ?? 'Compromisso',
-                                      style: GoogleFonts.leagueSpartan(
+                                      style: AppTextStyles.leagueSpartan(
                                         fontSize: 10,
                                         color: Colors.white.withOpacity(0.9),
                                       ),
@@ -613,7 +613,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                               padding: const EdgeInsets.only(top: 4),
                               child: Text(
                                 '+${dayEvents.length - 2}',
-                                style: GoogleFonts.leagueSpartan(
+                                style: AppTextStyles.leagueSpartan(
                                   fontSize: 10,
                                   color: Colors.white.withOpacity(0.7),
                                 ),
@@ -645,19 +645,19 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
             startingDayOfWeek: StartingDayOfWeek.monday,
             calendarStyle: CalendarStyle(
               outsideDaysVisible: false,
-              weekendTextStyle: GoogleFonts.leagueSpartan(
+              weekendTextStyle: AppTextStyles.leagueSpartan(
                 color: Colors.white.withOpacity(0.7),
                 fontWeight: FontWeight.w600,
               ),
-              defaultTextStyle: GoogleFonts.leagueSpartan(
+              defaultTextStyle: AppTextStyles.leagueSpartan(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
               ),
-              selectedTextStyle: GoogleFonts.leagueSpartan(
+              selectedTextStyle: AppTextStyles.leagueSpartan(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
               ),
-              todayTextStyle: GoogleFonts.leagueSpartan(
+              todayTextStyle: AppTextStyles.leagueSpartan(
                 color: const Color(0xFF0400BA),
                 fontWeight: FontWeight.w700,
               ),
@@ -679,7 +679,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
             headerStyle: HeaderStyle(
               formatButtonVisible: false,
               titleCentered: true,
-              titleTextStyle: GoogleFonts.leagueSpartan(
+              titleTextStyle: AppTextStyles.leagueSpartan(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
@@ -694,12 +694,12 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
               ),
             ),
             daysOfWeekStyle: DaysOfWeekStyle(
-              weekdayStyle: GoogleFonts.leagueSpartan(
+              weekdayStyle: AppTextStyles.leagueSpartan(
                 color: Colors.white.withOpacity(0.8),
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
-              weekendStyle: GoogleFonts.leagueSpartan(
+              weekendStyle: AppTextStyles.leagueSpartan(
                 color: Colors.white.withOpacity(0.8),
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
@@ -722,7 +722,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                     padding: const EdgeInsets.all(24),
                     child: Text(
                       'Nenhum compromisso neste dia',
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         color: Colors.white.withOpacity(0.7),
                         fontSize: 16,
                       ),
@@ -737,7 +737,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                     children: [
                       Text(
                         'Compromissos do dia ${DateFormat('dd/MM/yyyy').format(_selectedDay)}',
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -796,7 +796,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                                     children: [
                                       Text(
                                         compromisso['titulo'] as String? ?? 'Compromisso',
-                                        style: GoogleFonts.leagueSpartan(
+                                        style: AppTextStyles.leagueSpartan(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
                                           color: Colors.white,
@@ -806,7 +806,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                                       const SizedBox(height: 4),
                                       Text(
                                         DateFormat('HH:mm').format(dataHora),
-                                        style: GoogleFonts.leagueSpartan(
+                                        style: AppTextStyles.leagueSpartan(
                                           fontSize: 12,
                                           color: Colors.white.withOpacity(0.8),
                                         ),
@@ -823,7 +823,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                                     ),
                                     child: Text(
                                       '✓',
-                                      style: GoogleFonts.leagueSpartan(
+                                      style: AppTextStyles.leagueSpartan(
                                         color: Colors.white,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700,

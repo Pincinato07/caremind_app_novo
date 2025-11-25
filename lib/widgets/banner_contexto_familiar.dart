@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
 import '../core/state/familiar_state.dart';
 import '../core/injection/injection.dart';
 
@@ -64,7 +64,7 @@ class BannerContextoFamiliar extends StatelessWidget {
                   children: [
                     Text(
                       'Gerenciando dados de:',
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: const Color(0xFFF57C00),
@@ -73,7 +73,7 @@ class BannerContextoFamiliar extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       idosoSelecionado.nome ?? 'Idoso',
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFFE65100),

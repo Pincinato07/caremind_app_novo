@@ -50,7 +50,7 @@ class FCMTokenService {
         }
       });
     } catch (e) {
-      debugPrint('❌ FCMTokenService: Erro ao inicializar - $e');
+      debugPrint('❌ FCMTokenService: Erro ao inicializar - ${e.toString()}');
     }
   }
 
@@ -126,7 +126,7 @@ class FCMTokenService {
         debugPrint('✅ FCMTokenService: Token salvo no backend');
       }
     } catch (e) {
-      debugPrint('❌ FCMTokenService: Erro ao sincronizar token - $e');
+      debugPrint('❌ FCMTokenService: Erro ao sincronizar token - ${e.toString()}');
       // Não lançar exceção para não quebrar o fluxo do app
     }
   }
@@ -144,7 +144,7 @@ class FCMTokenService {
       _currentToken = null;
       debugPrint('✅ FCMTokenService: Token removido do backend');
     } catch (e) {
-      debugPrint('❌ FCMTokenService: Erro ao remover token - $e');
+      debugPrint('❌ FCMTokenService: Erro ao remover token - ${e.toString()}');
     }
   }
 

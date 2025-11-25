@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import '../../models/medicamento.dart';
 import '../../services/medicamento_service.dart';
 import '../../services/supabase_service.dart';
@@ -213,7 +213,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
         foregroundColor: Colors.white,
         title: Text(
           _isEditing ? 'Editar Medicamento' : 'Novo Medicamento',
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             fontWeight: FontWeight.w700,
             color: Colors.white,
           ),
@@ -223,7 +223,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
             onPressed: _isLoading ? null : _saveMedicamento,
             child: Text(
               'Salvar',
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 color: _isLoading ? Colors.white54 : Colors.white,
                 fontWeight: FontWeight.w700,
               ),

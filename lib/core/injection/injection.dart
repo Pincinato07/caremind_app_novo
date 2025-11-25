@@ -11,6 +11,7 @@ import '../../services/lgpd_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/ocr_service.dart';
 import '../../services/fcm_token_service.dart';
+import '../../services/settings_service.dart';
 import '../../core/state/familiar_state.dart';
 
 final getIt = GetIt.instance;
@@ -74,6 +75,13 @@ Future<void> configureDependencies() async {
   // Registra FamiliarState como singleton (estado global para perfil familiar)
   getIt.registerLazySingleton<FamiliarState>(
     () => FamiliarState(),
+  );
+
+  // Registra SettingsService como singleton e inicializa
+  final settingsService = SettingsService();
+  await settingsService.initialize();
+  getIt.registerLazySingleton<SettingsService>(
+    () => settingsService,
   );
 }
 

@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../models/medicamento.dart';
+import 'settings_service.dart';
+import '../core/injection/injection.dart';
 
 /// Serviço de Notificações (Locais + Push Remotas FCM) para Lembretes de Medicamentos
 /// 
@@ -28,9 +30,22 @@ class NotificationService {
   static bool _fcmInitialized = false;
 
   static bool _initialized = false;
+  static SettingsService? _settingsService;
   
   // Callback para quando o token FCM é atualizado (para enviar ao backend)
   static Function(String token)? onFcmTokenUpdated;
+
+  /// Obtém o SettingsService (lazy)
+  static SettingsService? _getSettingsService() {
+    if (_settingsService == null) {
+      try {
+        _settingsService = getIt<SettingsService>();
+      } catch (e) {
+        // SettingsService pode não estar disponível ainda
+      }
+    }
+    return _settingsService;
+  }
 
   // ID do canal Android para medicamentos (CRÍTICO para som e vibração)
   static const String _medicamentoChannelId = 'lembrete_medicamento_channel';
@@ -85,7 +100,7 @@ class NotificationService {
       _initialized = true;
       debugPrint('✅ NotificationService: Inicializado com sucesso (Local + FCM)');
     } catch (e) {
-      debugPrint('❌ NotificationService: Erro ao inicializar - $e');
+      debugPrint('❌ NotificationService: Erro ao inicializar - ${e.toString()}');
       _initialized = true; // Continua mesmo com erro
     }
   }
@@ -93,6 +108,12 @@ class NotificationService {
   /// Inicializar Firebase Cloud Messaging (FCM) para Push Notifications Remotas
   static Future<void> _initializeFCM() async {
     try {
+      // FCM não funciona na web
+      if (kIsWeb) {
+        debugPrint('ℹ️ FCM não suportado na web. Apenas notificações locais serão usadas.');
+        return;
+      }
+      
       // Verificar se Firebase já foi inicializado
       if (Firebase.apps.isEmpty) {
         debugPrint('⚠️ Firebase não foi inicializado. Certifique-se de chamar Firebase.initializeApp() no main.dart');
@@ -138,7 +159,7 @@ class NotificationService {
       _fcmInitialized = true;
       debugPrint('✅ FCM inicializado com sucesso');
     } catch (e) {
-      debugPrint('❌ Erro ao inicializar FCM: $e');
+      debugPrint('❌ Erro ao inicializar FCM: ${e.toString()}');
       // Continua mesmo sem FCM (notificações locais ainda funcionam)
     }
   }
@@ -155,7 +176,7 @@ class NotificationService {
       }
       return _fcmToken;
     } catch (e) {
-      debugPrint('❌ Erro ao obter token FCM: $e');
+      debugPrint('❌ Erro ao obter token FCM: ${e.toString()}');
       return null;
     }
   }
@@ -292,6 +313,7 @@ class NotificationService {
   /// 
   /// Agenda notificações diárias repetitivas baseadas nos horários do medicamento.
   /// Cada horário gera uma notificação que se repete todos os dias.
+  /// Respeita a configuração de notificações do usuário.
   /// 
   /// **Exemplo de uso:**
   /// ```dart
@@ -299,6 +321,13 @@ class NotificationService {
   /// await NotificationService.scheduleMedicationReminders(medicamento);
   /// ```
   static Future<void> scheduleMedicationReminders(Medicamento medicamento) async {
+    // Verificar se notificações de medicamentos estão habilitadas
+    final settings = _getSettingsService();
+    if (settings != null && !settings.notificationsMedicamentos) {
+      debugPrint('ℹ️ Notificações de medicamentos desabilitadas pelo usuário');
+      return;
+    }
+
     if (medicamento.id == null) {
       debugPrint('⚠️ Não é possível agendar: medicamento sem ID');
       return;
@@ -389,7 +418,7 @@ class NotificationService {
         return TimeOfDay(hour: hour, minute: minute);
       }
     } catch (e) {
-      debugPrint('⚠️ Erro ao parsear horário: $timeStr - $e');
+      debugPrint('⚠️ Erro ao parsear horário: $timeStr - ${e.toString()}');
     }
     return null;
   }

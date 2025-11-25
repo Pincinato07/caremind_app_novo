@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
 import '../../services/compromisso_service.dart';
@@ -155,7 +155,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                         children: [
                           Text(
                             'Minha Agenda',
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               fontSize: 32,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
@@ -165,7 +165,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                           const SizedBox(height: 8),
                           Text(
                             'Consultas e Compromissos',
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               fontSize: 20,
                               color: Colors.white.withValues(alpha: 0.9),
                             ),
@@ -193,7 +193,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                               Text(
                                 'Erro ao carregar agenda',
                                 textAlign: TextAlign.center,
-                                style: GoogleFonts.leagueSpartan(
+                                style: AppTextStyles.leagueSpartan(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
@@ -203,7 +203,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                               Text(
                                 _error!,
                                 textAlign: TextAlign.center,
-                                style: GoogleFonts.leagueSpartan(
+                                style: AppTextStyles.leagueSpartan(
                                   fontSize: 16,
                                   color: Colors.white.withValues(alpha: 0.8),
                                 ),
@@ -217,7 +217,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                                 ),
                                 child: Text(
                                   'Tentar Novamente',
-                                  style: GoogleFonts.leagueSpartan(
+                                  style: AppTextStyles.leagueSpartan(
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -246,7 +246,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                               Text(
                                 'Nenhum compromisso agendado',
                                 textAlign: TextAlign.center,
-                                style: GoogleFonts.leagueSpartan(
+                                style: AppTextStyles.leagueSpartan(
                                   fontSize: 24,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,
@@ -256,7 +256,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                               Text(
                                 'Suas consultas e compromissos aparecerão aqui',
                                 textAlign: TextAlign.center,
-                                style: GoogleFonts.leagueSpartan(
+                                style: AppTextStyles.leagueSpartan(
                                   fontSize: 18,
                                   color: Colors.white.withValues(alpha: 0.8),
                                 ),
@@ -358,7 +358,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                   children: [
                     Text(
                       isHoje ? 'Hoje' : dateFormat.format(dataHora),
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -367,7 +367,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                     const SizedBox(height: 4),
                     Text(
                       timeFormat.format(dataHora),
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 18,
                         color: Colors.white.withValues(alpha: 0.9),
                       ),
@@ -386,7 +386,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                   ),
                   child: Text(
                     'Feito',
-                    style: GoogleFonts.leagueSpartan(
+                    style: AppTextStyles.leagueSpartan(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -405,7 +405,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
             },
             child: Text(
               titulo,
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
@@ -420,7 +420,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
             const SizedBox(height: 12),
             Text(
               descricao,
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontSize: 18,
                 color: Colors.white.withValues(alpha: 0.9),
                 height: 1.4,
@@ -446,7 +446,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                 ),
                 child: Text(
                   'JÁ FIZ',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.5,

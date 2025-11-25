@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
@@ -288,7 +288,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                             const SizedBox(height: 16),
                             Text(
                               'Erro ao carregar idosos',
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
@@ -298,7 +298,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                             Text(
                               _error!,
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 color: Colors.white.withValues(alpha: 0.9),
                               ),
                             ),
@@ -329,7 +329,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                                   const SizedBox(height: 16),
                                   Text(
                                     'Gerencie sua Família',
-                                    style: GoogleFonts.leagueSpartan(
+                                    style: AppTextStyles.leagueSpartan(
                                       fontSize: 24,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.white,
@@ -339,7 +339,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                                   const SizedBox(height: 8),
                                   Text(
                                     'Visualize os idosos vinculados à sua conta e adicione novos membros diretamente',
-                                    style: GoogleFonts.leagueSpartan(
+                                    style: AppTextStyles.leagueSpartan(
                                       fontSize: 16,
                                       color: Colors.white.withValues(alpha: 0.9),
                                       height: 1.4,
@@ -363,7 +363,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                                       const SizedBox(width: 16),
                                       Text(
                                         'Seus Idosos',
-                                        style: GoogleFonts.leagueSpartan(
+                                        style: AppTextStyles.leagueSpartan(
                                           fontSize: 20,
                                           fontWeight: FontWeight.w700,
                                           color: Colors.white,
@@ -390,7 +390,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                                             children: [
                                               Text(
                                                 'Nenhum idoso vinculado ainda',
-                                                style: GoogleFonts.leagueSpartan(
+                                                style: AppTextStyles.leagueSpartan(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.w600,
                                                   color: Colors.white,
@@ -399,7 +399,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                                               const SizedBox(height: 4),
                                               Text(
                                                 'Use o botão abaixo para adicionar o primeiro idoso',
-                                                style: GoogleFonts.leagueSpartan(
+                                                style: AppTextStyles.leagueSpartan(
                                                   fontSize: 14,
                                                   color: Colors.white.withValues(alpha: 0.8),
                                                 ),
@@ -439,7 +439,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                                   children: [
                                     Text(
                                       'Idosos Vinculados',
-                                      style: GoogleFonts.leagueSpartan(
+                                      style: AppTextStyles.leagueSpartan(
                                         fontSize: 28,
                                         fontWeight: FontWeight.w700,
                                         color: Colors.white,
@@ -448,7 +448,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                                     const SizedBox(height: 8),
                                     Text(
                                       '${_idosos.length} idoso(s) vinculado(s)',
-                                      style: GoogleFonts.leagueSpartan(
+                                      style: AppTextStyles.leagueSpartan(
                                         fontSize: 16,
                                         color: Colors.white.withValues(alpha: 0.9),
                                       ),
@@ -483,7 +483,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
         icon: const Icon(Icons.person_add, color: Colors.white),
         label: Text(
           'Adicionar Idoso',
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             color: Colors.white,
             fontWeight: FontWeight.w600,
           ),
@@ -534,7 +534,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
               children: [
                 Text(
                   idoso.nome ?? 'Idoso',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -552,7 +552,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                   ),
                   child: Text(
                     'Idoso',
-                    style: GoogleFonts.leagueSpartan(
+                    style: AppTextStyles.leagueSpartan(
                       fontSize: 12,
                       color: Colors.white,
                       fontWeight: FontWeight.w600,

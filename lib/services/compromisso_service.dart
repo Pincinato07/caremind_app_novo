@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/errors/error_handler.dart';
+import '../core/utils/data_cleaner.dart';
 
 class CompromissoService {
   final SupabaseClient _client;
@@ -9,14 +11,24 @@ class CompromissoService {
   // Buscar todos os compromissos de um usuário
   Future<List<Map<String, dynamic>>> getCompromissos(String userId) async {
     try {
+      debugPrint('📤 CompromissoService: Buscando compromissos para userId: $userId');
       final response = await _client
           .from('compromissos')
           .select()
           .eq('user_id', userId)
           .order('data_hora', ascending: true);
 
+      debugPrint('✅ CompromissoService: ${response.length} compromisso(s) encontrado(s)');
       return List<Map<String, dynamic>>.from(response);
     } catch (error) {
+      debugPrint('❌ CompromissoService: Erro ao buscar compromissos: ${error.toString()}');
+      debugPrint('❌ CompromissoService: Tipo do erro: ${error.runtimeType}');
+      if (error is PostgrestException) {
+        debugPrint('❌ CompromissoService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
+        if (error.details != null) {
+          debugPrint('❌ CompromissoService: Detalhes: ${error.details}');
+        }
+      }
       throw ErrorHandler.toAppException(error);
     }
   }
@@ -43,14 +55,28 @@ class CompromissoService {
   Future<Map<String, dynamic>> addCompromisso(
       Map<String, dynamic> compromisso) async {
     try {
+      // Limpar dados antes de inserir (remove strings vazias)
+      final cleanedData = DataCleaner.cleanData(compromisso);
+      
+      debugPrint('📤 CompromissoService: Dados para inserção: $cleanedData');
+      
       final response = await _client
           .from('compromissos')
-          .insert(compromisso)
+          .insert(cleanedData)
           .select()
           .single();
 
+      debugPrint('✅ CompromissoService: Compromisso inserido com sucesso');
       return response;
     } catch (error) {
+      debugPrint('❌ CompromissoService: Erro ao adicionar compromisso: ${error.toString()}');
+      debugPrint('❌ CompromissoService: Tipo do erro: ${error.runtimeType}');
+      if (error is PostgrestException) {
+        debugPrint('❌ CompromissoService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
+        if (error.details != null) {
+          debugPrint('❌ CompromissoService: Detalhes: ${error.details}');
+        }
+      }
       throw ErrorHandler.toAppException(error);
     }
   }
@@ -61,9 +87,12 @@ class CompromissoService {
     Map<String, dynamic> updates,
   ) async {
     try {
+      // Limpar dados antes de atualizar (remove strings vazias)
+      final cleanedUpdates = DataCleaner.cleanData(updates);
+      
       final response = await _client
           .from('compromissos')
-          .update(updates)
+          .update(cleanedUpdates)
           .eq('id', compromissoId)
           .select()
           .single();

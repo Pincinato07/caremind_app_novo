@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/rotina_service.dart';
 import '../../core/injection/injection.dart';
@@ -63,11 +63,15 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
       }
 
       final targetId = widget.idosoId ?? user.id;
+      final descricao = _descricaoController.text.trim();
       final data = {
         'titulo': _tituloController.text.trim(),
-        'descricao': _descricaoController.text.trim(),
         'horario': _horarioController.text.trim(),
         'user_id': targetId,
+        'created_at': DateTime.now().toIso8601String(),
+        'concluida': false,
+        // Só incluir descrição se não estiver vazia
+        if (descricao.isNotEmpty) 'descricao': descricao,
       };
 
       if (_isEditing) {
@@ -116,7 +120,7 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
         foregroundColor: Colors.white,
         title: Text(
           _isEditing ? 'Editar Rotina' : 'Nova Rotina',
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             fontWeight: FontWeight.w700,
             color: Colors.white,
           ),
@@ -126,7 +130,7 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
             onPressed: _isLoading ? null : _saveRotina,
             child: Text(
               'Salvar',
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 color: _isLoading ? Colors.white54 : Colors.white,
                 fontWeight: FontWeight.w700,
               ),

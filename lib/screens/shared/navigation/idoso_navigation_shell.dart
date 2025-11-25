@@ -14,10 +14,8 @@ class IdosoNavigationShell extends StatefulWidget {
   State<IdosoNavigationShell> createState() => _IdosoNavigationShellState();
 }
 
-class _IdosoNavigationShellState extends State<IdosoNavigationShell>
-    with SingleTickerProviderStateMixin {
+class _IdosoNavigationShellState extends State<IdosoNavigationShell> {
   int _selectedIndex = 0;
-  late AnimationController _pageController;
 
   final List<Widget> _pages = const [
     IdosoDashboardScreen(),
@@ -29,45 +27,21 @@ class _IdosoNavigationShellState extends State<IdosoNavigationShell>
   @override
   void initState() {
     super.initState();
-    _pageController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
   }
 
   void _onItemTapped(int index) {
     if (_selectedIndex == index) return;
-
     setState(() {
       _selectedIndex = index;
-    });
-    _pageController.forward(from: 0.0).then((_) {
-      _pageController.reverse();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        transitionBuilder: (child, animation) {
-          return FadeTransition(
-            opacity: animation,
-            child: child,
-          );
-        },
-        child: IndexedStack(
-          key: ValueKey(_selectedIndex),
-          index: _selectedIndex,
-          children: _pages,
-        ),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages,
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

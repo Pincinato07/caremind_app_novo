@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -17,6 +18,7 @@ import 'screens/rotinas/gestao_rotinas_screen.dart';
 import 'screens/compromissos/gestao_compromissos_screen.dart';
 import 'screens/integracoes/integracoes_screen.dart';
 import 'widgets/global_wave_background.dart';
+import 'widgets/accessibility_wrapper.dart';
 import 'core/injection/injection.dart';
 import 'services/notification_service.dart';
 import 'services/fcm_token_service.dart';
@@ -35,25 +37,42 @@ void main() async {
   // Você precisa adicionar os arquivos de configuração FCM:
   // - android/app/google-services.json (obtido do Firebase Console - apenas para FCM)
   // - ios/Runner/GoogleService-Info.plist (obtido do Firebase Console - apenas para FCM)
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    debugPrint('✅ Firebase inicializado (apenas para FCM - push notifications)');
-    
-    // Configurar handler para notificações FCM em background/terminated
-    // Esta função DEVE estar no nível superior (definida em notification_service.dart)
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    debugPrint('✅ Handler de background FCM configurado');
-  } catch (e) {
-    debugPrint('⚠️ Erro ao inicializar Firebase (FCM): $e');
-    debugPrint('⚠️ Notificações push podem não funcionar. Verifique os arquivos de configuração do FCM.');
+  // 
+  // NOTA: Firebase/FCM não funciona na web, então só inicializamos em plataformas móveis
+  if (!kIsWeb) {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      debugPrint('✅ Firebase inicializado (apenas para FCM - push notifications)');
+      
+      // Configurar handler para notificações FCM em background/terminated
+      // Esta função DEVE estar no nível superior (definida em notification_service.dart)
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      debugPrint('✅ Handler de background FCM configurado');
+    } catch (e) {
+      debugPrint('⚠️ Erro ao inicializar Firebase (FCM): $e');
+      debugPrint('⚠️ Notificações push podem não funcionar. Verifique os arquivos de configuração do FCM.');
+    }
+  } else {
+    debugPrint('ℹ️ Firebase não inicializado na web (FCM não suportado na web)');
   }
 
   // Inicializar Supabase (backend principal - autenticação, banco de dados, Edge Functions)
+  final supabaseUrl = dotenv.env['SUPABASE_URL'];
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+  
+  if (supabaseUrl == null || supabaseUrl.isEmpty) {
+    throw Exception('SUPABASE_URL não encontrado no arquivo .env');
+  }
+  
+  if (supabaseAnonKey == null || supabaseAnonKey.isEmpty) {
+    throw Exception('SUPABASE_ANON_KEY não encontrado no arquivo .env');
+  }
+  
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
   );
   debugPrint('✅ Supabase inicializado (backend principal)');
 
@@ -63,12 +82,17 @@ void main() async {
   
   // Inicializar FCM Token Service para sincronizar tokens FCM com Supabase
   // Os tokens são armazenados no Supabase e usados pelas Edge Functions para enviar push notifications
-  try {
-    final fcmTokenService = GetIt.instance<FCMTokenService>();
-    await fcmTokenService.initialize();
-    debugPrint('✅ FCMTokenService inicializado (tokens sincronizados com Supabase)');
-  } catch (e) {
-    debugPrint('⚠️ Erro ao inicializar FCMTokenService: $e');
+  // NOTA: FCM não funciona na web, então só inicializamos em plataformas móveis
+  if (!kIsWeb) {
+    try {
+      final fcmTokenService = GetIt.instance<FCMTokenService>();
+      await fcmTokenService.initialize();
+      debugPrint('✅ FCMTokenService inicializado (tokens sincronizados com Supabase)');
+    } catch (e) {
+      debugPrint('⚠️ Erro ao inicializar FCMTokenService: $e');
+    }
+  } else {
+    debugPrint('ℹ️ FCMTokenService não inicializado na web (FCM não suportado na web)');
   }
   
   runApp(const CareMindApp());
@@ -79,29 +103,30 @@ class CareMindApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'CareMind',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.themeData.copyWith(
-        scaffoldBackgroundColor: Colors.transparent,
-        pageTransitionsTheme: const PageTransitionsTheme(
-          builders: {
-            TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-          },
+    return AccessibilityWrapper(
+      child: MaterialApp(
+        title: 'CareMind',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.themeData.copyWith(
+          scaffoldBackgroundColor: Colors.transparent,
+          pageTransitionsTheme: const PageTransitionsTheme(
+            builders: {
+              TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+              TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+            },
+          ),
         ),
-      ),
-      builder: (context, child) {
-        return Stack(
-          children: [
-            // Global background with waves that persists across all screens
-            const GlobalWaveBackground(),
-            
-            // Main app content
-            child!,
-          ],
-        );
-      },
+        builder: (context, child) {
+          return Stack(
+            children: [
+              // Global background with waves that persists across all screens
+              const GlobalWaveBackground(),
+              
+              // Main app content
+              child!,
+            ],
+          );
+        },
       initialRoute: '/splash',
       routes: {
         '/splash': (context) => const SplashScreen(),
@@ -118,6 +143,7 @@ class CareMindApp extends StatelessWidget {
         '/gestao-compromissos': (context) => const GestaoCompromissosScreen(),
         '/integracoes': (context) => const IntegracoesScreen(),
       },
+      ),
     );
   }
 }

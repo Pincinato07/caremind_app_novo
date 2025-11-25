@@ -1,7 +1,7 @@
 // lib/screens/shared/alertas_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/caremind_app_bar.dart';
@@ -62,11 +62,11 @@ class _AlertasScreenState extends State<AlertasScreen> with SingleTickerProvider
                 ),
                 labelColor: Colors.white,
                 unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
-                labelStyle: GoogleFonts.leagueSpartan(
+                labelStyle: AppTextStyles.leagueSpartan(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
-                unselectedLabelStyle: GoogleFonts.leagueSpartan(
+                unselectedLabelStyle: AppTextStyles.leagueSpartan(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
@@ -257,7 +257,7 @@ class _NotificacoesTabState extends State<_NotificacoesTab> {
                 const SizedBox(height: 16),
                 Text(
                   'Erro ao carregar alertas',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -269,7 +269,7 @@ class _NotificacoesTabState extends State<_NotificacoesTab> {
                   child: Text(
                     snapshot.error.toString(),
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.leagueSpartan(
+                    style: AppTextStyles.leagueSpartan(
                       fontSize: 14,
                       color: Colors.white.withValues(alpha: 0.8),
                     ),
@@ -295,7 +295,7 @@ class _NotificacoesTabState extends State<_NotificacoesTab> {
                 const SizedBox(height: 16),
                 Text(
                   'Nenhum alerta',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 24,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -307,7 +307,7 @@ class _NotificacoesTabState extends State<_NotificacoesTab> {
                   child: Text(
                     'Tudo está em ordem! Não há notificações importantes no momento.',
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.leagueSpartan(
+                    style: AppTextStyles.leagueSpartan(
                       fontSize: 16,
                       color: Colors.white.withValues(alpha: 0.9),
                     ),
@@ -370,7 +370,7 @@ class _NotificacoesTabState extends State<_NotificacoesTab> {
                             // Título: Nome do Idoso - Tipo do Evento
                             Text(
                               '$idosoNome - ${_formatarTipoEvento(tipoEvento)}',
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
@@ -380,7 +380,7 @@ class _NotificacoesTabState extends State<_NotificacoesTab> {
                             // Data/Hora
                             Text(
                               _formatarDataHoraCompleta(dataHora),
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                                 color: Colors.white.withValues(alpha: 0.8),
@@ -390,7 +390,7 @@ class _NotificacoesTabState extends State<_NotificacoesTab> {
                             // Tempo relativo
                             Text(
                               _formatarDataHora(dataHora),
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 12,
                                 color: Colors.white.withValues(alpha: 0.7),
                               ),
@@ -399,7 +399,7 @@ class _NotificacoesTabState extends State<_NotificacoesTab> {
                               const SizedBox(height: 8),
                               Text(
                                 descricao,
-                                style: GoogleFonts.leagueSpartan(
+                                style: AppTextStyles.leagueSpartan(
                                   fontSize: 14,
                                   color: Colors.white.withValues(alpha: 0.9),
                                   height: 1.4,

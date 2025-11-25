@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/glass_card.dart';
 
@@ -28,7 +28,7 @@ class TermosPrivacidadeScreen extends StatelessWidget {
               flexibleSpace: FlexibleSpaceBar(
                 title: Text(
                   showTerms ? 'Termos de Uso' : 'Política de Privacidade',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
@@ -61,7 +61,7 @@ class TermosPrivacidadeScreen extends StatelessWidget {
                         showTerms
                             ? 'Termos de Uso - CareMind'
                             : 'Política de Privacidade - CareMind',
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -70,7 +70,7 @@ class TermosPrivacidadeScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         'Última atualização: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 14,
                           color: Colors.white.withValues(alpha: 0.7),
                         ),
@@ -186,7 +186,7 @@ class TermosPrivacidadeScreen extends StatelessWidget {
       children: [
         Text(
           title,
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: Colors.white,
@@ -195,7 +195,7 @@ class TermosPrivacidadeScreen extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           content,
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             fontSize: 16,
             color: Colors.white.withValues(alpha: 0.9),
             height: 1.6,

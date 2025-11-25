@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/compromisso_service.dart';
 import '../../core/injection/injection.dart';
@@ -242,7 +242,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
                 'Compromissos',
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
                 ),
@@ -307,7 +307,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
               icon: const Icon(Icons.add),
               label: Text(
                 'Adicionar',
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   color: const Color(0xFF0400BA),
                   fontWeight: FontWeight.w700,
                   fontSize: 16,
@@ -386,7 +386,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
               const SizedBox(height: 16),
               Text(
                 'Carregando compromissos...',
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 16,
                 ),
@@ -409,7 +409,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
               const SizedBox(height: 16),
               Text(
                 'Erro ao carregar compromissos',
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -419,7 +419,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
               Text(
                 _error!,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   color: Colors.red.shade300,
                 ),
               ),
@@ -432,7 +432,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                 ),
                 child: Text(
                   'Tentar novamente',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -544,7 +544,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                     children: [
                       Text(
                         'Total de Compromissos',
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -553,7 +553,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                       const SizedBox(height: 4),
                       Text(
                         '${_compromissos.length} compromisso(s)',
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 14,
                           color: Colors.white.withValues(alpha: 0.8),
                         ),
@@ -569,7 +569,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Text(
             'Seus Compromissos',
-            style: GoogleFonts.leagueSpartan(
+            style: AppTextStyles.leagueSpartan(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -618,7 +618,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
               const SizedBox(width: 8),
               Text(
                 label,
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: isActive ? Colors.white : Colors.white.withOpacity(0.7),
@@ -634,6 +634,28 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
   Widget _buildListView() {
     return SingleChildScrollView(
       child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text(
+              'Seus Compromissos',
+              style: AppTextStyles.leagueSpartan(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...(_compromissos.map((compromisso) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: _buildCompromissoCard(compromisso),
+              ))),
+          const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
 
   Widget _buildCompromissoCard(Map<String, dynamic> compromisso) {
     final concluido = compromisso['concluido'] as bool? ?? false;
@@ -724,7 +746,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                         children: [
                           Text(
                             titulo,
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: concluido
@@ -736,7 +758,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                           const SizedBox(height: 4),
                           Text(
                             '${dataHora.day}/${dataHora.month}/${dataHora.year} às ${dataHora.hour.toString().padLeft(2, '0')}:${dataHora.minute.toString().padLeft(2, '0')}',
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               fontSize: 14,
                               color: concluido
                                   ? Colors.white.withValues(alpha: 0.5)
@@ -806,7 +828,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                     ),
                     child: Text(
                       descricao,
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 14,
                         color: Colors.white.withValues(alpha: 0.9),
                       ),
@@ -846,7 +868,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 'Marcar como Realizado',
-                                style: GoogleFonts.leagueSpartan(
+                                style: AppTextStyles.leagueSpartan(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,
@@ -890,7 +912,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 'Marcar como Pendente',
-                                style: GoogleFonts.leagueSpartan(
+                                style: AppTextStyles.leagueSpartan(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,

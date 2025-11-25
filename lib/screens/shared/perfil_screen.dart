@@ -1,7 +1,7 @@
 // lib/screens/perfil_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -225,13 +225,59 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
   Future<void> _saveField(String field, String value) async {
     try {
+      // Validações de campos
+      if (field == 'nome') {
+        final trimmedValue = value.trim();
+        if (trimmedValue.isEmpty) {
+          _showError('O nome não pode estar vazio');
+          return;
+        }
+        if (trimmedValue.length < 2) {
+          _showError('O nome deve ter pelo menos 2 caracteres');
+          return;
+        }
+        if (trimmedValue.length > 100) {
+          _showError('O nome não pode ter mais de 100 caracteres');
+          return;
+        }
+        value = trimmedValue;
+      } else if (field == 'telefone') {
+        final trimmedValue = value.trim();
+        // Se não estiver vazio, validar formato
+        if (trimmedValue.isNotEmpty) {
+          // Remove caracteres não numéricos para validação
+          final digitsOnly = trimmedValue.replaceAll(RegExp(r'[^\d]'), '');
+          if (digitsOnly.length < 10 || digitsOnly.length > 11) {
+            _showError('Telefone inválido. Use o formato (XX) XXXXX-XXXX ou (XX) XXXX-XXXX');
+            return;
+          }
+          // Formatar telefone (opcional, pode manter o formato original)
+          value = trimmedValue;
+        }
+      } else if (field == 'timezone') {
+        // Validar se o timezone está na lista permitida
+        final isValidTimezone = _timezones.any((tz) => tz['value'] == value);
+        if (!isValidTimezone) {
+          _showError('Fuso horário inválido');
+          return;
+        }
+      }
+
       setState(() {
         _isSaving = true;
       });
 
       final user = _supabaseService.currentUser;
       
-      if (user == null) return;
+      if (user == null) {
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
+          _showError('Usuário não encontrado. Faça login novamente.');
+        }
+        return;
+      }
 
       switch (field) {
         case 'nome':
@@ -243,7 +289,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
         case 'telefone':
           await _supabaseService.updateProfile(
             userId: user.id,
-            telefone: value,
+            telefone: value.isEmpty ? null : value,
           );
           break;
         case 'timezone':
@@ -266,10 +312,12 @@ class _PerfilScreenState extends State<PerfilScreen> {
         final accountManager = AccountManagerService();
         final currentUser = _supabaseService.currentUser;
         if (currentUser != null && _perfil != null) {
-          await accountManager.updateAccountInfo(
-            userId: currentUser.id,
-            nome: value,
-          );
+          if (field == 'nome') {
+            await accountManager.updateAccountInfo(
+              userId: currentUser.id,
+              nome: value,
+            );
+          }
         }
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -284,7 +332,30 @@ class _PerfilScreenState extends State<PerfilScreen> {
         setState(() {
           _isSaving = false;
         });
-        _showError('Erro ao salvar: $e');
+        
+        // Mensagens de erro mais específicas
+        String errorMessage = 'Erro ao salvar';
+        
+        if (e is AppException) {
+          errorMessage = e.message;
+        } else {
+          final errorString = e.toString().toLowerCase();
+          if (errorString.contains('network') || 
+              errorString.contains('connection') ||
+              errorString.contains('timeout')) {
+            errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+          } else if (errorString.contains('permission') || 
+                     errorString.contains('unauthorized')) {
+            errorMessage = 'Você não tem permissão para realizar esta ação.';
+          } else if (errorString.contains('constraint') ||
+                     errorString.contains('violates')) {
+            errorMessage = 'Dados inválidos. Verifique os campos e tente novamente.';
+          } else {
+            errorMessage = 'Erro ao salvar: ${e.toString()}';
+          }
+        }
+        
+        _showError(errorMessage);
       }
     }
   }
@@ -306,6 +377,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
     return AppScaffoldWithWaves(
       appBar: CareMindAppBar(
         title: 'Meu Perfil',
+        showBackButton: true,
         isFamiliar: isFamiliar,
       ),
       body: SafeArea(
@@ -447,7 +519,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         children: [
                           Text(
                             'LGPD - Privacidade',
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: Colors.white.withOpacity(0.9),
@@ -544,14 +616,14 @@ class _PerfilScreenState extends State<PerfilScreen> {
           Expanded(
             child: TextField(
               controller: controller,
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontSize: 16,
                 color: Colors.white,
                 fontWeight: FontWeight.w500,
               ),
               decoration: InputDecoration(
                 labelText: label,
-                labelStyle: GoogleFonts.leagueSpartan(
+                labelStyle: AppTextStyles.leagueSpartan(
                   fontSize: 14,
                   color: Colors.white.withOpacity(0.7),
                 ),
@@ -562,15 +634,24 @@ class _PerfilScreenState extends State<PerfilScreen> {
               onSubmitted: (_) => onSave(),
             ),
           ),
-          IconButton(
-            icon: Icon(
-              Icons.check_circle,
-              color: Colors.green.shade300,
-              size: 24,
-            ),
-            onPressed: onSave,
-            tooltip: 'Salvar',
-          ),
+          _isSaving
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : IconButton(
+                  icon: Icon(
+                    Icons.check_circle,
+                    color: Colors.green.shade300,
+                    size: 24,
+                  ),
+                  onPressed: onSave,
+                  tooltip: 'Salvar',
+                ),
         ],
       ),
     );
@@ -596,7 +677,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
               children: [
                 Text(
                   'Fuso Horário',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 14,
                     color: Colors.white.withOpacity(0.7),
                   ),
@@ -606,7 +687,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   value: _selectedTimezone ?? 'America/Sao_Paulo',
                   isExpanded: true,
                   dropdownColor: const Color(0xFF1A1A2E),
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 16,
                     color: Colors.white,
                     fontWeight: FontWeight.w500,
@@ -660,7 +741,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
               children: [
                 Text(
                   label,
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 12,
                     color: Colors.white.withOpacity(0.7),
                   ),
@@ -668,7 +749,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 16,
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -702,7 +783,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
               Expanded(
                 child: Text(
                   text,
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 14,
                     color: Colors.white,
                     fontWeight: FontWeight.w500,
@@ -763,7 +844,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 const SizedBox(width: 8),
                 Text(
                   text,
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 15,
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -792,41 +873,116 @@ class _PerfilScreenState extends State<PerfilScreen> {
     setState(() => _isExporting = true);
 
     try {
-      // Usando _supabaseService já definido
+      // Verificar se o usuário está autenticado
       final user = _supabaseService.currentUser;
       
       if (user == null) {
-        _showError('Usuário não encontrado');
+        if (mounted) {
+          _showError('Usuário não encontrado. Faça login novamente.');
+        }
         return;
       }
 
+      // Verificar se os serviços estão disponíveis
+      MedicamentoService? medicamentoService;
+      CompromissoService? compromissoService;
+      
+      try {
+        medicamentoService = getIt<MedicamentoService>();
+        compromissoService = getIt<CompromissoService>();
+      } catch (e) {
+        if (mounted) {
+          _showError('Erro ao inicializar serviços. Tente novamente mais tarde.');
+        }
+        return;
+      }
+
+      // Criar serviço LGPD
       final lgpdService = LgpdService(
         _supabaseService,
-        getIt<MedicamentoService>(),
-        getIt<CompromissoService>(),
+        medicamentoService,
+        compromissoService,
       );
 
-      final jsonData = await lgpdService.exportUserDataAsJson(user.id);
+      // Exportar dados
+      String jsonData;
+      try {
+        jsonData = await lgpdService.exportUserDataAsJson(user.id);
+      } catch (e) {
+        String errorMessage = 'Erro ao gerar dados para exportação';
+        
+        if (e is Exception) {
+          final errorString = e.toString().toLowerCase();
+          if (errorString.contains('network') || 
+              errorString.contains('connection') ||
+              errorString.contains('timeout')) {
+            errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+          } else if (errorString.contains('permission') || 
+                     errorString.contains('unauthorized')) {
+            errorMessage = 'Você não tem permissão para exportar dados.';
+          } else if (errorString.contains('nenhum dado')) {
+            errorMessage = 'Nenhum dado encontrado para exportar.';
+          } else {
+            errorMessage = 'Erro ao gerar dados: ${e.toString()}';
+          }
+        }
+        
+        if (mounted) {
+          _showError(errorMessage);
+        }
+        return;
+      }
+
+      // Validar se os dados foram gerados
+      if (jsonData.isEmpty) {
+        if (mounted) {
+          _showError('Nenhum dado foi gerado para exportação.');
+        }
+        return;
+      }
 
       // Compartilhar arquivo JSON
-      await Share.share(
-        jsonData,
-        subject: 'Meus Dados - CareMind',
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Dados exportados com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
+      try {
+        await Share.share(
+          jsonData,
+          subject: 'Meus Dados - CareMind',
         );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Dados exportados com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          _showError('Erro ao compartilhar arquivo. Tente novamente.');
+        }
       }
     } catch (e) {
-      final errorMessage = e is AppException
-          ? e.message
-          : 'Erro ao exportar dados: $e';
-      _showError(errorMessage);
+      String errorMessage = 'Erro ao exportar dados';
+      
+      if (e is AppException) {
+        errorMessage = e.message;
+      } else {
+        final errorString = e.toString().toLowerCase();
+        if (errorString.contains('network') || 
+            errorString.contains('connection') ||
+            errorString.contains('timeout')) {
+          errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+        } else if (errorString.contains('permission') || 
+                   errorString.contains('unauthorized')) {
+          errorMessage = 'Você não tem permissão para realizar esta ação.';
+        } else {
+          errorMessage = 'Erro ao exportar dados: ${e.toString()}';
+        }
+      }
+      
+      if (mounted) {
+        _showError(errorMessage);
+      }
     } finally {
       if (mounted) {
         setState(() => _isExporting = false);

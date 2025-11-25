@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'auth_shell.dart';
 import '../../widgets/wave_background.dart';
@@ -277,7 +277,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: GoogleFonts.leagueSpartan(
+            style: AppTextStyles.leagueSpartan(
               color: Colors.white,
               fontSize: 20, // Slightly smaller font
               fontWeight: FontWeight.w700,
@@ -292,7 +292,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: GoogleFonts.leagueSpartan(
+            style: AppTextStyles.leagueSpartan(
               color: Colors.white.withAlpha(230),
               fontSize: 14, // Slightly smaller font
               fontWeight: FontWeight.w400,
@@ -358,7 +358,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     onPressed: _navigateToAuth,
                     style: TextButton.styleFrom(
                       foregroundColor: Colors.white,
-                      textStyle: GoogleFonts.leagueSpartan(
+                      textStyle: AppTextStyles.leagueSpartan(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),

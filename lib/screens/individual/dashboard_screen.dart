@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/medicamento_service.dart';
 import '../../services/rotina_service.dart';
@@ -9,6 +9,7 @@ import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/caremind_app_bar.dart';
 import '../../widgets/voice_interface_widget.dart';
+import '../../core/accessibility/accessibility_helper.dart';
 
 class IndividualDashboardScreen extends StatefulWidget {
   const IndividualDashboardScreen({super.key});
@@ -36,6 +37,15 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
   void initState() {
     super.initState();
     _loadUserData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Leitura automática do título da tela se habilitada
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AccessibilityHelper.autoReadIfEnabled('Dashboard. Bem-vindo, $_userName');
+    });
   }
 
   Future<void> _loadUserData() async {
@@ -199,7 +209,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                         children: [
                           Text(
                             'Olá, $_userName!',
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               fontSize: 32,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
@@ -209,7 +219,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                           const SizedBox(height: 8),
                           Text(
                             _getGreeting(),
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               fontSize: 18,
                               color: Colors.white.withValues(alpha: 0.95),
                               fontWeight: FontWeight.w500,
@@ -292,7 +302,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
               children: [
                 Text(
                   _temAtraso ? 'Atenção necessária' : 'Tudo em dia!',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white.withValues(alpha: 0.9),
@@ -301,7 +311,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                 const SizedBox(height: 4),
                 Text(
                   '$_medicamentosTomados/$_totalMedicamentos medicamentos tomados',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: Colors.white.withValues(alpha: 0.85),
@@ -311,7 +321,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   const SizedBox(height: 4),
                   Text(
                     _mensagemStatus,
-                    style: GoogleFonts.leagueSpartan(
+                    style: AppTextStyles.leagueSpartan(
                       fontSize: 13,
                       fontWeight: FontWeight.w400,
                       color: Colors.white.withValues(alpha: 0.75),
@@ -351,7 +361,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                 children: [
                   Text(
                     'Tudo tomado por hoje! ✅',
-                    style: GoogleFonts.leagueSpartan(
+                    style: AppTextStyles.leagueSpartan(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -360,7 +370,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   const SizedBox(height: 4),
                   Text(
                     'Parabéns! Você está em dia com seus medicamentos.',
-                    style: GoogleFonts.leagueSpartan(
+                    style: AppTextStyles.leagueSpartan(
                       fontSize: 14,
                       color: Colors.white.withValues(alpha: 0.85),
                     ),
@@ -403,7 +413,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   children: [
                     Text(
                       'Próximo Medicamento',
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: Colors.white.withValues(alpha: 0.8),
@@ -412,7 +422,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                     const SizedBox(height: 4),
                     Text(
                       _proximoMedicamento!.nome,
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -443,7 +453,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                     const SizedBox(width: 6),
                     Text(
                       horarioStr,
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -456,7 +466,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
               Expanded(
                 child: Text(
                   _proximoMedicamento!.dosagem,
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 14,
                     color: Colors.white.withValues(alpha: 0.9),
                   ),
@@ -502,7 +512,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
               const SizedBox(width: 12),
               Text(
                 'Próximas Atividades',
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -537,7 +547,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                         if (horario.isNotEmpty)
                           Text(
                             horario,
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: Colors.white.withValues(alpha: 0.9),
@@ -546,7 +556,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                         const SizedBox(height: 2),
                         Text(
                           nome,
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                             color: Colors.white,

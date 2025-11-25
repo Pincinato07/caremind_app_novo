@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
 import '../widgets/app_scaffold_with_waves.dart';
 import '../services/supabase_service.dart';
 import '../core/injection/injection.dart';
@@ -268,7 +268,7 @@ class _SplashScreenState extends State<SplashScreen>
                         // Nome do app
                         Text(
                           'CareMind',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: isSmallScreen ? 36 : 42,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
@@ -288,7 +288,7 @@ class _SplashScreenState extends State<SplashScreen>
                         // Slogan
                         Text(
                           'Cuidando de quem você ama',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: isSmallScreen ? 16 : 18,
                             fontWeight: FontWeight.w500,
                             color: Colors.white.withValues(alpha: 0.9),
@@ -330,7 +330,7 @@ class _SplashScreenState extends State<SplashScreen>
                         // Status de carregamento
                         Text(
                           _loadingStatus,
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: isSmallScreen ? 14 : 16,
                             fontWeight: FontWeight.w500,
                             color: Colors.white.withValues(alpha: 0.85),

@@ -68,33 +68,37 @@ class _WaveBackgroundState extends State<WaveBackground> {
   Widget build(BuildContext context) {
     final waveValue = _waveService.currentValue;
     
-    return AnimatedBuilder(
-      animation: _waveService.waveValue,
-      builder: (context, child) {
-        return SizedBox(
-          height: widget.height,
-          width: double.infinity,
-          child: WaveWidget(
-            config: CustomConfig(
-              gradients: [
-                [widget.gradientColors[0], widget.gradientColors[1]],
-                [widget.gradientColors[2], widget.gradientColors[3]],
-                [widget.gradientColors[4], widget.gradientColors[5]],
-              ],
-              durations: widget.durations,
-              heightPercentages: widget.heightPercentages,
-              blur: MaskFilter.blur(BlurStyle.solid, 10),
-              gradientBegin: Alignment.topCenter,
-              gradientEnd: Alignment.bottomCenter,
+    // RepaintBoundary isola os repaints da animação de ondas
+    // Isso evita que outros widgets sejam reconstruídos quando as ondas animam
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _waveService.waveValue,
+        builder: (context, child) {
+          return SizedBox(
+            height: widget.height,
+            width: double.infinity,
+            child: WaveWidget(
+              config: CustomConfig(
+                gradients: [
+                  [widget.gradientColors[0], widget.gradientColors[1]],
+                  [widget.gradientColors[2], widget.gradientColors[3]],
+                  [widget.gradientColors[4], widget.gradientColors[5]],
+                ],
+                durations: widget.durations,
+                heightPercentages: widget.heightPercentages,
+                blur: MaskFilter.blur(BlurStyle.solid, 10),
+                gradientBegin: Alignment.topCenter,
+                gradientEnd: Alignment.bottomCenter,
+              ),
+              size: Size(MediaQuery.of(context).size.width, widget.height),
+              backgroundColor: Colors.transparent,
+              waveAmplitude: widget.waveAmplitude,
+              wavePhase: waveValue * 2 * pi,
+              waveFrequency: 0.8,
             ),
-            size: Size(MediaQuery.of(context).size.width, widget.height),
-            backgroundColor: Colors.transparent,
-            waveAmplitude: widget.waveAmplitude,
-            wavePhase: waveValue * 2 * pi,
-            waveFrequency: 0.8,
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

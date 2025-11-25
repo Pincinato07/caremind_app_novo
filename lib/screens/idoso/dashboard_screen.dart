@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/medicamento_service.dart';
 import '../../services/historico_eventos_service.dart';
 import '../../services/accessibility_service.dart';
+import '../../core/accessibility/accessibility_helper.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
 import '../../core/navigation/app_navigation.dart';
@@ -37,6 +38,15 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
     _loadUserData();
     // Inicializa o serviço de acessibilidade
     AccessibilityService.initialize();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Leitura automática do título da tela se habilitada
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AccessibilityHelper.autoReadIfEnabled('Dashboard. Bem-vindo, $_userName');
+    });
   }
 
   Future<void> _loadUserData() async {
@@ -164,14 +174,14 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
               ),
               title: Text(
                 'Número não disponível',
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               content: Text(
                 'Nenhum número de emergência cadastrado. Peça para seu familiar configurar o telefone no aplicativo.',
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   fontSize: 16,
                   height: 1.5,
                 ),
@@ -181,7 +191,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     'OK',
-                    style: GoogleFonts.leagueSpartan(
+                    style: AppTextStyles.leagueSpartan(
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF0400BA),
                     ),
@@ -210,14 +220,14 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
               ),
               title: Text(
                 'Dispositivo não suportado',
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               content: Text(
                 'Este dispositivo não possui capacidade de fazer chamadas telefônicas.',
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   fontSize: 16,
                   height: 1.5,
                 ),
@@ -227,7 +237,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     'OK',
-                    style: GoogleFonts.leagueSpartan(
+                    style: AppTextStyles.leagueSpartan(
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF0400BA),
                     ),
@@ -285,7 +295,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
                               children: [
                                 Text(
                                   'O Próximo Passo',
-                                  style: GoogleFonts.leagueSpartan(
+                                  style: AppTextStyles.leagueSpartan(
                                     fontSize: 32,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.white,
@@ -295,7 +305,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
                                 const SizedBox(height: 8),
                                 Text(
                                   'Olá, $_userName',
-                                  style: GoogleFonts.leagueSpartan(
+                                  style: AppTextStyles.leagueSpartan(
                                     fontSize: 20,
                                     color: Colors.white.withValues(alpha: 0.9),
                                   ),
@@ -372,7 +382,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
             const SizedBox(height: 16),
             Text(
               'Tudo em dia!',
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
@@ -382,7 +392,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
             Text(
               'Não há medicamentos pendentes no momento.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontSize: 18,
                 color: Colors.white.withValues(alpha: 0.9),
               ),
@@ -414,7 +424,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
           // Texto "Agora:"
           Text(
             'Agora:',
-            style: GoogleFonts.leagueSpartan(
+            style: AppTextStyles.leagueSpartan(
               fontSize: 20,
               color: Colors.white.withValues(alpha: 0.9),
               fontWeight: FontWeight.w500,
@@ -433,7 +443,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
             child: Text(
               '${_proximoMedicamento!.nome}',
               textAlign: TextAlign.center,
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontSize: 36,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
@@ -447,7 +457,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
           Text(
             _proximoMedicamento!.dosagem,
             textAlign: TextAlign.center,
-            style: GoogleFonts.leagueSpartan(
+            style: AppTextStyles.leagueSpartan(
               fontSize: 24,
               color: Colors.white.withValues(alpha: 0.9),
               fontWeight: FontWeight.w500,
@@ -471,7 +481,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
               ),
               child: Text(
                 'JÁ TOMEI',
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.5,
@@ -560,7 +570,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
               Flexible(
                 child: Text(
                   label,
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: isLarge ? 24 : 20,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -573,7 +583,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontSize: 14,
                 color: Colors.white.withValues(alpha: 0.8),
               ),

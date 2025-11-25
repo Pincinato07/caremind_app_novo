@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import 'package:vibration/vibration.dart';
 import '../../services/supabase_service.dart';
 import '../../services/emergencia_service.dart';
@@ -72,7 +72,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
         ),
         title: Text(
           '🚨 Confirmar Emergência',
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: Colors.red,
@@ -80,7 +80,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
         ),
         content: Text(
           'Isso enviará alertas de emergência para TODOS os seus familiares via SMS e notificações. Deseja continuar?',
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             fontSize: 16,
             height: 1.5,
           ),
@@ -90,7 +90,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
             onPressed: () => Navigator.pop(context, false),
             child: Text(
               'Cancelar',
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontWeight: FontWeight.w700,
                 color: Colors.grey,
               ),
@@ -104,7 +104,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
             ),
             child: Text(
               'SIM, ACIONAR',
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -168,7 +168,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
             ),
             title: Text(
               'Erro ao Acionar Emergência',
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: Colors.red,
@@ -176,7 +176,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
             ),
             content: Text(
               errorMessage,
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontSize: 16,
                 height: 1.5,
               ),
@@ -186,7 +186,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                 onPressed: () => Navigator.pop(context),
                 child: Text(
                   'OK',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF0400BA),
                   ),
@@ -204,7 +204,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                   ),
                   child: Text(
                     'LIGAR DIRETO',
-                    style: GoogleFonts.leagueSpartan(
+                    style: AppTextStyles.leagueSpartan(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -231,14 +231,14 @@ class _AjudaScreenState extends State<AjudaScreen> {
             ),
             title: Text(
               'Número não disponível',
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
               ),
             ),
             content: Text(
               'Nenhum número de emergência cadastrado. Peça para seu familiar configurar o telefone no aplicativo.',
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontSize: 16,
                 height: 1.5,
               ),
@@ -248,7 +248,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                 onPressed: () => Navigator.pop(context),
                 child: Text(
                   'OK',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF0400BA),
                   ),
@@ -278,14 +278,14 @@ class _AjudaScreenState extends State<AjudaScreen> {
               ),
               title: Text(
                 'Dispositivo não suportado',
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               content: Text(
                 'Este dispositivo não possui capacidade de fazer chamadas telefônicas.',
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   fontSize: 16,
                   height: 1.5,
                 ),
@@ -295,7 +295,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     'OK',
-                    style: GoogleFonts.leagueSpartan(
+                    style: AppTextStyles.leagueSpartan(
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF0400BA),
                     ),
@@ -336,7 +336,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                   children: [
                     Text(
                       '🚨 Emergência',
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 32,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -346,7 +346,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Precisa de ajuda imediata?',
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 20,
                         color: Colors.white.withValues(alpha: 0.9),
                       ),
@@ -375,7 +375,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                       Text(
                         'BOTÃO DE PÂNICO',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 28,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -386,7 +386,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                       Text(
                         'Envia alerta para TODOS os familiares via SMS e notificações',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 16,
                           color: Colors.white.withValues(alpha: 0.9),
                           height: 1.4,
@@ -423,7 +423,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                                     const SizedBox(width: 16),
                                     Text(
                                       'ACIONAR EMERGÊNCIA',
-                                      style: GoogleFonts.leagueSpartan(
+                                      style: AppTextStyles.leagueSpartan(
                                         fontSize: 24,
                                         fontWeight: FontWeight.w700,
                                         letterSpacing: 1.5,
@@ -451,7 +451,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                     children: [
                       Text(
                         'Ou ligue diretamente',
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
@@ -466,7 +466,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                           icon: const Icon(Icons.phone, size: 28),
                           label: Text(
                             'LIGAR PARA FAMILIAR',
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 1.2,
@@ -501,7 +501,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                     children: [
                       Text(
                         'Informações de Contato',
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -520,7 +520,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                           children: [
                             Text(
                               'Familiar: $_nomeCuidador',
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
@@ -531,7 +531,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                                 padding: const EdgeInsets.only(top: 8),
                                 child: Text(
                                   'Telefone: $_telefoneCuidador',
-                                  style: GoogleFonts.leagueSpartan(
+                                  style: AppTextStyles.leagueSpartan(
                                     fontSize: 16,
                                     color: Colors.white.withValues(alpha: 0.9),
                                   ),
@@ -542,7 +542,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                                 padding: const EdgeInsets.only(top: 8),
                                 child: Text(
                                   '⚠️ Telefone não cadastrado',
-                                  style: GoogleFonts.leagueSpartan(
+                                  style: AppTextStyles.leagueSpartan(
                                     fontSize: 16,
                                     color: Colors.orange.shade300,
                                     fontStyle: FontStyle.italic,
@@ -554,7 +554,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                       else
                         Text(
                           'Nenhum familiar vinculado encontrado.',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 16,
                             color: Colors.white.withValues(alpha: 0.8),
                           ),
@@ -562,7 +562,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                       const SizedBox(height: 16),
                       Text(
                         '💡 Dica: O botão de pânico envia alertas para TODOS os seus familiares cadastrados, mesmo que você não tenha o telefone deles.',
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 14,
                           color: Colors.white.withValues(alpha: 0.8),
                           height: 1.5,

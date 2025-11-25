@@ -22,6 +22,24 @@ class OcrService {
     required String userId,
   }) async {
     try {
+      // 0. Validar se o perfil existe antes de criar o job
+      debugPrint('🔍 Validando perfil para userId: $userId');
+      final perfilResponse = await _client
+          .from('perfis')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (perfilResponse == null) {
+        debugPrint('❌ Perfil não encontrado para userId: $userId');
+        throw ValidationException(
+          message: 'Perfil não encontrado. Verifique se o usuário possui um perfil cadastrado.',
+          code: 'PERFIL_NAO_ENCONTRADO',
+        );
+      }
+
+      debugPrint('✅ Perfil validado: ${perfilResponse['id']}');
+
       // 1. Fazer upload da imagem para Supabase Storage
       debugPrint('📤 Fazendo upload da imagem...');
       
@@ -58,12 +76,12 @@ class OcrService {
           .select('id')
           .single();
 
-      final ocrId = insertResponse['id'] as String;
+      final ocrId = insertResponse['id'].toString();
       debugPrint('✅ Registro criado com ID: $ocrId');
 
       return ocrId;
     } catch (error) {
-      debugPrint('❌ Erro no upload/registro: $error');
+      debugPrint('❌ Erro no upload/registro: ${error.toString()}');
       throw ErrorHandler.toAppException(error);
     }
   }
@@ -88,7 +106,7 @@ class OcrService {
         'result_json': response['result_json'],
       };
     } catch (error) {
-      debugPrint('❌ Erro ao verificar status: $error');
+      debugPrint('❌ Erro ao verificar status: ${error.toString()}');
       throw ErrorHandler.toAppException(error);
     }
   }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
 
 /// Campo de texto padronizado com estilo glassmorphism
 class AppTextField extends StatelessWidget {
@@ -32,25 +32,29 @@ class AppTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      child: TextFormField(
-        controller: controller,
-        obscureText: obscureText,
-        keyboardType: keyboardType,
-        validator: validator,
-        maxLines: maxLines,
-        onChanged: onChanged,
-        style: GoogleFonts.leagueSpartan(
+      child: Semantics(
+        label: label ?? hint ?? 'Campo de texto',
+        hint: hint ?? 'Digite o texto',
+        textField: true,
+        child: TextFormField(
+          controller: controller,
+          obscureText: obscureText,
+          keyboardType: keyboardType,
+          validator: validator,
+          maxLines: maxLines,
+          onChanged: onChanged,
+        style: AppTextStyles.leagueSpartan(
           color: Colors.white,
           fontSize: 15,
         ),
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
-          hintStyle: GoogleFonts.leagueSpartan(
+          hintStyle: AppTextStyles.leagueSpartan(
             color: Colors.white.withValues(alpha: 0.7),
             fontSize: 15,
           ),
-          labelStyle: GoogleFonts.leagueSpartan(
+          labelStyle: AppTextStyles.leagueSpartan(
             color: Colors.white.withValues(alpha: 0.8),
             fontSize: 15,
           ),
@@ -95,6 +99,7 @@ class AppTextField extends StatelessWidget {
             vertical: 14,
           ),
         ),
+      ),
       ),
     );
   }

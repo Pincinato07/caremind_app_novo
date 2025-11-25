@@ -27,19 +27,21 @@ class GlassContainer extends StatelessWidget {
     final screenH = MediaQuery.of(context).size.height;
     final pad = padding ?? EdgeInsets.all((screenW * 0.025).clamp(16.0, 28.0));
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return ClipRRect(
-          borderRadius: borderRadius ?? BorderRadius.circular(18),
-          child: Stack(
+    return RepaintBoundary(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return ClipRRect(
+            borderRadius: borderRadius ?? BorderRadius.circular(18),
+            child: Stack(
             children: [
               // Neutral underlay
               Positioned.fill(
                 child: Container(color: Colors.white.withValues(alpha: 0.08)),
               ),
-              // BackdropFilter para blur
+              // BackdropFilter para blur (otimizado: reduzido de 24 para 12)
+              // Blur menor mantém o efeito visual mas reduz drasticamente o processamento
               BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                 child: Container(
                   width: width ?? screenW * 0.85,
                   constraints: BoxConstraints(
@@ -119,7 +121,8 @@ class GlassContainer extends StatelessWidget {
             ],
           ),
         );
-      },
+        },
+      ),
     );
   }
 }

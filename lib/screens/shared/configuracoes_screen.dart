@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/caremind_app_bar.dart';
 import '../../widgets/glass_card.dart';
 import '../../services/supabase_service.dart';
+import '../../services/settings_service.dart';
 import '../../core/injection/injection.dart';
 
 /// Tela de Configurações
@@ -17,6 +18,7 @@ class ConfiguracoesScreen extends StatefulWidget {
 
 class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   final SupabaseService _supabaseService = getIt<SupabaseService>();
+  final SettingsService _settingsService = getIt<SettingsService>();
   bool _isLoading = true;
   bool _isSaving = false;
   final _telefoneController = TextEditingController();
@@ -96,7 +98,10 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffoldWithWaves(
-      appBar: const CareMindAppBar(title: 'Configurações'),
+      appBar: const CareMindAppBar(
+        title: 'Configurações',
+        showBackButton: true,
+      ),
       body: SafeArea(
         child: _isLoading
             ? const Center(
@@ -128,7 +133,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                     Expanded(
                                       child: Text(
                                         'Telefone de Emergência',
-                                        style: GoogleFonts.leagueSpartan(
+                                        style: AppTextStyles.leagueSpartan(
                                           fontSize: 18,
                                           fontWeight: FontWeight.w700,
                                           color: Colors.white,
@@ -140,7 +145,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                 const SizedBox(height: 16),
                                 Text(
                                   'Este número será usado para enviar SMS quando o botão de pânico for acionado.',
-                                  style: GoogleFonts.leagueSpartan(
+                                  style: AppTextStyles.leagueSpartan(
                                     fontSize: 14,
                                     color: Colors.white.withValues(alpha: 0.8),
                                     height: 1.4,
@@ -150,13 +155,13 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                 TextField(
                                   controller: _telefoneController,
                                   keyboardType: TextInputType.phone,
-                                  style: GoogleFonts.leagueSpartan(
+                                  style: AppTextStyles.leagueSpartan(
                                     fontSize: 16,
                                     color: Colors.white,
                                   ),
                                   decoration: InputDecoration(
                                     hintText: '+55 11 99999-9999',
-                                    hintStyle: GoogleFonts.leagueSpartan(
+                                    hintStyle: AppTextStyles.leagueSpartan(
                                       color: Colors.white.withValues(alpha: 0.5),
                                     ),
                                     filled: true,
@@ -212,7 +217,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                           )
                                         : Text(
                                             'Salvar Telefone',
-                                            style: GoogleFonts.leagueSpartan(
+                                            style: AppTextStyles.leagueSpartan(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w700,
                                             ),
@@ -227,60 +232,310 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                     ),
 
                     // Seção: Notificações
-            _buildSection(
-              context,
-              title: 'Notificações',
-              children: [
-                _buildSwitchTile(
-                  context,
-                  icon: Icons.notifications_active,
-                  title: 'Notificações de Medicamentos',
-                  subtitle: 'Receber lembretes de horários',
-                  value: true,
-                  onChanged: (value) {
-                    // TODO: Salvar preferência
-                  },
-                ),
-                _buildSwitchTile(
-                  context,
-                  icon: Icons.event_available,
-                  title: 'Notificações de Compromissos',
-                  subtitle: 'Receber lembretes de compromissos',
-                  value: true,
-                  onChanged: (value) {
-                    // TODO: Salvar preferência
-                  },
-                ),
-              ],
-            ),
+                    ListenableBuilder(
+                      listenable: _settingsService,
+                      builder: (context, _) {
+                        return _buildSection(
+                          context,
+                          title: '🔔 Notificações',
+                          children: [
+                            _buildSwitchTile(
+                              context,
+                              icon: Icons.notifications_active,
+                              title: 'Notificações de Medicamentos',
+                              subtitle: 'Receber lembretes de horários',
+                              value: _settingsService.notificationsMedicamentos,
+                              onChanged: (value) async {
+                                await _settingsService.setNotificationsMedicamentos(value);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        value 
+                                          ? 'Notificações de medicamentos ativadas' 
+                                          : 'Notificações de medicamentos desativadas',
+                                      ),
+                                      duration: const Duration(seconds: 2),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                            _buildSwitchTile(
+                              context,
+                              icon: Icons.event_available,
+                              title: 'Notificações de Compromissos',
+                              subtitle: 'Receber lembretes de compromissos',
+                              value: _settingsService.notificationsCompromissos,
+                              onChanged: (value) async {
+                                await _settingsService.setNotificationsCompromissos(value);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        value 
+                                          ? 'Notificações de compromissos ativadas' 
+                                          : 'Notificações de compromissos desativadas',
+                                      ),
+                                      duration: const Duration(seconds: 2),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
 
-            // Seção: Acessibilidade
-            _buildSection(
-              context,
-              title: 'Acessibilidade',
-              children: [
-                _buildSwitchTile(
-                  context,
-                  icon: Icons.volume_up,
-                  title: 'Falar Textos',
-                  subtitle: 'Text-to-Speech para leitura',
-                  value: true,
-                  onChanged: (value) {
-                    // TODO: Salvar preferência
-                  },
-                ),
-                _buildSwitchTile(
-                  context,
-                  icon: Icons.vibration,
-                  title: 'Vibração',
-                  subtitle: 'Feedback háptico nas ações',
-                  value: true,
-                  onChanged: (value) {
-                    // TODO: Salvar preferência
-                  },
-                ),
-              ],
-            ),
+                    // Seção: Acessibilidade
+                    ListenableBuilder(
+                      listenable: _settingsService,
+                      builder: (context, _) {
+                        return _buildSection(
+                          context,
+                          title: '♿ Acessibilidade',
+                          children: [
+                            _buildSwitchTile(
+                              context,
+                              icon: Icons.volume_up,
+                              title: 'Falar Textos',
+                              subtitle: 'Text-to-Speech para leitura',
+                              value: _settingsService.accessibilityTtsEnabled,
+                              onChanged: (value) async {
+                                await _settingsService.setAccessibilityTtsEnabled(value);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        value 
+                                          ? 'Fala de textos ativada' 
+                                          : 'Fala de textos desativada',
+                                      ),
+                                      duration: const Duration(seconds: 2),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                            _buildSwitchTile(
+                              context,
+                              icon: Icons.vibration,
+                              title: 'Vibração',
+                              subtitle: 'Feedback háptico nas ações',
+                              value: _settingsService.accessibilityVibrationEnabled,
+                              onChanged: (value) async {
+                                await _settingsService.setAccessibilityVibrationEnabled(value);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        value 
+                                          ? 'Vibração ativada' 
+                                          : 'Vibração desativada',
+                                      ),
+                                      duration: const Duration(seconds: 2),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                            _buildSwitchTile(
+                              context,
+                              icon: Icons.contrast,
+                              title: 'Alto Contraste',
+                              subtitle: 'Melhor visibilidade para leitura',
+                              value: _settingsService.accessibilityHighContrast,
+                              onChanged: (value) async {
+                                await _settingsService.setAccessibilityHighContrast(value);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        value 
+                                          ? 'Alto contraste ativado' 
+                                          : 'Alto contraste desativado',
+                                      ),
+                                      duration: const Duration(seconds: 2),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                            _buildSwitchTile(
+                              context,
+                              icon: Icons.record_voice_over,
+                              title: 'Leitura Automática',
+                              subtitle: 'Ler textos automaticamente',
+                              value: _settingsService.accessibilityAutoRead,
+                              onChanged: (value) async {
+                                await _settingsService.setAccessibilityAutoRead(value);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        value 
+                                          ? 'Leitura automática ativada' 
+                                          : 'Leitura automática desativada',
+                                      ),
+                                      duration: const Duration(seconds: 2),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                            // Slider para tamanho de fonte
+                            Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Colors.white.withValues(alpha: 0.3),
+                                    Colors.white.withValues(alpha: 0.25),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.12),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.text_fields,
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'Tamanho da Fonte',
+                                          style: AppTextStyles.leagueSpartan(
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        '${(_settingsService.accessibilityFontScale * 100).toInt()}%',
+                                        style: AppTextStyles.leagueSpartan(
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Slider(
+                                    value: _settingsService.accessibilityFontScale,
+                                    min: 0.8,
+                                    max: 2.0,
+                                    divisions: 12,
+                                    label: '${(_settingsService.accessibilityFontScale * 100).toInt()}%',
+                                    activeColor: Colors.white,
+                                    inactiveColor: Colors.white.withValues(alpha: 0.3),
+                                    onChanged: (value) async {
+                                      await _settingsService.setAccessibilityFontScale(value);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Slider para velocidade de voz
+                            Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Colors.white.withValues(alpha: 0.3),
+                                    Colors.white.withValues(alpha: 0.25),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.12),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.speed,
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'Velocidade de Fala',
+                                          style: AppTextStyles.leagueSpartan(
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        '${(_settingsService.accessibilityVoiceSpeed * 100).toInt()}%',
+                                        style: AppTextStyles.leagueSpartan(
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Slider(
+                                    value: _settingsService.accessibilityVoiceSpeed,
+                                    min: 0.3,
+                                    max: 1.0,
+                                    divisions: 7,
+                                    label: '${(_settingsService.accessibilityVoiceSpeed * 100).toInt()}%',
+                                    activeColor: Colors.white,
+                                    inactiveColor: Colors.white.withValues(alpha: 0.3),
+                                    onChanged: (value) async {
+                                      await _settingsService.setAccessibilityVoiceSpeed(value);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
 
               const SizedBox(height: 24),
             ],
@@ -302,7 +557,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
           child: Text(
             title,
-            style: GoogleFonts.leagueSpartan(
+            style: AppTextStyles.leagueSpartan(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -351,14 +606,14 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
         secondary: Icon(icon, color: Colors.white),
         title: Text(
           title,
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             fontSize: 14,
             color: Colors.white.withValues(alpha: 0.9),
           ),

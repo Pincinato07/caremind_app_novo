@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/medicamento_service.dart';
 import '../../core/injection/injection.dart';
@@ -8,6 +8,7 @@ import '../../models/medicamento.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/caremind_app_bar.dart';
+import '../../core/accessibility/accessibility_helper.dart';
 
 /// Dashboard do FAMILIAR/CUIDADOR
 /// Objetivo: Tranquilidade. O familiar quer saber: "Está tudo bem?"
@@ -35,6 +36,15 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
     // Escutar mudanças no FamiliarState
     final familiarState = getIt<FamiliarState>();
     familiarState.addListener(_onFamiliarStateChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Leitura automática do título da tela se habilitada
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AccessibilityHelper.autoReadIfEnabled('Dashboard Familiar. Olá, $_userName');
+    });
   }
 
   @override
@@ -220,7 +230,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                         children: [
                           Text(
                             'Olá, $_userName!',
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               fontSize: 32,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
@@ -230,7 +240,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                           const SizedBox(height: 8),
                           Text(
                             'Acompanhe o cuidado da sua família',
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               fontSize: 18,
                               color: Colors.white.withValues(alpha: 0.95),
                               fontWeight: FontWeight.w500,
@@ -329,7 +339,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
               children: [
                 Text(
                   temAtraso ? 'Atenção necessária' : 'Tudo em dia!',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white.withValues(alpha: 0.9),
@@ -338,7 +348,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                 const SizedBox(height: 4),
                 Text(
                   mensagem,
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: Colors.white.withValues(alpha: 0.85),
@@ -394,7 +404,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                       children: [
                         Text(
                           'Status de Adesão',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -403,7 +413,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                         const SizedBox(height: 4),
                         Text(
                           idosoSelecionado.nome ?? 'Idoso',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 14,
                             color: Colors.white.withValues(alpha: 0.85),
                           ),
@@ -433,7 +443,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                         ),
                         Text(
                           '$percentual%',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -449,7 +459,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                       children: [
                         Text(
                           '$tomados de $total medicamentos',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -458,7 +468,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                         const SizedBox(height: 4),
                         Text(
                           'tomados hoje',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 14,
                             color: Colors.white.withValues(alpha: 0.85),
                           ),
@@ -510,7 +520,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                     children: [
                       Text(
                         'Nenhum alerta recente',
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -519,7 +529,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                       const SizedBox(height: 4),
                       Text(
                         'Tudo está em ordem!',
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 14,
                           color: Colors.white.withValues(alpha: 0.85),
                         ),
@@ -554,7 +564,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                   const SizedBox(width: 16),
                   Text(
                     'Alertas Recentes',
-                    style: GoogleFonts.leagueSpartan(
+                    style: AppTextStyles.leagueSpartan(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -583,7 +593,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                           children: [
                             Text(
                               alerta['horario'] as String,
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white.withValues(alpha: 0.9),
@@ -592,7 +602,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                             const SizedBox(height: 2),
                             Text(
                               alerta['mensagem'] as String,
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
                                 color: Colors.white,
@@ -660,7 +670,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                   children: [
                     Text(
                       'Última Atividade',
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -669,7 +679,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                     const SizedBox(height: 4),
                     Text(
                       textoAtividade,
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 14,
                         color: Colors.white.withValues(alpha: 0.85),
                       ),

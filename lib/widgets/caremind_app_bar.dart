@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
 import '../core/navigation/app_navigation.dart';
 import '../core/state/familiar_state.dart';
 import '../core/injection/injection.dart';
@@ -8,22 +8,88 @@ import '../screens/shared/configuracoes_screen.dart';
 import '../screens/shared/perfil_screen.dart';
 
 /// AppBar padronizada do CareMind
-/// Leading: Configurações (esquerda)
+/// Leading: Back button (se pode voltar) ou Configurações (esquerda)
 /// Title: Dinâmico (centro) ou Seletor de Idoso (se perfil familiar)
 /// Actions: Perfil (direita)
 /// Estilo: Fundo transparente, ícones brancos
 class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
   final bool isFamiliar; // Se true, mostra seletor de idoso no título
+  final bool showBackButton; // Se true, força mostrar back button mesmo se não puder voltar
 
   const CareMindAppBar({
     super.key,
     this.title,
     this.isFamiliar = false,
+    this.showBackButton = false,
   });
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  /// Constrói o leading (botão esquerdo)
+  /// Mostra back button se pode voltar ou se showBackButton=true
+  /// Caso contrário, mostra botão de configurações
+  Widget _buildLeading(BuildContext context) {
+    final canPop = Navigator.canPop(context);
+    final shouldShowBack = showBackButton || canPop;
+
+    if (shouldShowBack) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 12),
+        child: Semantics(
+          label: 'Voltar',
+          hint: 'Toque para voltar',
+          button: true,
+          child: IconButton(
+            icon: const Icon(
+              Icons.arrow_back,
+              color: Colors.white,
+              size: 32.0,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(
+              minWidth: 40,
+              minHeight: 40,
+            ),
+            onPressed: () => Navigator.pop(context),
+            tooltip: 'Voltar',
+          ),
+        ),
+      );
+    }
+
+    // Se não pode voltar, mostra botão de configurações
+    return Padding(
+      padding: const EdgeInsets.only(left: 12),
+      child: Semantics(
+        label: 'Configurações',
+        hint: 'Toque para abrir configurações',
+        button: true,
+        child: IconButton(
+          icon: const Icon(
+            Icons.settings_outlined,
+            color: Colors.white,
+            size: 32.0,
+          ),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(
+            minWidth: 40,
+            minHeight: 40,
+          ),
+          onPressed: () {
+            Navigator.push(
+              context,
+              AppNavigation.smoothRoute(
+                const ConfiguracoesScreen(),
+              ),
+            );
+          },
+          tooltip: 'Configurações',
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +102,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
           : (title != null
               ? Text(
                   title!,
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                     fontSize: 20,
@@ -58,53 +124,35 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
         statusBarBrightness: Brightness.light,
         systemNavigationBarColor: Colors.transparent,
       ),
-      leading: Padding(
-        padding: const EdgeInsets.only(left: 12),
-        child: IconButton(
-          icon: const Icon(
-            Icons.settings_outlined,
-            color: iconColor,
-            size: iconSize,
-          ),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(
-            minWidth: 40,
-            minHeight: 40,
-          ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              AppNavigation.smoothRoute(
-                const ConfiguracoesScreen(),
-              ),
-            );
-          },
-          tooltip: 'Configurações',
-        ),
-      ),
+      leading: _buildLeading(context),
       actions: [
         Padding(
           padding: const EdgeInsets.only(right: 12),
-          child: IconButton(
-            icon: const Icon(
-              Icons.person_outline_rounded,
-              color: iconColor,
-              size: iconSize,
+          child: Semantics(
+            label: 'Perfil',
+            hint: 'Toque para abrir perfil',
+            button: true,
+            child: IconButton(
+              icon: const Icon(
+                Icons.person_outline_rounded,
+                color: iconColor,
+                size: iconSize,
+              ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(
+                minWidth: 40,
+                minHeight: 40,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  AppNavigation.smoothRoute(
+                    const PerfilScreen(),
+                  ),
+                );
+              },
+              tooltip: 'Perfil',
             ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(
-              minWidth: 40,
-              minHeight: 40,
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                AppNavigation.smoothRoute(
-                  const PerfilScreen(),
-                ),
-              );
-            },
-            tooltip: 'Perfil',
           ),
         ),
       ],
@@ -124,7 +172,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
         if (idosos.isEmpty) {
           return Text(
             title ?? 'Familiar',
-            style: GoogleFonts.leagueSpartan(
+            style: AppTextStyles.leagueSpartan(
               fontWeight: FontWeight.w700,
               color: Colors.white,
               fontSize: 20,
@@ -136,7 +184,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
           // Se houver apenas um idoso, mostra apenas o nome
           return Text(
             idosoSelecionado?.nome ?? title ?? 'Familiar',
-            style: GoogleFonts.leagueSpartan(
+            style: AppTextStyles.leagueSpartan(
               fontWeight: FontWeight.w700,
               color: Colors.white,
               fontSize: 20,
@@ -153,7 +201,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
               Flexible(
                 child: Text(
                   idosoSelecionado?.nome ?? 'Selecione um idoso',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                     fontSize: 20,
@@ -201,7 +249,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
                 padding: const EdgeInsets.all(24),
                 child: Text(
                   'Selecione o idoso',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -220,7 +268,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ),
                   title: Text(
                     idoso.nome ?? 'Idoso',
-                    style: GoogleFonts.leagueSpartan(
+                    style: AppTextStyles.leagueSpartan(
                       fontSize: 18,
                       fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                       color: Colors.white,

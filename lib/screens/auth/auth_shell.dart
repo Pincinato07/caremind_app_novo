@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -245,7 +245,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         ),
         title: Text(
           'Recuperar Senha',
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             fontSize: 20,
             fontWeight: FontWeight.w700,
           ),
@@ -255,7 +255,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
           children: [
             Text(
               'Digite seu e-mail para receber instruções de redefinição de senha.',
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontSize: 14,
                 height: 1.5,
               ),
@@ -280,7 +280,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
             onPressed: () => Navigator.pop(context, false),
             child: Text(
               'Cancelar',
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -304,7 +304,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
             ),
             child: Text(
               'Enviar',
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -443,7 +443,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
           elevation: WidgetStateProperty.all(6),
           shadowColor: WidgetStateProperty.all(baseColor.withValues(alpha: 0.2)),
           shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-          textStyle: WidgetStateProperty.all(GoogleFonts.leagueSpartan(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+          textStyle: WidgetStateProperty.all(AppTextStyles.leagueSpartan(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
         ),
         child: isLoading
             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
@@ -461,9 +461,9 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
           side: BorderSide(color: onPressed == null ? Colors.grey[400]! : Colors.white, width: 1.5),
           backgroundColor: Colors.white.withValues(alpha: 0.08),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: GoogleFonts.leagueSpartan(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+          textStyle: AppTextStyles.leagueSpartan(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.5),
         ),
-        child: Text(label, style: GoogleFonts.leagueSpartan(color: onPressed == null ? Colors.grey[400] : Colors.white)),
+        child: Text(label, style: AppTextStyles.leagueSpartan(color: onPressed == null ? Colors.grey[400] : Colors.white)),
       ),
     );
   }
@@ -484,10 +484,10 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         obscureText: obscure,
         keyboardType: keyboardType,
         validator: validator,
-        style: GoogleFonts.leagueSpartan(color: Colors.white, fontSize: 15),
+        style: AppTextStyles.leagueSpartan(color: Colors.white, fontSize: 15),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: GoogleFonts.leagueSpartan(color: Colors.white.withValues(alpha: 0.7), fontSize: 15),
+          hintStyle: AppTextStyles.leagueSpartan(color: Colors.white.withValues(alpha: 0.7), fontSize: 15),
           filled: true,
           fillColor: Colors.white.withValues(alpha: 0.12),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
@@ -568,7 +568,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Crie sua senha', style: GoogleFonts.leagueSpartan(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.center),
+          Text('Crie sua senha', style: AppTextStyles.leagueSpartan(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.center),
           const SizedBox(height: 16),
           _glowField(controller: _passwordController, hint: 'Mínimo 6 caracteres', obscure: true, validator: (v) => v == null || v.length < 6 ? 'Mínimo 6 caracteres' : null),
           _glowField(controller: _confirmPasswordController, hint: 'Repita a senha', obscure: true, validator: (v) => v != _passwordController.text ? 'Senhas não coincidem' : null),
@@ -590,7 +590,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Tipo de Conta', style: GoogleFonts.leagueSpartan(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.center),
+        Text('Tipo de Conta', style: AppTextStyles.leagueSpartan(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.center),
         const SizedBox(height: 12),
         _accountOption('Uso Pessoal', 'Para cuidar de você mesmo', 'pessoal'),
         const SizedBox(height: 12),
@@ -675,9 +675,9 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Bem-vindo de volta!', style: GoogleFonts.leagueSpartan(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
+            Text('Bem-vindo de volta!', style: AppTextStyles.leagueSpartan(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
             const SizedBox(height: 8),
-            Text('Faça login para continuar', style: GoogleFonts.leagueSpartan(fontSize: 14, color: Colors.white.withValues(alpha: 0.9)), textAlign: TextAlign.center),
+            Text('Faça login para continuar', style: AppTextStyles.leagueSpartan(fontSize: 14, color: Colors.white.withValues(alpha: 0.9)), textAlign: TextAlign.center),
             const SizedBox(height: 20),
             _glowField(controller: _loginEmailController, hint: 'seu@email.com', keyboardType: TextInputType.emailAddress, validator: (v) => v?.contains('@') == true ? null : 'Email inválido'),
             _glowField(controller: _loginPasswordController, hint: 'Sua senha', obscure: true, validator: (v) => v?.isNotEmpty == true ? null : 'Informe a senha'),
@@ -701,7 +701,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                   children: [
                     const TextSpan(text: 'Não tem conta? '),
-                    TextSpan(text: 'Cadastre-se', style: GoogleFonts.leagueSpartan(fontWeight: FontWeight.bold, color: Colors.white, decoration: TextDecoration.underline)),
+                    TextSpan(text: 'Cadastre-se', style: AppTextStyles.leagueSpartan(fontWeight: FontWeight.bold, color: Colors.white, decoration: TextDecoration.underline)),
                   ],
                 ),
               ),
@@ -728,9 +728,9 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                   children: [
                     Padding(
                       padding: const EdgeInsets.only(top: 16, bottom: 8),
-                      child: Text('Criar Conta', style: GoogleFonts.leagueSpartan(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
+                      child: Text('Criar Conta', style: AppTextStyles.leagueSpartan(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
                     ),
-                    Text('Passo ${_registerStep + 1} de 3', style: GoogleFonts.leagueSpartan(fontSize: 14, color: Colors.white.withValues(alpha: 0.8))),
+                    Text('Passo ${_registerStep + 1} de 3', style: AppTextStyles.leagueSpartan(fontSize: 14, color: Colors.white.withValues(alpha: 0.8))),
                     const SizedBox(height: 16),
                     // Conteúdo do passo atual
                     Expanded(
@@ -772,7 +772,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                               const TextSpan(text: 'Já tem conta? '),
                               TextSpan(
                                 text: 'Faça login',
-                                style: GoogleFonts.leagueSpartan(
+                                style: AppTextStyles.leagueSpartan(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                   decoration: TextDecoration.underline,

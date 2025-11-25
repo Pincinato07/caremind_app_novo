@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../models/medicamento.dart';
@@ -251,7 +251,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
               children: [
                 Text(
                   'Como deseja adicionar?',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -283,7 +283,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                           children: [
                             Text(
                               'Formulário',
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
@@ -292,7 +292,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                             const SizedBox(height: 4),
                             Text(
                               'Preencher manualmente',
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 14,
                                 color: Colors.white.withValues(alpha: 0.9),
                               ),
@@ -334,7 +334,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                           children: [
                             Text(
                               'Por Foto',
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
@@ -343,7 +343,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                             const SizedBox(height: 4),
                             Text(
                               'Ler receita com inteligência artificial',
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 14,
                                 color: Colors.white.withValues(alpha: 0.9),
                               ),
@@ -364,7 +364,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     'Cancelar',
-                    style: GoogleFonts.leagueSpartan(
+                    style: AppTextStyles.leagueSpartan(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.white.withValues(alpha: 0.9),
@@ -419,7 +419,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
               children: [
                 Text(
                   'Escolha a origem da imagem',
-                  style: GoogleFonts.leagueSpartan(
+                  style: AppTextStyles.leagueSpartan(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -451,7 +451,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                           children: [
                             Text(
                               'Tirar Foto',
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
@@ -460,7 +460,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                             const SizedBox(height: 4),
                             Text(
                               'Abrir a câmera',
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 14,
                                 color: Colors.white.withValues(alpha: 0.9),
                               ),
@@ -502,7 +502,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                           children: [
                             Text(
                               'Escolher da Galeria',
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
@@ -511,7 +511,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                             const SizedBox(height: 4),
                             Text(
                               'Selecionar do dispositivo',
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 14,
                                 color: Colors.white.withValues(alpha: 0.9),
                               ),
@@ -532,7 +532,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     'Cancelar',
-                    style: GoogleFonts.leagueSpartan(
+                    style: AppTextStyles.leagueSpartan(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.white.withValues(alpha: 0.9),
@@ -609,7 +609,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
                 'Medicamentos',
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
                 ),
@@ -681,7 +681,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
               icon: const Icon(Icons.add),
               label: Text(
                 'Adicionar',
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   color: const Color(0xFF0400BA),
                   fontWeight: FontWeight.w700,
                   fontSize: 16,
@@ -705,7 +705,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
               const SizedBox(height: 16),
               Text(
                 'Carregando medicamentos...',
-                style: GoogleFonts.leagueSpartan(
+                style: AppTextStyles.leagueSpartan(
                   color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 16,
                 ),
@@ -740,7 +740,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     const SizedBox(height: 16),
                     Text(
                       'Erro ao carregar medicamentos',
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -750,7 +750,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     Text(
                       _error!,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         color: Colors.red.shade300,
                       ),
                     ),
@@ -766,7 +766,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                       ),
                       child: Text(
                         'Tentar novamente',
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -832,7 +832,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     const SizedBox(height: 24),
                     Text(
                       'Nenhum medicamento encontrado',
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -843,7 +843,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     Text(
                       'Toque no botão "+" para adicionar seu primeiro medicamento e começar a organizar sua saúde',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 16,
                         height: 1.5,
@@ -1377,7 +1377,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 'Marcar como Tomado',
-                                style: GoogleFonts.leagueSpartan(
+                                style: AppTextStyles.leagueSpartan(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,
@@ -1421,7 +1421,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 'Marcar como Pendente',
-                                style: GoogleFonts.leagueSpartan(
+                                style: AppTextStyles.leagueSpartan(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,

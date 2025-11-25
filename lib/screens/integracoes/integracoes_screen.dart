@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/glass_card.dart';
@@ -49,6 +49,28 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffoldWithWaves(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: IconButton(
+            icon: const Icon(
+              Icons.arrow_back,
+              color: Colors.white,
+              size: 32.0,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(
+              minWidth: 40,
+              minHeight: 40,
+            ),
+            onPressed: () => Navigator.pop(context),
+            tooltip: 'Voltar',
+          ),
+        ),
+      ),
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -61,17 +83,16 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                   children: [
                     Text(
                       'Leitura de Receita',
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 32,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
-                        letterSpacing: -0.5,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Tire uma foto da caixa de remédio ou receita',
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 18,
                         color: Colors.white.withValues(alpha: 0.9),
                       ),
@@ -97,7 +118,7 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                       const SizedBox(height: 16),
                       Text(
                         'Como usar',
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -109,7 +130,7 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                         '2. Aguarde a leitura automática do texto\n'
                         '3. Revise e confirme as informações',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.leagueSpartan(
+                        style: AppTextStyles.leagueSpartan(
                           fontSize: 16,
                           color: Colors.white.withValues(alpha: 0.9),
                           height: 1.6,
@@ -135,7 +156,7 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                         icon: const Icon(Icons.camera_alt, size: 28),
                         label: Text(
                           'Tirar Foto',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                           ),
@@ -159,7 +180,7 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                         icon: const Icon(Icons.photo_library, size: 24),
                         label: Text(
                           'Escolher da Galeria',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                           ),
@@ -204,7 +225,7 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                                 icon: const Icon(Icons.text_fields),
                                 label: Text(
                                   'Ler Texto',
-                                  style: GoogleFonts.leagueSpartan(
+                                  style: AppTextStyles.leagueSpartan(
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -250,7 +271,7 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                         const SizedBox(height: 24),
                         Text(
                           'Enviando foto...',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 18,
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -259,7 +280,7 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                         const SizedBox(height: 8),
                         Text(
                           'Aguarde enquanto enviamos a imagem',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 16,
                             color: Colors.white.withValues(alpha: 0.8),
                           ),
@@ -285,7 +306,7 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                         const SizedBox(height: 24),
                         Text(
                           _getStatusMessage(),
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 18,
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -294,7 +315,7 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                         const SizedBox(height: 8),
                         Text(
                           'Aguardando processamento da receita...',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 16,
                             color: Colors.white.withValues(alpha: 0.8),
                           ),
@@ -312,7 +333,7 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                             ),
                             child: Text(
                               'Status: $_currentStatus',
-                              style: GoogleFonts.leagueSpartan(
+                              style: AppTextStyles.leagueSpartan(
                                 fontSize: 14,
                                 color: Colors.white.withValues(alpha: 0.9),
                               ),
@@ -342,7 +363,7 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                         const SizedBox(height: 16),
                         Text(
                           'Erro ao processar imagem',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -352,7 +373,7 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                         Text(
                           _error!,
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 16,
                             color: Colors.white.withValues(alpha: 0.8),
                           ),
@@ -362,7 +383,7 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                           onPressed: _processImage,
                           child: Text(
                             'Tentar Novamente',
-                            style: GoogleFonts.leagueSpartan(
+                            style: AppTextStyles.leagueSpartan(
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -566,7 +587,7 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
       SnackBar(
         content: Text(
           message,
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             fontWeight: FontWeight.w600,
           ),
         ),

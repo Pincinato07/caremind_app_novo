@@ -19,14 +19,19 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
+    return RepaintBoundary(
+      child: ClipRRect(
       borderRadius: borderRadius ?? BorderRadius.circular(16),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: borderRadius ?? BorderRadius.circular(16),
-          child: Container(
+        child: Semantics(
+          label: onTap != null ? 'Card interativo' : 'Card',
+          hint: onTap != null ? 'Toque para executar ação' : null,
+          button: onTap != null,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: borderRadius ?? BorderRadius.circular(16),
+            child: Container(
             padding: padding ?? const EdgeInsets.all(16),
             decoration: BoxDecoration(
               // Cor sólida semi-transparente com melhor contraste
@@ -63,6 +68,8 @@ class GlassCard extends StatelessWidget {
           ),
         ),
       ),
+    ),
+    ),
     );
   }
 }

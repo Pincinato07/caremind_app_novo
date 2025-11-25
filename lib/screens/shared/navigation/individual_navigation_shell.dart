@@ -37,19 +37,9 @@ class _IndividualNavigationShellState extends State<IndividualNavigationShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        transitionBuilder: (child, animation) {
-          return FadeTransition(
-            opacity: animation,
-            child: child,
-          );
-        },
-        child: IndexedStack(
-          key: ValueKey(_selectedIndex),
-          index: _selectedIndex,
-          children: _pages,
-        ),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages,
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import '../../services/account_manager_service.dart';
 import '../../services/supabase_service.dart';
 import '../../core/injection/injection.dart';
@@ -185,7 +185,7 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                     // Header
                     Text(
                       'Selecione uma conta',
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -194,7 +194,7 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Toque em uma conta para fazer login',
-                      style: GoogleFonts.leagueSpartan(
+                      style: AppTextStyles.leagueSpartan(
                         fontSize: 14,
                         color: Colors.white.withValues(alpha: 0.8),
                       ),
@@ -216,7 +216,7 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                               const SizedBox(height: 16),
                               Text(
                                 'Nenhuma conta salva',
-                                style: GoogleFonts.leagueSpartan(
+                                style: AppTextStyles.leagueSpartan(
                                   fontSize: 16,
                                   color: Colors.white.withValues(alpha: 0.7),
                                 ),
@@ -292,7 +292,7 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                                                 Expanded(
                                                   child: Text(
                                                     account.nome ?? account.email,
-                                                    style: GoogleFonts.leagueSpartan(
+                                                    style: AppTextStyles.leagueSpartan(
                                                       fontSize: 16,
                                                       fontWeight: FontWeight.w600,
                                                       color: Colors.white,
@@ -313,7 +313,7 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                                                     ),
                                                     child: Text(
                                                       'Atual',
-                                                      style: GoogleFonts.leagueSpartan(
+                                                      style: AppTextStyles.leagueSpartan(
                                                         fontSize: 10,
                                                         fontWeight: FontWeight.w700,
                                                         color: Colors.white,
@@ -325,7 +325,7 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                                             const SizedBox(height: 4),
                                             Text(
                                               account.email,
-                                              style: GoogleFonts.leagueSpartan(
+                                              style: AppTextStyles.leagueSpartan(
                                                 fontSize: 13,
                                                 color: Colors.white.withValues(alpha: 0.7),
                                               ),
@@ -342,7 +342,7 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                                                         : account.tipo == 'idoso'
                                                             ? 'Idoso'
                                                             : account.tipo!,
-                                                style: GoogleFonts.leagueSpartan(
+                                                style: AppTextStyles.leagueSpartan(
                                                   fontSize: 11,
                                                   color: Colors.white.withValues(alpha: 0.6),
                                                 ),
@@ -389,7 +389,7 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                                 const SizedBox(width: 12),
                                 Text(
                                   'Adicionar Nova Conta',
-                                  style: GoogleFonts.leagueSpartan(
+                                  style: AppTextStyles.leagueSpartan(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.white,
@@ -410,7 +410,7 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: Text(
                           'Mantenha pressionado uma conta para removê-la',
-                          style: GoogleFonts.leagueSpartan(
+                          style: AppTextStyles.leagueSpartan(
                             fontSize: 12,
                             color: Colors.white.withValues(alpha: 0.6),
                             fontStyle: FontStyle.italic,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
 import '../core/navigation/app_navigation.dart';
 import '../screens/shared/configuracoes_screen.dart';
 import '../screens/shared/perfil_screen.dart';
@@ -27,7 +27,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: title != null
           ? Text(
               title!,
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 fontSize: 20,

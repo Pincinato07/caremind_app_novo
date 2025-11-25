@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
 import '../../services/compromisso_service.dart';
@@ -113,11 +113,15 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
       }
 
       final targetId = widget.idosoId ?? user.id;
+      final descricao = _descricaoController.text.trim();
       final data = {
         'titulo': _tituloController.text.trim(),
-        'descricao': _descricaoController.text.trim(),
         'data_hora': _dataHora.toIso8601String(),
         'user_id': targetId,
+        'created_at': DateTime.now().toIso8601String(),
+        'concluido': false,
+        // Só incluir descrição se não estiver vazia
+        if (descricao.isNotEmpty) 'descricao': descricao,
       };
 
       if (_isEditing) {
@@ -166,7 +170,7 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
         foregroundColor: Colors.white,
         title: Text(
           _isEditing ? 'Editar Compromisso' : 'Novo Compromisso',
-          style: GoogleFonts.leagueSpartan(
+          style: AppTextStyles.leagueSpartan(
             fontWeight: FontWeight.w700,
             color: Colors.white,
           ),
@@ -176,7 +180,7 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
             onPressed: _isLoading ? null : _saveCompromisso,
             child: Text(
               'Salvar',
-              style: GoogleFonts.leagueSpartan(
+              style: AppTextStyles.leagueSpartan(
                 color: _isLoading ? Colors.white54 : Colors.white,
                 fontWeight: FontWeight.w700,
               ),
