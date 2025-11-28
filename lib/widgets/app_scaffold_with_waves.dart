@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'wave_background.dart';
+import '../core/injection/injection.dart';
+import '../services/settings_service.dart';
 
 /// Scaffold padronizado com fundo gradiente e waves
 /// Usa o mesmo padrão das telas de auth e onboarding
@@ -23,6 +25,8 @@ class AppScaffoldWithWaves extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settingsService = getIt<SettingsService>();
+
     return Scaffold(
       resizeToAvoidBottomInset: resizeToAvoidBottomInset,
       backgroundColor: backgroundColor ?? Colors.transparent,
@@ -40,10 +44,18 @@ class AppScaffoldWithWaves extends StatelessWidget {
               ),
             ),
           ),
-          // Waves animadas
-          const Align(
-            alignment: Alignment.bottomCenter,
-            child: AuthWaveBackground(),
+          // Waves animadas (condicional)
+          ListenableBuilder(
+            listenable: settingsService,
+            builder: (context, _) {
+              if (!settingsService.wavesEnabled) {
+                return const SizedBox.shrink();
+              }
+              return const Align(
+                alignment: Alignment.bottomCenter,
+                child: AuthWaveBackground(),
+              );
+            },
           ),
           // Conteúdo
           body,

@@ -255,7 +255,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                   Row(
                                     children: [
                                       const Icon(
-                                        Icons.phone_outlined,
+                                        Icons.phone_rounded,
                                         color: Colors.white,
                                         size: 24,
                                       ),
@@ -376,7 +376,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                           children: [
                             _buildSwitchTile(
                               context,
-                              icon: Icons.notifications_active,
+                              icon: Icons.notifications_outlined,
                               title: 'Notificações de Medicamentos',
                               subtitle: 'Receber lembretes de horários',
                               value: _settingsService.notificationsMedicamentos,
@@ -399,7 +399,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                             ),
                             _buildSwitchTile(
                               context,
-                              icon: Icons.event_available,
+                              icon: Icons.calendar_today_rounded,
                               title: 'Notificações de Compromissos',
                               subtitle: 'Receber lembretes de compromissos',
                               value: _settingsService.notificationsCompromissos,
@@ -443,14 +443,13 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                       width: 48,
                                       height: 48,
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withValues(alpha: 0.2),
+                                        color: Colors.white,
                                         borderRadius: BorderRadius.circular(12),
                                       ),
-                                      child: const Center(
-                                        child: Text(
-                                          '🔊',
-                                          style: TextStyle(fontSize: 24),
-                                        ),
+                                      padding: const EdgeInsets.all(8),
+                                      child: Image.asset(
+                                        'assets/images/alexa-logo.png',
+                                        fit: BoxFit.contain,
                                       ),
                                     ),
                                     const SizedBox(width: 16),
@@ -559,7 +558,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                           children: [
                             _buildSwitchTile(
                               context,
-                              icon: Icons.volume_up,
+                              icon: Icons.volume_up_outlined,
                               title: 'Falar Textos',
                               subtitle: 'Text-to-Speech para leitura',
                               value: _settingsService.accessibilityTtsEnabled,
@@ -582,7 +581,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                             ),
                             _buildSwitchTile(
                               context,
-                              icon: Icons.vibration,
+                              icon: Icons.vibration_rounded,
                               title: 'Vibração',
                               subtitle: 'Feedback háptico nas ações',
                               value: _settingsService.accessibilityVibrationEnabled,
@@ -605,7 +604,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                             ),
                             _buildSwitchTile(
                               context,
-                              icon: Icons.contrast,
+                              icon: Icons.contrast_rounded,
                               title: 'Alto Contraste',
                               subtitle: 'Melhor visibilidade para leitura',
                               value: _settingsService.accessibilityHighContrast,
@@ -628,7 +627,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                             ),
                             _buildSwitchTile(
                               context,
-                              icon: Icons.record_voice_over,
+                              icon: Icons.record_voice_over_outlined,
                               title: 'Leitura Automática',
                               subtitle: 'Ler textos automaticamente',
                               value: _settingsService.accessibilityAutoRead,
@@ -651,7 +650,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                             ),
                             _buildSwitchTile(
                               context,
-                              icon: Icons.waves,
+                              icon: Icons.waves_rounded,
                               title: 'Animações de Ondas',
                               subtitle: 'Fundo animado das ondas',
                               value: _wavesEnabled,
@@ -705,7 +704,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                   Row(
                                     children: [
                                       const Icon(
-                                        Icons.text_fields,
+                                        Icons.text_fields_rounded,
                                         color: Colors.white,
                                         size: 24,
                                       ),
@@ -776,7 +775,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                   Row(
                                     children: [
                                       const Icon(
-                                        Icons.speed,
+                                        Icons.speed_rounded,
                                         color: Colors.white,
                                         size: 24,
                                       ),

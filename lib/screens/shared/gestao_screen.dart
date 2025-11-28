@@ -13,7 +13,6 @@ import '../compromissos/gestao_compromissos_screen.dart';
 import '../medication/add_edit_medicamento_form.dart';
 import '../rotinas/add_edit_rotina_form.dart';
 import '../compromissos/add_edit_compromisso_form.dart';
-import '../shared/alertas_screen.dart';
 import '../../core/navigation/app_navigation.dart';
 
 /// Tela central de Gestão
@@ -292,20 +291,6 @@ class _GestaoScreenState extends State<GestaoScreen> {
                 icon: Icons.calendar_today,
                 color: const Color(0xFF2196F3),
                 onTap: () => _navigateToView(GestaoView.compromissos),
-              ),
-              _buildGestaoCard(
-                title: 'Notificações',
-                subtitle: 'Ver alertas e lembretes',
-                icon: Icons.notifications_rounded,
-                color: const Color(0xFF9C27B0),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    AppNavigation.smoothRoute(
-                      const AlertasScreen(),
-                    ),
-                  );
-                },
               ),
             ]),
           ),

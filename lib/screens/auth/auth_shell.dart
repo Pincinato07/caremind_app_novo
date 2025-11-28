@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/supabase_service.dart';
@@ -31,7 +30,6 @@ class _AuthShellState extends State<AuthShell> {
   bool _isLoginLoading = false;
 
   // Register
-  final _registerPageController = PageController();
   int _registerStep = 0;
 
   // Step 1
@@ -75,7 +73,6 @@ class _AuthShellState extends State<AuthShell> {
   void dispose() {
     _loginEmailController.dispose();
     _loginPasswordController.dispose();
-    _registerPageController.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -208,22 +205,22 @@ class _AuthShellState extends State<AuthShell> {
 
       if (name.isEmpty || !email.contains('@')) {
         _showSnack('Preencha corretamente nome e e-mail.');
-        _registerPageController.jumpToPage(0);
+        setState(() => _registerStep = 0);
         return;
       }
       if (password.length < 6 || password != confirm) {
         _showSnack('Verifique as senhas.');
-        _registerPageController.jumpToPage(1);
+        setState(() => _registerStep = 1);
         return;
       }
       if (!_termsAccepted) {
         _showSnack('Aceite os termos para continuar.');
-        _registerPageController.jumpToPage(2);
+        setState(() => _registerStep = 2);
         return;
       }
       if (!_consentimentoDadosSaude) {
         _showSnack('Você precisa consentir o compartilhamento de dados de saúde.');
-        _registerPageController.jumpToPage(2);
+        setState(() => _registerStep = 2);
         return;
       }
 
@@ -291,14 +288,14 @@ class _AuthShellState extends State<AuthShell> {
       } else if (e.toString().toLowerCase().contains('user already registered') ||
                  e.toString().toLowerCase().contains('email already registered')) {
         errorMessage = 'Este e-mail já está cadastrado. Tente fazer login.';
-        _registerPageController.jumpToPage(0);
+        setState(() => _registerStep = 0);
       } else if (e.toString().toLowerCase().contains('weak password')) {
         errorMessage = 'Senha muito fraca. Use pelo menos 6 caracteres.';
-        _registerPageController.jumpToPage(1);
+        setState(() => _registerStep = 1);
       } else if (e.toString().toLowerCase().contains('invalid email') ||
                  e.toString().toLowerCase().contains('invalid email format')) {
         errorMessage = 'E-mail inválido. Verifique o formato.';
-        _registerPageController.jumpToPage(0);
+        setState(() => _registerStep = 0);
       } else if (e.toString().toLowerCase().contains('bad request') || 
                  e.toString().toLowerCase().contains('400')) {
         errorMessage = 'Dados inválidos. Verifique as informações.';
@@ -426,15 +423,9 @@ class _AuthShellState extends State<AuthShell> {
     }
   }
 
-  void _nextPage() => _registerPageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.ease,
-      );
+  void _nextPage() => setState(() => _registerStep = (_registerStep + 1).clamp(0, 2));
 
-  void _previousPage() => _registerPageController.previousPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.ease,
-      );
+  void _previousPage() => setState(() => _registerStep = (_registerStep - 1).clamp(0, 2));
 
   // ==================== GLASSMORPHISM ====================
 
@@ -442,11 +433,7 @@ class _AuthShellState extends State<AuthShell> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final screenW = MediaQuery.of(context).size.width;
-        final screenH = MediaQuery.of(context).size.height;
         final pad = (screenW * 0.025).clamp(16.0, 28.0);
-        final maxHeight = isRegister 
-            ? (screenH * 0.75).clamp(400.0, 600.0)
-            : screenH * 0.8;
 
         return ClipRRect(
           borderRadius: BorderRadius.circular(18),
@@ -457,10 +444,9 @@ class _AuthShellState extends State<AuthShell> {
                 filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
                 child: Container(
                   width: screenW * 0.85,
-                  constraints: BoxConstraints(
+                  constraints: const BoxConstraints(
                     maxWidth: 380, 
-                    minHeight: 0, 
-                    maxHeight: maxHeight
+                    minHeight: 0,
                   ),
                   padding: EdgeInsets.all(pad),
                   decoration: BoxDecoration(
@@ -785,6 +771,7 @@ class _AuthShellState extends State<AuthShell> {
       child: Form(
         key: _formKey,
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text('Bem-vindo de volta!', style: AppTextStyles.leagueSpartan(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
             const SizedBox(height: 8),
@@ -829,8 +816,6 @@ class _AuthShellState extends State<AuthShell> {
                 ),
               ),
             ),
-            // Espaço extra no final para permitir scroll até os botões com teclado
-            const SizedBox(height: 100),
           ],
         ),
       ),
@@ -851,34 +836,39 @@ class _AuthShellState extends State<AuthShell> {
               ),
               Text('Passo ${_registerStep + 1} de 3', style: AppTextStyles.leagueSpartan(fontSize: 14, color: Colors.white.withValues(alpha: 0.8))),
               const SizedBox(height: 16),
-              // Conteúdo do passo atual sem Expanded para evitar buraco
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.4, // Limita altura máxima
-                ),
-                child: PageView(
-                  controller: _registerPageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  onPageChanged: (i) => setState(() => _registerStep = i),
-                  children: [
-                    _buildStep1(),
-                    _buildStep2(),
-                    _buildStep3(),
-                  ],
+              
+              // ANIMATED SWITCHER INSTEAD OF PAGEVIEW (Removes "hole" and auto-sizes)
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+                child: KeyedSubtree(
+                  key: ValueKey<int>(_registerStep),
+                  child: _getStepWidget(_registerStep),
                 ),
               ),
-              const SizedBox(height: 12),
-              SmoothPageIndicator(
-                controller: _registerPageController,
-                count: 3,
-                effect: const WormEffect(
-                  dotHeight: 6,
-                  dotWidth: 6,
-                  activeDotColor: Colors.white,
-                  dotColor: Color.fromRGBO(255, 255, 255, 0.3),
-                  spacing: 6,
-                ),
+
+              const SizedBox(height: 16),
+              
+              // CUSTOM DOT INDICATOR
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(3, (index) {
+                  final isActive = index == _registerStep;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    height: 6,
+                    width: isActive ? 16 : 6,
+                    decoration: BoxDecoration(
+                      color: isActive ? Colors.white : Colors.white.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  );
+                }),
               ),
+
               const SizedBox(height: 12),
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -907,6 +897,15 @@ class _AuthShellState extends State<AuthShell> {
         );
       },
     );
+  }
+
+  Widget _getStepWidget(int step) {
+    switch (step) {
+      case 0: return _buildStep1();
+      case 1: return _buildStep2();
+      case 2: return _buildStep3();
+      default: return _buildStep1();
+    }
   }
 
   // ==================== BUILD ====================
@@ -938,39 +937,40 @@ class _AuthShellState extends State<AuthShell> {
           ),
 
           // CONTEÚDO CENTRALIZADO
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), // Padding fixo pequeno
-              child: Column(
-                mainAxisSize: MainAxisSize.min, // Contido ao conteúdo
-                children: [
-                  // Espaço para centralizar verticalmente
-                  const SizedBox(height: 60),
-                  // Logo centralizado
-                  Center(
-                    child: Image.asset(
-                      'assets/images/caremind_deitado.png',
-                      height: logoHeight,
-                      fit: BoxFit.contain,
-                    ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 48, // Subtract padding
                   ),
-                  const SizedBox(height: 20),
-
-                  // Card com scroll interno que funciona com teclado sobrepondo
-                  Center(
+                  child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 380),
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(), // Permite scroll sempre
-                        child: _mode == AuthMode.login
-                            ? _buildLoginCard()
-                            : _buildRegisterCard(),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Logo centralizado
+                          Image.asset(
+                            'assets/images/caremind_deitado.png',
+                            height: logoHeight,
+                            fit: BoxFit.contain,
+                          ),
+                          const SizedBox(height: 32),
+
+                          // Card com scroll interno
+                          _mode == AuthMode.login
+                              ? _buildLoginCard()
+                              : _buildRegisterCard(),
+                        ],
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           )
         ],
       ),

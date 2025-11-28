@@ -27,7 +27,7 @@ class AlexaAuthService {
       // URL da Edge Function que inicia o OAuth
       // A Edge Function redireciona para a Amazon com os parâmetros corretos
       final authUrl = Uri.parse(
-        '$_edgeFunctionBaseUrl/alexa-auth-start?perfil_id=${user.id}',
+        '$_edgeFunctionBaseUrl/alexa-auth-start?user_id=${user.id}',
       );
 
       debugPrint('🔗 Iniciando vinculação Alexa: $authUrl');
@@ -56,7 +56,7 @@ class AlexaAuthService {
       final response = await Supabase.instance.client
           .from('user_integrations')
           .select('id')
-          .eq('perfil_id', user.id)
+          .eq('user_id', user.id)
           .eq('provider', 'amazon_alexa')
           .maybeSingle();
 
@@ -78,7 +78,7 @@ class AlexaAuthService {
       await Supabase.instance.client
           .from('user_integrations')
           .delete()
-          .eq('perfil_id', user.id)
+          .eq('user_id', user.id)
           .eq('provider', 'amazon_alexa');
 
       debugPrint('✅ Alexa desvinculada com sucesso');
