@@ -100,11 +100,17 @@ class RelatoriosService {
             perfisIdsParaBuscar.add(vinculo['id_idoso'] as String);
           }
         }
-      }
-
-      // Se não encontrou vínculos, é individual: buscar eventos do próprio perfil
-      if (perfisIdsParaBuscar.isEmpty) {
-        perfisIdsParaBuscar = [perfilId];
+      } else {
+        // Não é familiar ou não tem vínculos: buscar eventos do próprio perfil
+        // Baseado no schema, tentar encontrar o perfil usando user_id
+        final perfilResponse = await _client
+            .from('perfis')
+            .select('id')
+            .eq('user_id', perfilId)
+            .maybeSingle();
+        
+        final targetPerfilId = perfilResponse?['id'] as String? ?? perfilId;
+        perfisIdsParaBuscar.add(targetPerfilId);
       }
 
       if (perfisIdsParaBuscar.isEmpty) {

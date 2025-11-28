@@ -405,7 +405,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             elevation: 8,
-                            shadowColor: Colors.red.withOpacity(0.5),
+                            shadowColor: Colors.red.withValues(alpha: 0.5),
                           ),
                           child: _isDisparandoEmergencia
                               ? const SizedBox(

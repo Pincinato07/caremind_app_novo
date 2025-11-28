@@ -38,58 +38,61 @@ class _IdosoNavigationShellState extends State<IdosoNavigationShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages,
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.white.withValues(alpha: 0.98),
-              Colors.white,
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: _pages,
+        ),
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.white.withValues(alpha: 0.98),
+                Colors.white,
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
+              ),
             ],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
+          child: SafeArea(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                NavItem(
+                  icon: Icons.home_rounded,
+                  label: 'Início',
+                  isSelected: _selectedIndex == 0,
+                  onTap: () => _onItemTapped(0),
+                ),
+                NavItem(
+                  icon: Icons.medication_liquid,
+                  label: 'Remédios',
+                  isSelected: _selectedIndex == 1,
+                  onTap: () => _onItemTapped(1),
+                ),
+                NavItem(
+                  icon: Icons.calendar_today,
+                  label: 'Agenda',
+                  isSelected: _selectedIndex == 2,
+                  onTap: () => _onItemTapped(2),
+                ),
+                NavItem(
+                  icon: Icons.help_outline_rounded,
+                  label: 'Ajuda',
+                  isSelected: _selectedIndex == 3,
+                  onTap: () => _onItemTapped(3),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: SafeArea(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              NavItem(
-                icon: Icons.home_rounded,
-                label: 'Início',
-                isSelected: _selectedIndex == 0,
-                onTap: () => _onItemTapped(0),
-              ),
-              NavItem(
-                icon: Icons.medication_liquid,
-                label: 'Remédios',
-                isSelected: _selectedIndex == 1,
-                onTap: () => _onItemTapped(1),
-              ),
-              NavItem(
-                icon: Icons.calendar_today,
-                label: 'Agenda',
-                isSelected: _selectedIndex == 2,
-                onTap: () => _onItemTapped(2),
-              ),
-              NavItem(
-                icon: Icons.help_outline_rounded,
-                label: 'Ajuda',
-                isSelected: _selectedIndex == 3,
-                onTap: () => _onItemTapped(3),
-              ),
-            ],
           ),
         ),
       ),

@@ -14,6 +14,7 @@ import '../shared/main_navigator_screen.dart';
 
 enum AuthMode { login, register }
 
+
 class AuthShell extends StatefulWidget {
   const AuthShell({super.key, this.initialMode = AuthMode.login});
   final AuthMode initialMode;
@@ -22,7 +23,7 @@ class AuthShell extends StatefulWidget {
   State<AuthShell> createState() => _AuthShellState();
 }
 
-class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMixin {
+class _AuthShellState extends State<AuthShell> {
   final _formKey = GlobalKey<FormState>();
   late AuthMode _mode;
   final _loginEmailController = TextEditingController();
@@ -49,6 +50,21 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
   bool _consentimentoDadosSaude = false; // Consentimento explícito LGPD
   bool _isRegistering = false;
 
+  // Constants centralized (mobile best practices: consistent sizing/touch targets)
+  static const Color _primaryColor = Color(0xFF0400BA);
+  static const Color _primaryDark = Color(0xFF020054);
+  static const Color _primaryLight = Color(0xFF0600E0);
+  static const double _borderRadius = 8.0;
+  static const double _cardRadius = 18.0;
+  static const double _buttonHeight = 48.0;
+  static const double _fieldMarginBottom = 16.0;
+  static const double _fieldPaddingVertical = 14.0;
+
+  // Password visibility (mobile UX best practice)
+  bool _obscureLoginPassword = true;
+  bool _obscureRegisterPassword = true;
+  bool _obscureConfirmPassword = true;
+
   @override
   void initState() {
     super.initState();
@@ -74,6 +90,48 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
     }
   }
 
+  Future<void> _completeAuthFlow(String userId, String email) async {
+    final supabaseService = getIt<SupabaseService>();
+    try {
+      final perfil = await supabaseService.getProfile(userId);
+      if (!mounted || perfil == null) {
+        if (mounted) _showSnack(perfil == null ? 'Perfil não encontrado.' : 'Erro ao carregar perfil.');
+        return;
+      }
+
+      String? fotoUrl;
+      if (perfil.fotoUsuario?.isNotEmpty == true) {
+        try {
+          fotoUrl = perfil.fotoUsuario!.startsWith('http')
+              ? perfil.fotoUsuario
+              : supabaseService.client.storage.from('avatars').getPublicUrl(perfil.fotoUsuario!);
+        } catch (e) {
+          debugPrint('Foto URL error: $e');
+        }
+      }
+
+      final accountManager = AccountManagerService();
+      await accountManager.saveAccount(
+        userId: userId,
+        email: email,
+        nome: perfil.nome,
+        fotoUrl: fotoUrl,
+        tipo: perfil.tipo,
+      );
+
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
+          (_) => false,
+        );
+      }
+    } catch (e) {
+      debugPrint('Profile error: $e');
+      if (mounted) _showSnack('Erro ao carregar perfil. Tente novamente.');
+    }
+  }
+
   // ==================== AUTH HANDLERS ====================
 
   Future<void> _handleLogin() async {
@@ -81,55 +139,57 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
     setState(() => _isLoginLoading = true);
     try {
       final supabaseService = getIt<SupabaseService>();
+      
+      // Validação adicional de e-mail antes de enviar
+      final email = _loginEmailController.text.trim();
+      final password = _loginPasswordController.text;
+      
+      if (!email.contains('@') || !email.contains('.')) {
+        _showSnack('Digite um e-mail válido.');
+        return;
+      }
+      
+      if (password.length < 1) {
+        _showSnack('Digite sua senha.');
+        return;
+      }
+      
       final response = await supabaseService.signIn(
-        email: _loginEmailController.text.trim(),
-        password: _loginPasswordController.text,
+        email: email,
+        password: password,
       );
       if (!mounted) return;
 
       if (response.user != null) {
-        final perfil = await supabaseService.getProfile(response.user!.id);
-        if (perfil != null && mounted) {
-          // Salvar informações da conta para troca rápida
-          final accountManager = AccountManagerService();
-          String? fotoUrl;
-          if (perfil.fotoUsuario != null && perfil.fotoUsuario!.isNotEmpty) {
-            try {
-              if (perfil.fotoUsuario!.startsWith('http')) {
-                fotoUrl = perfil.fotoUsuario;
-              } else {
-                fotoUrl = supabaseService.client.storage
-                    .from('avatars')
-                    .getPublicUrl(perfil.fotoUsuario!);
-              }
-            } catch (e) {
-              // Ignora erro ao obter URL da foto
-            }
-          }
-          
-          await accountManager.saveAccount(
-            userId: response.user!.id,
-            email: response.user!.email ?? _loginEmailController.text.trim(),
-            nome: perfil.nome,
-            fotoUrl: fotoUrl,
-            tipo: perfil.tipo,
-          );
-          
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
-            (_) => false,
-          );
-        } else {
-          _showSnack('Perfil não encontrado.');
-        }
+        await _completeAuthFlow(response.user!.id, response.user!.email ?? email);
       } else {
-        _showSnack('Credenciais inválidas.');
+        _showSnack('E-mail ou senha incorretos.');
       }
     } catch (e) {
-      final errorMessage = e is AppException
-          ? e.message
-          : 'Erro ao fazer login: $e';
+      String errorMessage = 'Erro ao fazer login. Tente novamente.';
+      
+      // Tratamento específico para diferentes tipos de erro
+      if (e is AppException) {
+        errorMessage = e.message;
+      } else if (e.toString().toLowerCase().contains('invalid login credentials')) {
+        errorMessage = 'E-mail ou senha incorretos.';
+      } else if (e.toString().toLowerCase().contains('invalid credentials')) {
+        errorMessage = 'E-mail ou senha incorretos.';
+      } else if (e.toString().toLowerCase().contains('user not found')) {
+        errorMessage = 'Usuário não encontrado. Verifique o e-mail.';
+      } else if (e.toString().toLowerCase().contains('bad request') || 
+                 e.toString().toLowerCase().contains('400')) {
+        errorMessage = 'Dados inválidos. Verifique seu e-mail e senha.';
+      } else if (e.toString().toLowerCase().contains('network') ||
+                 e.toString().toLowerCase().contains('connection') ||
+                 e.toString().toLowerCase().contains('timeout')) {
+        errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+      } else if (e.toString().toLowerCase().contains('too many requests')) {
+        errorMessage = 'Muitas tentativas. Aguarde alguns minutos.';
+      } else {
+        errorMessage = 'E-mail ou senha incorretos.';
+      }
+      
       _showSnack(errorMessage);
     } finally {
       if (mounted) setState(() => _isLoginLoading = false);
@@ -179,47 +239,79 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
 
       if (response.user != null) {
         await Future.delayed(const Duration(milliseconds: 500));
-        final perfil = await supabaseService.getProfile(response.user!.id);
-        if (perfil != null && mounted) {
-          // Salvar informações da conta para troca rápida
-          final accountManager = AccountManagerService();
-          String? fotoUrl;
-          if (perfil.fotoUsuario != null && perfil.fotoUsuario!.isNotEmpty) {
-            try {
-              if (perfil.fotoUsuario!.startsWith('http')) {
-                fotoUrl = perfil.fotoUsuario;
-              } else {
-                fotoUrl = supabaseService.client.storage
-                    .from('avatars')
-                    .getPublicUrl(perfil.fotoUsuario!);
+        try {
+          final perfil = await supabaseService.getProfile(response.user!.id);
+          if (perfil != null && mounted) {
+            // Salvar informações da conta para troca rápida
+            final accountManager = AccountManagerService();
+            String? fotoUrl;
+            if (perfil.fotoUsuario != null && perfil.fotoUsuario!.isNotEmpty) {
+              try {
+                if (perfil.fotoUsuario!.startsWith('http')) {
+                  fotoUrl = perfil.fotoUsuario;
+                } else {
+                  fotoUrl = supabaseService.client.storage
+                      .from('avatars')
+                      .getPublicUrl(perfil.fotoUsuario!);
+                }
+              } catch (e) {
+                // Ignora erro ao obter URL da foto
               }
-            } catch (e) {
-              // Ignora erro ao obter URL da foto
             }
+            
+            await accountManager.saveAccount(
+              userId: response.user!.id,
+              email: response.user!.email ?? email,
+              nome: perfil.nome,
+              fotoUrl: fotoUrl,
+              tipo: perfil.tipo,
+            );
+            
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
+              (_) => false,
+            );
+          } else {
+            _showSnack('Erro ao carregar perfil. Tente fazer login.');
+            setState(() => _mode = AuthMode.login);
           }
-          
-          await accountManager.saveAccount(
-            userId: response.user!.id,
-            email: response.user!.email ?? email,
-            nome: perfil.nome,
-            fotoUrl: fotoUrl,
-            tipo: perfil.tipo,
-          );
-          
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
-            (_) => false,
-          );
-        } else {
-          _showSnack('Erro ao carregar perfil. Tente login.');
+        } catch (profileError) {
+          debugPrint('Erro ao carregar perfil no cadastro: $profileError');
+          _showSnack('Erro ao carregar perfil. Tente fazer login.');
           setState(() => _mode = AuthMode.login);
         }
       }
     } catch (e) {
-      final errorMessage = e is AppException
-          ? e.message
-          : 'Erro ao cadastrar: $e';
+      String errorMessage = 'Erro ao criar conta. Tente novamente.';
+      
+      // Tratamento específico para diferentes tipos de erro no cadastro
+      if (e is AppException) {
+        errorMessage = e.message;
+      } else if (e.toString().toLowerCase().contains('user already registered') ||
+                 e.toString().toLowerCase().contains('email already registered')) {
+        errorMessage = 'Este e-mail já está cadastrado. Tente fazer login.';
+        _registerPageController.jumpToPage(0);
+      } else if (e.toString().toLowerCase().contains('weak password')) {
+        errorMessage = 'Senha muito fraca. Use pelo menos 6 caracteres.';
+        _registerPageController.jumpToPage(1);
+      } else if (e.toString().toLowerCase().contains('invalid email') ||
+                 e.toString().toLowerCase().contains('invalid email format')) {
+        errorMessage = 'E-mail inválido. Verifique o formato.';
+        _registerPageController.jumpToPage(0);
+      } else if (e.toString().toLowerCase().contains('bad request') || 
+                 e.toString().toLowerCase().contains('400')) {
+        errorMessage = 'Dados inválidos. Verifique as informações.';
+      } else if (e.toString().toLowerCase().contains('network') ||
+                 e.toString().toLowerCase().contains('connection') ||
+                 e.toString().toLowerCase().contains('timeout')) {
+        errorMessage = 'Erro de conexão. Verifique sua internet.';
+      } else if (e.toString().toLowerCase().contains('too many requests')) {
+        errorMessage = 'Muitas tentativas. Aguarde alguns minutos.';
+      } else {
+        errorMessage = 'Erro ao criar conta. Verifique os dados e tente novamente.';
+      }
+      
       _showSnack(errorMessage);
     } finally {
       if (mounted) setState(() => _isRegistering = false);
@@ -346,12 +438,15 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
 
   // ==================== GLASSMORPHISM ====================
 
-  Widget _glassContainer({required Widget child}) {
+  Widget _glassContainer({required Widget child, bool isRegister = false}) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final screenW = MediaQuery.of(context).size.width;
         final screenH = MediaQuery.of(context).size.height;
         final pad = (screenW * 0.025).clamp(16.0, 28.0);
+        final maxHeight = isRegister 
+            ? (screenH * 0.75).clamp(400.0, 600.0)
+            : screenH * 0.8;
 
         return ClipRRect(
           borderRadius: BorderRadius.circular(18),
@@ -362,7 +457,11 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                 filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
                 child: Container(
                   width: screenW * 0.85,
-                  constraints: BoxConstraints(maxWidth: 380, minHeight: 0, maxHeight: screenH * 0.8),
+                  constraints: BoxConstraints(
+                    maxWidth: 380, 
+                    minHeight: 0, 
+                    maxHeight: maxHeight
+                  ),
                   padding: EdgeInsets.all(pad),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.08),
@@ -402,12 +501,15 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                 bottom: 0,
                 child: IgnorePointer(
                   child: Container(
-                    height: 18,
-                    decoration: const BoxDecoration(
+                    height: 8,
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Color(0x0F000000), Colors.transparent],
+                        colors: [
+                          Colors.transparent,
+                          Colors.white.withValues(alpha: 0.05),
+                        ],
                       ),
                     ),
                   ),
@@ -429,7 +531,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
   }) {
     final baseColor = const Color(0xFF0400BA);
     return SizedBox(
-      height: 44,
+      height: 48,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ButtonStyle(
@@ -443,7 +545,8 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
           elevation: WidgetStateProperty.all(6),
           shadowColor: WidgetStateProperty.all(baseColor.withValues(alpha: 0.2)),
           shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-          textStyle: WidgetStateProperty.all(AppTextStyles.leagueSpartan(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+          textStyle: WidgetStateProperty.all(AppTextStyles.leagueSpartan(fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+          padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
         ),
         child: isLoading
             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
@@ -474,15 +577,18 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
     required TextEditingController controller,
     required String hint,
     bool obscure = false,
+    bool enableToggle = false,
+    VoidCallback? onToggle,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.only(bottom: _fieldMarginBottom),
       child: TextFormField(
         controller: controller,
         obscureText: obscure,
         keyboardType: keyboardType,
+        autofillHints: keyboardType == TextInputType.emailAddress ? [AutofillHints.email] : null,
         validator: validator,
         style: AppTextStyles.leagueSpartan(color: Colors.white, fontSize: 15),
         decoration: InputDecoration(
@@ -490,8 +596,12 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
           hintStyle: AppTextStyles.leagueSpartan(color: Colors.white.withValues(alpha: 0.7), fontSize: 15),
           filled: true,
           fillColor: Colors.white.withValues(alpha: 0.12),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(_borderRadius), borderSide: BorderSide.none),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: _fieldPaddingVertical),
+          suffixIcon: enableToggle ? IconButton(
+            icon: Icon(obscure ? Icons.visibility : Icons.visibility_off, color: Colors.white70),
+            onPressed: onToggle,
+          ) : null,
         ),
       ),
     );
@@ -586,83 +696,85 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
   }
 
   Widget _buildStep3() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('Tipo de Conta', style: AppTextStyles.leagueSpartan(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.center),
-        const SizedBox(height: 12),
-        _accountOption('Uso Pessoal', 'Para cuidar de você mesmo', 'pessoal'),
-        const SizedBox(height: 12),
-        _accountOption('Familiar/Cuidador', 'Para cuidar de um familiar ou pessoa próxima', 'familiar'),
-        const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Checkbox(
-              value: _termsAccepted,
-              onChanged: (v) => setState(() => _termsAccepted = v ?? false),
-              activeColor: const Color(0xFF0400BA),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: RichText(
-                text: TextSpan(
-                  style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
-                  children: [
-                    const TextSpan(text: 'Eu concordo com os '),
-                    _linkSpan('Termos de Uso', () => _launchURL('https://www.caremind.online/termos')),
-                    const TextSpan(text: ' e '),
-                    _linkSpan('Política de Privacidade', () => _launchURL('https://www.caremind.online/politica-privacidade')),
-                    const TextSpan(text: ' do CareMind.'),
-                  ],
+    return Form(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Tipo de Conta', style: AppTextStyles.leagueSpartan(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.center),
+          const SizedBox(height: 12),
+          _accountOption('Uso Pessoal', 'Para cuidar de você mesmo', 'pessoal'),
+          const SizedBox(height: 12),
+          _accountOption('Familiar/Cuidador', 'Para cuidar de um familiar ou pessoa próxima', 'familiar'),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: _termsAccepted,
+                onChanged: (v) => setState(() => _termsAccepted = v ?? false),
+                activeColor: const Color(0xFF0400BA),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: RichText(
+                  text: TextSpan(
+                    style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                    children: [
+                      const TextSpan(text: 'Eu concordo com os '),
+                      _linkSpan('Termos de Uso', () => _launchURL('https://www.caremind.online/termos')),
+                      const TextSpan(text: ' e '),
+                      _linkSpan('Política de Privacidade', () => _launchURL('https://www.caremind.online/politica-privacidade')),
+                      const TextSpan(text: ' do CareMind.'),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        // Checkbox de consentimento LGPD para compartilhamento de dados de saúde
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Checkbox(
-              value: _consentimentoDadosSaude,
-              onChanged: (v) => setState(() => _consentimentoDadosSaude = v ?? false),
-              activeColor: const Color(0xFF0400BA),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: RichText(
-                text: TextSpan(
-                  style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
-                  children: [
-                    const TextSpan(
-                      text: 'Eu consinto o compartilhamento dos meus dados de saúde (medicamentos e compromissos) com familiares vinculados, conforme a ',
-                    ),
-                    _linkSpan('Política de Privacidade', () => _launchURL('https://www.caremind.online/politica-privacidade')),
-                    const TextSpan(text: ' e a LGPD. Posso revogar este consentimento a qualquer momento nas configurações.'),
-                  ],
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Checkbox de consentimento LGPD para compartilhamento de dados de saúde
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: _consentimentoDadosSaude,
+                onChanged: (v) => setState(() => _consentimentoDadosSaude = v ?? false),
+                activeColor: const Color(0xFF0400BA),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: RichText(
+                  text: TextSpan(
+                    style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                    children: [
+                      const TextSpan(
+                        text: 'Eu consinto o compartilhamento dos meus dados de saúde (medicamentos e compromissos) com familiares vinculados, conforme a ',
+                      ),
+                      _linkSpan('Política de Privacidade', () => _launchURL('https://www.caremind.online/politica-privacidade')),
+                      const TextSpan(text: ' e a LGPD. Posso revogar este consentimento a qualquer momento nas configurações.'),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(child: _outlineButton(label: 'Voltar', onPressed: _previousPage)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _primaryButton(
-                label: _isRegistering ? 'Criando conta...' : 'Finalizar',
-                onPressed: (!_isRegistering && _termsAccepted && _consentimentoDadosSaude) ? _handleSignUp : null,
-                isLoading: _isRegistering,
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: _outlineButton(label: 'Voltar', onPressed: _previousPage)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _primaryButton(
+                  label: _isRegistering ? 'Criando conta...' : 'Finalizar',
+                  onPressed: (!_isRegistering && _termsAccepted && _consentimentoDadosSaude) ? _handleSignUp : null,
+                  isLoading: _isRegistering,
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -673,15 +785,26 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
       child: Form(
         key: _formKey,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
             Text('Bem-vindo de volta!', style: AppTextStyles.leagueSpartan(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
             const SizedBox(height: 8),
             Text('Faça login para continuar', style: AppTextStyles.leagueSpartan(fontSize: 14, color: Colors.white.withValues(alpha: 0.9)), textAlign: TextAlign.center),
             const SizedBox(height: 20),
-            _glowField(controller: _loginEmailController, hint: 'seu@email.com', keyboardType: TextInputType.emailAddress, validator: (v) => v?.contains('@') == true ? null : 'Email inválido'),
-            _glowField(controller: _loginPasswordController, hint: 'Sua senha', obscure: true, validator: (v) => v?.isNotEmpty == true ? null : 'Informe a senha'),
-            const SizedBox(height: 8),
+            _glowField(
+              controller: _loginEmailController,
+              hint: 'seu@email.com',
+              keyboardType: TextInputType.emailAddress,
+              validator: (v) => v?.contains('@') == true ? null : 'Email inválido',
+            ),
+            _glowField(
+              controller: _loginPasswordController,
+              hint: 'Sua senha',
+              obscure: _obscureLoginPassword,
+              enableToggle: true,
+              onToggle: () => setState(() => _obscureLoginPassword = !_obscureLoginPassword),
+              validator: (v) => v?.isNotEmpty == true ? null : 'Informe a senha',
+            ),
+            const SizedBox(height: 12),
             _primaryButton(label: 'Entrar', onPressed: _isLoginLoading ? null : _handleLogin, isLoading: _isLoginLoading),
             const SizedBox(height: 12),
             TextButton(
@@ -706,6 +829,8 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                 ),
               ),
             ),
+            // Espaço extra no final para permitir scroll até os botões com teclado
+            const SizedBox(height: 100),
           ],
         ),
       ),
@@ -716,77 +841,68 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
     return LayoutBuilder(
       builder: (context, constraints) {
         return _glassContainer(
-          child: SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: 0,
-                maxHeight: MediaQuery.of(context).size.height * 0.8,
+          isRegister: true,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 8, bottom: 8),
+                child: Text('Criar Conta', style: AppTextStyles.leagueSpartan(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
               ),
-              child: IntrinsicHeight(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+              Text('Passo ${_registerStep + 1} de 3', style: AppTextStyles.leagueSpartan(fontSize: 14, color: Colors.white.withValues(alpha: 0.8))),
+              const SizedBox(height: 16),
+              // Conteúdo do passo atual sem Expanded para evitar buraco
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.4, // Limita altura máxima
+                ),
+                child: PageView(
+                  controller: _registerPageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  onPageChanged: (i) => setState(() => _registerStep = i),
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16, bottom: 8),
-                      child: Text('Criar Conta', style: AppTextStyles.leagueSpartan(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
-                    ),
-                    Text('Passo ${_registerStep + 1} de 3', style: AppTextStyles.leagueSpartan(fontSize: 14, color: Colors.white.withValues(alpha: 0.8))),
-                    const SizedBox(height: 16),
-                    // Conteúdo do passo atual
-                    Expanded(
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: PageView(
-                          controller: _registerPageController,
-                          physics: const NeverScrollableScrollPhysics(),
-                          onPageChanged: (i) => setState(() => _registerStep = i),
-                          children: [
-                            _buildStep1(),
-                            _buildStep2(),
-                            _buildStep3(),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SmoothPageIndicator(
-                      controller: _registerPageController,
-                      count: 3,
-                      effect: const WormEffect(
-                        dotHeight: 6,
-                        dotWidth: 6,
-                        activeDotColor: Colors.white,
-                        dotColor: Color.fromRGBO(255, 255, 255, 0.3),
-                        spacing: 6,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: TextButton(
-                        onPressed: () => setState(() => _mode = AuthMode.login),
-                        child: RichText(
-                          text: TextSpan(
-                            style: const TextStyle(color: Colors.white70, fontSize: 14),
-                            children: [
-                              const TextSpan(text: 'Já tem conta? '),
-                              TextSpan(
-                                text: 'Faça login',
-                                style: AppTextStyles.leagueSpartan(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+                    _buildStep1(),
+                    _buildStep2(),
+                    _buildStep3(),
                   ],
                 ),
               ),
-            ),
+              const SizedBox(height: 12),
+              SmoothPageIndicator(
+                controller: _registerPageController,
+                count: 3,
+                effect: const WormEffect(
+                  dotHeight: 6,
+                  dotWidth: 6,
+                  activeDotColor: Colors.white,
+                  dotColor: Color.fromRGBO(255, 255, 255, 0.3),
+                  spacing: 6,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: TextButton(
+                  onPressed: () => setState(() => _mode = AuthMode.login),
+                  child: RichText(
+                    text: TextSpan(
+                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                      children: [
+                        const TextSpan(text: 'Já tem conta? '),
+                        TextSpan(
+                          text: 'Faça login',
+                          style: AppTextStyles.leagueSpartan(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -798,11 +914,10 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final screenW = MediaQuery.of(context).size.width;
-    final screenH = MediaQuery.of(context).size.height;
     final logoHeight = (screenW * 0.18).clamp(70.0, 110.0);
 
     return Scaffold(
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: false, // Teclado sobrepõe, não empurra
       body: Stack(
         children: [
           // Fundo gradiente
@@ -825,25 +940,33 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
           // CONTEÚDO CENTRALIZADO
           Center(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: screenH * 0.08),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), // Padding fixo pequeno
               child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min, // Contido ao conteúdo
                 children: [
-                  // Logo
-                  Image.asset(
-                    'assets/images/caremind_deitado.png',
-                    height: logoHeight,
-                    fit: BoxFit.contain,
+                  // Espaço para centralizar verticalmente
+                  const SizedBox(height: 60),
+                  // Logo centralizado
+                  Center(
+                    child: Image.asset(
+                      'assets/images/caremind_deitado.png',
+                      height: logoHeight,
+                      fit: BoxFit.contain,
+                    ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 20),
 
-                  // Card responsivo e centralizado
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 380),
-                    child: _mode == AuthMode.login
-                        ? _buildLoginCard()
-                        : _buildRegisterCard(),
+                  // Card com scroll interno que funciona com teclado sobrepondo
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 380),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(), // Permite scroll sempre
+                        child: _mode == AuthMode.login
+                            ? _buildLoginCard()
+                            : _buildRegisterCard(),
+                      ),
+                    ),
                   ),
                 ],
               ),

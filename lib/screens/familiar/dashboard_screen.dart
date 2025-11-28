@@ -309,6 +309,8 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
     return GlassCard(
       padding: const EdgeInsets.all(20),
       borderColor: temAtraso ? Colors.red.withValues(alpha: 0.6) : Colors.green.withValues(alpha: 0.6),
+      blurSigma: 15.0,
+      opacity: 0.3,
       child: Row(
         children: [
           Container(
@@ -342,7 +344,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                   style: AppTextStyles.leagueSpartan(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: Colors.white.withValues(alpha: 0.95),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -351,7 +353,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                   style: AppTextStyles.leagueSpartan(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.85),
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
               ],
@@ -380,6 +382,8 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
 
         return GlassCard(
           padding: const EdgeInsets.all(20),
+          blurSigma: 15.0,
+          opacity: 0.3,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -415,7 +419,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                           idosoSelecionado.nome ?? 'Idoso',
                           style: AppTextStyles.leagueSpartan(
                             fontSize: 14,
-                            color: Colors.white.withValues(alpha: 0.85),
+                            color: Colors.white.withValues(alpha: 0.9),
                           ),
                         ),
                       ],
@@ -436,7 +440,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                         CircularProgressIndicator(
                           value: total > 0 ? tomados / total : 0,
                           strokeWidth: 8,
-                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          backgroundColor: Colors.white.withValues(alpha: 0.3),
                           valueColor: AlwaysStoppedAnimation<Color>(
                             percentual >= 80 ? Colors.green : percentual >= 50 ? Colors.orange : Colors.red,
                           ),
@@ -470,7 +474,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                           'tomados hoje',
                           style: AppTextStyles.leagueSpartan(
                             fontSize: 14,
-                            color: Colors.white.withValues(alpha: 0.85),
+                            color: Colors.white.withValues(alpha: 0.9),
                           ),
                         ),
                       ],
@@ -499,6 +503,8 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
         if (_alertas.isEmpty) {
           return GlassCard(
             padding: const EdgeInsets.all(20),
+            blurSigma: 15.0,
+            opacity: 0.3,
             child: Row(
               children: [
                 Container(
@@ -531,7 +537,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                         'Tudo está em ordem!',
                         style: AppTextStyles.leagueSpartan(
                           fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.85),
+                          color: Colors.white.withValues(alpha: 0.9),
                         ),
                       ),
                     ],
@@ -544,6 +550,8 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
 
         return GlassCard(
           padding: const EdgeInsets.all(20),
+          blurSigma: 15.0,
+          opacity: 0.3,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -596,7 +604,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                               style: AppTextStyles.leagueSpartan(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.white.withValues(alpha: 0.9),
+                                color: Colors.white.withValues(alpha: 0.95),
                               ),
                             ),
                             const SizedBox(height: 2),

@@ -9,10 +9,10 @@ class RotinaService {
   RotinaService(this._client);
 
   // Buscar todas as rotinas de um usuário
-  // Atualizado para usar perfil_id (com fallback para user_id durante transição)
+  // Atualizado para usar user_id (campo correto baseado no schema)
   Future<List<Map<String, dynamic>>> getRotinas(String userId) async {
     try {
-      // Primeiro, obter o perfil_id do usuário
+      // Baseado no schema, obter o perfil_id do usuário usando user_id
       final perfilResponse = await _client
           .from('perfis')
           .select('id')
@@ -26,8 +26,8 @@ class RotinaService {
           .from('rotinas')
           .select()
           .or(perfilId != null 
-              ? 'perfil_id.eq.$perfilId,user_id.eq.$userId'
-              : 'user_id.eq.$userId')
+              ? 'perfil_id.eq.$perfilId'
+              : 'perfil_id.eq.$userId')
           .order('created_at', ascending: false);
 
       return List<Map<String, dynamic>>.from(response);
@@ -40,9 +40,10 @@ class RotinaService {
   Future<Map<String, dynamic>> addRotina(Map<String, dynamic> rotina) async {
     try {
       // Garantir que perfil_id ou user_id estejam presentes
-      if (rotina['perfil_id'] == null) {
+      if (rotina['perfil_id'] == null || (rotina['perfil_id'] as String).isEmpty) {
         final userId = rotina['user_id'] as String?;
         if (userId != null && userId.isNotEmpty) {
+          // Baseado no schema, buscar perfil usando user_id
           final perfilResponse = await _client
               .from('perfis')
               .select('id')
@@ -52,13 +53,11 @@ class RotinaService {
           if (perfilResponse != null) {
             rotina['perfil_id'] = perfilResponse['id'] as String;
           } else {
-            // Se não encontrou perfil, garantir que user_id esteja presente
-            if (rotina['user_id'] == null || (rotina['user_id'] as String).isEmpty) {
-              rotina['user_id'] = userId;
-            }
+            // Se não encontrou perfil, usar o user_id como fallback
+            rotina['perfil_id'] = userId;
           }
         } else {
-          throw Exception('user_id é obrigatório quando perfil_id não está disponível');
+          throw Exception('perfil_id é obrigatório');
         }
       }
 
@@ -75,13 +74,12 @@ class RotinaService {
       // Limpar dados antes de inserir (remove strings vazias, mas mantém campos obrigatórios)
       final cleanedData = DataCleaner.cleanData(
         rotina,
-        fieldsToKeepEmpty: ['user_id', 'perfil_id'], // Manter mesmo se vazios durante transição
+        fieldsToKeepEmpty: ['perfil_id'],
       );
       
       // Garantir que pelo menos perfil_id ou user_id estejam presentes após limpeza
-      if (cleanedData['perfil_id'] == null && 
-          (cleanedData['user_id'] == null || (cleanedData['user_id'] as String).isEmpty)) {
-        throw Exception('É necessário perfil_id ou user_id para criar rotina');
+      if (cleanedData['perfil_id'] == null) {
+        throw Exception('É necessário perfil_id para criar rotina');
       }
       
       debugPrint('📤 RotinaService: Dados para inserção: $cleanedData');
@@ -116,7 +114,7 @@ class RotinaService {
       // Limpar dados antes de atualizar (remove strings vazias, mas mantém campos importantes)
       final cleanedUpdates = DataCleaner.cleanData(
         updates,
-        fieldsToKeepEmpty: ['user_id', 'perfil_id'], // Manter mesmo se vazios durante transição
+        fieldsToKeepEmpty: ['perfil_id'],
       );
       
       debugPrint('📤 RotinaService: Dados para atualização: $cleanedUpdates');

@@ -18,6 +18,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   late final PageController _pageController;
   int _currentPage = 0;
 
+  // Constants (consistent with auth_shell)
+  static const Color _primaryColor = Color(0xFF0400BA);
+  static const Color _primaryDark = Color(0xFF020054);
+  static const Color _primaryLight = Color(0xFF0600E0);
+  static const double _borderRadius = 8.0;
+  static const double _cardRadius = 18.0;
+  static const double _buttonHeight = 44.0;
+
   final List<Map<String, String>> _pages = [
     {
       'image': 'welcome.svg',

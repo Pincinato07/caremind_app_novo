@@ -4,6 +4,11 @@ import '../services/voice_service.dart';
 import '../services/medicamento_service.dart';
 import '../services/rotina_service.dart';
 import '../core/injection/injection.dart';
+import '../screens/medication/gestao_medicamentos_screen.dart';
+import '../screens/idoso/compromissos_screen.dart';
+import '../screens/shared/configuracoes_screen.dart';
+import '../screens/idoso/dashboard_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Widget de interface de voz (Voice-First)
 /// Permite interação completa por comandos de voz
@@ -129,6 +134,11 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
     // Falar resposta
     await _voiceService.speak(result.message);
     
+    // Processar ações de navegação
+    if (result.success && mounted) {
+      await _handleNavigationAction(result.action);
+    }
+    
     setState(() {
       _isProcessing = false;
       _lastMessage = result.message;
@@ -153,6 +163,62 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
     _animationController.reset();
 
     await _showError('Erro no reconhecimento de voz: $error');
+  }
+
+  Future<void> _handleNavigationAction(VoiceAction action) async {
+    if (!mounted) return;
+
+    switch (action) {
+      case VoiceAction.navigateToMedications:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const GestaoMedicamentosScreen()),
+        );
+        break;
+        
+      case VoiceAction.navigateToAppointments:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const CompromissosIdosoScreen()),
+        );
+        break;
+        
+      case VoiceAction.navigateToDashboard:
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const IdosoDashboardScreen()),
+          (_) => false,
+        );
+        break;
+        
+      case VoiceAction.navigateToSettings:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ConfiguracoesScreen()),
+        );
+        break;
+        
+      case VoiceAction.emergencyCall:
+        await _makeEmergencyCall();
+        break;
+        
+      default:
+        // Outras ações não requerem navegação
+        break;
+    }
+  }
+
+  Future<void> _makeEmergencyCall() async {
+    try {
+      final uri = Uri.parse('tel:192'); // SAMU - número de emergência
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        await _voiceService.speak('Não foi possível fazer a chamada de emergência');
+      }
+    } catch (e) {
+      await _voiceService.speak('Erro ao tentar chamar emergência');
+    }
   }
 
   Future<void> _showError(String message) async {

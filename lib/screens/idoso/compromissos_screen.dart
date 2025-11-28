@@ -22,7 +22,6 @@ class CompromissosIdosoScreen extends StatefulWidget {
 
 class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
   List<Map<String, dynamic>> _compromissos = [];
-  List<Map<String, dynamic>> _proximosCompromissos = [];
   bool _isLoading = true;
   String? _error;
 
@@ -48,7 +47,6 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
         final proximos = await compromissoService.getProximosCompromissos(user.id);
         
         setState(() {
-          _proximosCompromissos = proximos;
           _compromissos = proximos; // Mostra apenas os futuros para idoso
           _isLoading = false;
         });

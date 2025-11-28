@@ -2,23 +2,33 @@ class Medicamento {
   final int? id;
   final DateTime createdAt;
   final String nome;
-  final String userId; // Mantido para compatibilidade durante transição
+  final String? userId; // Mantido para compatibilidade durante transição
   final String? perfilId; // Novo campo preferencial
   final String dosagem;
   final Map<String, dynamic> frequencia;
   final int quantidade;
   final bool concluido;
+  final String? horarios;
+  final String? observacoes;
+  final bool? ativo;
+  final DateTime? dataInicio;
+  final DateTime? dataFim;
 
   Medicamento({
     this.id,
     required this.createdAt,
     required this.nome,
-    required this.userId,
+    this.userId,
     this.perfilId,
     required this.dosagem,
     required this.frequencia,
     required this.quantidade,
     this.concluido = false,
+    this.horarios,
+    this.observacoes,
+    this.ativo = true,
+    this.dataInicio,
+    this.dataFim,
   });
 
   factory Medicamento.fromMap(Map<String, dynamic> map) {
@@ -26,12 +36,17 @@ class Medicamento {
       id: map['id'] as int?,
       createdAt: DateTime.parse(map['created_at'] as String),
       nome: map['nome'] as String,
-      userId: map['user_id'] as String? ?? '',
+      userId: map['user_id'] as String?,
       perfilId: map['perfil_id'] as String?,
       dosagem: map['dosagem'] as String,
       frequencia: Map<String, dynamic>.from(map['frequencia'] as Map),
       quantidade: map['quantidade'] as int,
       concluido: map['concluido'] as bool? ?? false,
+      horarios: map['horarios'] as String?,
+      observacoes: map['observacoes'] as String?,
+      ativo: map['ativo'] as bool?,
+      dataInicio: map['data_inicio'] != null ? DateTime.parse(map['data_inicio'] as String) : null,
+      dataFim: map['data_fim'] != null ? DateTime.parse(map['data_fim'] as String) : null,
     );
   }
 
@@ -40,12 +55,17 @@ class Medicamento {
       if (id != null) 'id': id,
       'created_at': createdAt.toIso8601String(),
       'nome': nome,
-      if (userId.isNotEmpty) 'user_id': userId, // Mantido para compatibilidade
+      if (userId != null) 'user_id': userId, // Mantido para compatibilidade
       if (perfilId != null) 'perfil_id': perfilId, // Preferencial
       'dosagem': dosagem,
       'frequencia': frequencia,
       'quantidade': quantidade,
       'concluido': concluido,
+      if (horarios != null) 'horarios': horarios,
+      if (observacoes != null) 'observacoes': observacoes,
+      if (ativo != null) 'ativo': ativo,
+      if (dataInicio != null) 'data_inicio': dataInicio!.toIso8601String(),
+      if (dataFim != null) 'data_fim': dataFim!.toIso8601String(),
     };
   }
 
@@ -59,6 +79,11 @@ class Medicamento {
     Map<String, dynamic>? frequencia,
     int? quantidade,
     bool? concluido,
+    String? horarios,
+    String? observacoes,
+    bool? ativo,
+    DateTime? dataInicio,
+    DateTime? dataFim,
   }) {
     return Medicamento(
       id: id ?? this.id,
@@ -70,6 +95,11 @@ class Medicamento {
       frequencia: frequencia ?? this.frequencia,
       quantidade: quantidade ?? this.quantidade,
       concluido: concluido ?? this.concluido,
+      horarios: horarios ?? this.horarios,
+      observacoes: observacoes ?? this.observacoes,
+      ativo: ativo ?? this.ativo,
+      dataInicio: dataInicio ?? this.dataInicio,
+      dataFim: dataFim ?? this.dataFim,
     );
   }
 

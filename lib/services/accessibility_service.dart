@@ -19,6 +19,8 @@ class AccessibilityService {
 
     try {
       _settingsService = getIt<SettingsService>();
+      // Adicionar listener para mudanças em tempo real
+      _settingsService?.addListener(_updateTtsSettings);
     } catch (e) {
       // SettingsService pode não estar disponível ainda
     }

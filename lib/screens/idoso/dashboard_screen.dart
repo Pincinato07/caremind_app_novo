@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../theme/app_theme.dart';
+import '../../core/injection/injection.dart';
 import '../../services/supabase_service.dart';
 import '../../services/medicamento_service.dart';
 import '../../services/historico_eventos_service.dart';
 import '../../services/accessibility_service.dart';
-import '../../core/accessibility/accessibility_helper.dart';
-import '../../core/injection/injection.dart';
-import '../../core/errors/app_exception.dart';
-import '../../core/navigation/app_navigation.dart';
-import '../../models/medicamento.dart';
+import '../../core/accessibility/voice_navigation_service.dart';
+import '../../core/accessibility/tts_enhancer.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/voice_interface_widget.dart';
-import '../medication/gestao_medicamentos_screen.dart';
-import '../shared/configuracoes_screen.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../../core/navigation/app_navigation.dart';
+import '../../screens/shared/configuracoes_screen.dart';
+import '../../models/medicamento.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import '../ocr/ocr_scan_screen.dart';
 
 /// Dashboard do IDOSO - Foco em Acessibilidade Extrema (WCAG AAA)
 /// Objetivo: Autonomia. O idoso não "gerencia"; ele "executa" e "consulta".
@@ -26,18 +25,34 @@ class IdosoDashboardScreen extends StatefulWidget {
   State<IdosoDashboardScreen> createState() => _IdosoDashboardScreenState();
 }
 
-class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
+class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with TickerProviderStateMixin {
   String _userName = 'Usuário';
   bool _isLoading = true;
   Medicamento? _proximoMedicamento;
-  List<Medicamento> _medicamentos = [];
+  final VoiceNavigationService _voiceNavigation = VoiceNavigationService();
+
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
     _loadUserData();
     // Inicializa o serviço de acessibilidade
     AccessibilityService.initialize();
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
   }
 
   @override
@@ -45,7 +60,11 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
     super.didChangeDependencies();
     // Leitura automática do título da tela se habilitada
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      AccessibilityHelper.autoReadIfEnabled('Dashboard. Bem-vindo, $_userName');
+      TTSEnhancer.announceScreenChange(
+        context, 
+        'Dashboard',
+        userName: _userName,
+      );
     });
   }
 
@@ -72,7 +91,6 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
 
           setState(() {
             _userName = perfil.nome ?? 'Usuário';
-            _medicamentos = medicamentos;
             _proximoMedicamento = proximo;
             _isLoading = false;
           });
@@ -119,6 +137,9 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
       // Feedback multissensorial: vibração longa + som
       await AccessibilityService.feedbackSucesso();
 
+      // Anuncia sucesso com TTS avançado
+      await TTSEnhancer.announceCriticalSuccess('Medicamento marcado como tomado');
+
       // Recarregar dados
       await _loadUserData();
 
@@ -136,127 +157,6 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro ao marcar medicamento: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _ligarParaFamiliar() async {
-    try {
-      final supabaseService = getIt<SupabaseService>();
-      final user = supabaseService.currentUser;
-      
-      if (user == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Usuário não autenticado'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-
-      final cuidador = await supabaseService.getCuidadorPrincipal(user.id);
-      final telefone = cuidador?['telefone'] as String?;
-      final nomeCuidador = cuidador?['nome'] as String?;
-
-      if (telefone == null || telefone.isEmpty) {
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: Text(
-                'Número não disponível',
-                style: AppTextStyles.leagueSpartan(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              content: Text(
-                'Nenhum número de emergência cadastrado. Peça para seu familiar configurar o telefone no aplicativo.',
-                style: AppTextStyles.leagueSpartan(
-                  fontSize: 16,
-                  height: 1.5,
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'OK',
-                    style: AppTextStyles.leagueSpartan(
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0400BA),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-        return;
-      }
-
-      // Formatar telefone para URL (remover caracteres não numéricos)
-      final telefoneLimpo = telefone.replaceAll(RegExp(r'[^\d+]'), '');
-      final uri = Uri.parse('tel:$telefoneLimpo');
-
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-      } else {
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: Text(
-                'Dispositivo não suportado',
-                style: AppTextStyles.leagueSpartan(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              content: Text(
-                'Este dispositivo não possui capacidade de fazer chamadas telefônicas.',
-                style: AppTextStyles.leagueSpartan(
-                  fontSize: 16,
-                  height: 1.5,
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'OK',
-                    style: AppTextStyles.leagueSpartan(
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0400BA),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        final errorMessage = e is AppException
-            ? e.message
-            : 'Erro ao iniciar chamada: $e';
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
@@ -466,25 +366,30 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
           const SizedBox(height: 32),
           
           // Botão GIGANTE "JÁ TOMEI"
-          SizedBox(
-            width: double.infinity,
-            height: 80, // Botão gigante para acessibilidade
-            child: ElevatedButton(
-              onPressed: _marcarComoTomado,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF0400BA),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+          Semantics(
+            label: 'Botão Já Tomei',
+            hint: 'Toque para marcar o próximo medicamento como tomado',
+            button: true,
+            child: SizedBox(
+              width: double.infinity,
+              height: 80, // Botão gigante para acessibilidade
+              child: ElevatedButton(
+                onPressed: _marcarComoTomado,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF0400BA),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 4,
                 ),
-                elevation: 4,
-              ),
-              child: Text(
-                'JÁ TOMEI',
-                style: AppTextStyles.leagueSpartan(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
+                child: Text(
+                  'JÁ TOMEI',
+                  style: AppTextStyles.leagueSpartan(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                  ),
                 ),
               ),
             ),
@@ -499,44 +404,58 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Botão de Voz (Destaque) - Agora com interface completa
-        _buildActionButton(
-          icon: Icons.mic,
-          label: 'Falar com CareMind',
-          subtitle: 'Toque para ativar o assistente de voz',
-          color: const Color(0xFF0400B9),
-          onTap: () {
-            // A interface de voz flutuante já está disponível
-            // Este botão serve como atalho visual
-            AccessibilityService.speak(
-              'Assistente de voz ativado. Toque no botão de microfone no canto da tela para começar.',
-            );
-          },
-          isLarge: true,
+        Semantics(
+          label: 'Assistente de voz CareMind',
+          hint: 'Toque para ativar comandos de voz e controlar o app',
+          button: true,
+          child: _buildActionButton(
+            icon: Icons.mic,
+            label: 'Falar com CareMind',
+            subtitle: 'Toque para ativar o assistente de voz',
+            color: const Color(0xFF0400B9),
+            onTap: () {
+              // A interface de voz flutuante já está disponível
+              // Este botão serve como atalho visual
+              AccessibilityService.speak(
+                'Assistente de voz ativado. Toque no botão de microfone no canto da tela para começar.',
+              );
+            },
+            isLarge: true,
+          ),
         ),
         const SizedBox(height: 16),
         
         // Botão Meus Remédios
-        _buildActionButton(
-          icon: Icons.medication_liquid,
+        Semantics(
           label: 'Meus Remédios',
-          color: const Color(0xFFE91E63),
-          onTap: () {
-            Navigator.push(
-              context,
-              AppNavigation.smoothRoute(
-                const GestaoMedicamentosScreen(),
-              ),
-            );
-          },
+          hint: 'Toque para ver e gerenciar seus medicamentos',
+          button: true,
+          child: _buildActionButton(
+            icon: Icons.medication_liquid,
+            label: 'Meus Remédios',
+            color: const Color(0xFFE91E63),
+            onTap: () async {
+              await _voiceNavigation.navigateToScreen(context, VoiceScreen.medications);
+              await TTSEnhancer.announceNavigation('Dashboard', 'Medicamentos');
+            },
+          ),
         ),
         const SizedBox(height: 16),
         
         // Botão Ajuda/Emergência
-        _buildActionButton(
-          icon: Icons.phone,
-          label: 'Ajuda / Emergência',
-          color: Colors.red,
-          onTap: _ligarParaFamiliar,
+        Semantics(
+          label: 'Ajuda e Emergência',
+          hint: 'Toque para chamar ajuda ou ligar para emergência',
+          button: true,
+          child: _buildActionButton(
+            icon: Icons.phone,
+            label: 'Ajuda / Emergência',
+            color: Colors.red,
+            onTap: () async {
+              await _voiceNavigation.navigateToScreen(context, VoiceScreen.emergency);
+              await TTSEnhancer.announceNavigation('Dashboard', 'Ajuda e Emergência');
+            },
+          ),
         ),
       ],
     );

@@ -1,8 +1,11 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import '../core/errors/app_exception.dart';
 import '../core/errors/error_handler.dart';
+import '../models/ocr_medicamento.dart';
+import '../models/medicamento.dart';
 
 /// Serviço para gerenciar o fluxo completo de OCR
 /// Upload → Registro → Polling → Processamento
@@ -27,7 +30,7 @@ class OcrService {
       final perfilResponse = await _client
           .from('perfis')
           .select('id')
-          .eq('user_id', userId)
+          .eq('perfil_id', userId)
           .maybeSingle();
 
       if (perfilResponse == null) {
@@ -68,7 +71,7 @@ class OcrService {
       final insertResponse = await _client
           .from('ocr_gerenciamento')
           .insert({
-            'user_id': userId,
+            'perfil_id': userId,
             'image_url': publicUrl,
             'status': 'PENDENTE',
             'created_at': DateTime.now().toIso8601String(),
@@ -95,14 +98,12 @@ class OcrService {
     try {
       final response = await _client
           .from('ocr_gerenciamento')
-          .select('status, error_message, medicamentos_count, result_json')
+          .select('status, result_json')
           .eq('id', ocrId)
           .single();
 
       return {
         'status': response['status'] as String? ?? 'PENDENTE',
-        'error_message': response['error_message'] as String?,
-        'medicamentos_count': response['medicamentos_count'] as int? ?? 0,
         'result_json': response['result_json'],
       };
     } catch (error) {
@@ -115,19 +116,29 @@ class OcrService {
   ///
   /// [ocrId] - ID do registro em ocr_gerenciamento
   /// [onStatusUpdate] - Callback chamado quando o status muda
-  /// [timeout] - Timeout em segundos (padrão: 10 minutos)
-  /// [interval] - Intervalo entre verificações em segundos (padrão: 5 segundos)
+  /// [onProgress] - Callback para atualizar progresso (0.0 a 1.0)
+  /// [timeout] - Timeout em segundos (padrão: 5 minutos)
+  /// [interval] - Intervalo entre verificações em segundos (padrão: 3 segundos)
   ///
   /// Retorna o status final e informações do processamento
   Future<Map<String, dynamic>> pollStatus({
     required String ocrId,
     Function(String status)? onStatusUpdate,
-    int timeout = 600, // 10 minutos
-    int interval = 5, // 5 segundos
+    Function(double progress)? onProgress,
+    int timeout = 300, // 5 minutos
+    int interval = 3, // 3 segundos
   }) async {
     final startTime = DateTime.now();
+    int pollCount = 0;
+    final maxPolls = timeout ~/ interval;
     
     while (true) {
+      pollCount++;
+      
+      // Atualizar progresso baseado no tempo decorrido
+      final progress = (pollCount / maxPolls).clamp(0.0, 0.95);
+      onProgress?.call(progress);
+      
       // Verificar timeout
       final elapsed = DateTime.now().difference(startTime).inSeconds;
       if (elapsed >= timeout) {
@@ -141,37 +152,112 @@ class OcrService {
       // Notificar atualização de status
       onStatusUpdate?.call(status);
 
-      // Status de sucesso
-      if (status == 'PROCESSADO' || status == 'PROCESSADO_PARCIALMENTE') {
-        debugPrint('✅ Processamento concluído: $status');
+      // Status de sucesso - aguardando validação do usuário
+      if (status == 'AGUARDANDO-VALIDACAO') {
+        debugPrint('✅ Processamento concluído, aguardando validação');
+        onProgress?.call(1.0);
         return {
           'status': status,
           'success': true,
-          'medicamentos_count': statusData['medicamentos_count'] as int? ?? 0,
-          'error_message': statusData['error_message'],
+          'result_json': statusData['result_json'],
         };
       }
 
       // Status de erro
-      if (status == 'ERRO_PROCESSAMENTO' || status == 'ERRO_DATABASE') {
-        final errorMsg = statusData['error_message'] as String? ?? 
-            'Não foi possível encontrar medicamento na receita.';
-        debugPrint('❌ Erro no processamento: $errorMsg');
+      if (status == 'ERRO_PROCESSAMENTO' || status == 'ERRO_DATABASE' || status == 'ERRO') {
+        debugPrint('❌ Erro no processamento OCR');
         return {
           'status': status,
           'success': false,
-          'error_message': errorMsg,
+          'error_message': 'Não foi possível processar a receita. Tente novamente.',
         };
       }
 
       // Status ainda pendente - aguardar e verificar novamente
-      if (status == 'PENDENTE' || status == 'CONCLUIDO') {
+      if (status == 'PENDENTE' || status == 'PROCESSANDO') {
         await Future.delayed(Duration(seconds: interval));
         continue;
       }
 
       // Status desconhecido - aguardar e verificar novamente
       await Future.delayed(Duration(seconds: interval));
+    }
+  }
+
+  /// Extrai lista de medicamentos do result_json
+  List<OcrMedicamento> parseMedicamentosFromResult(dynamic resultJson) {
+    if (resultJson == null) return [];
+    
+    try {
+      List<dynamic> medicamentosList;
+      
+      if (resultJson is List) {
+        medicamentosList = resultJson;
+      } else if (resultJson is Map) {
+        // Pode vir como { medicamentos: [...] } ou { medications: [...] }
+        medicamentosList = resultJson['medicamentos'] as List? ??
+            resultJson['medications'] as List? ??
+            resultJson['items'] as List? ??
+            [];
+      } else {
+        return [];
+      }
+      
+      return medicamentosList
+          .map((item) => OcrMedicamento.fromJson(item as Map<String, dynamic>))
+          .where((med) => med.nome.isNotEmpty)
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Erro ao parsear medicamentos: $e');
+      return [];
+    }
+  }
+
+  /// Salva os medicamentos validados na tabela medicamentos
+  Future<List<Medicamento>> salvarMedicamentosValidados({
+    required List<OcrMedicamento> medicamentos,
+    required String perfilId,
+    required String userId,
+  }) async {
+    final List<Medicamento> salvos = [];
+    
+    for (final ocrMed in medicamentos) {
+      try {
+        final data = {
+          'nome': ocrMed.nome,
+          'dosagem': ocrMed.dosagem,
+          'frequencia': ocrMed.toFrequenciaJson(),
+          'quantidade': ocrMed.quantidade,
+          'via': ocrMed.via ?? 'oral',
+          'perfil_id': perfilId,
+          'created_at': DateTime.now().toIso8601String(),
+        };
+        
+        final response = await _client
+            .from('medicamentos')
+            .insert(data)
+            .select()
+            .single();
+        
+        salvos.add(Medicamento.fromMap(response));
+        debugPrint('✅ Medicamento salvo: ${ocrMed.nome}');
+      } catch (e) {
+        debugPrint('❌ Erro ao salvar medicamento ${ocrMed.nome}: $e');
+      }
+    }
+    
+    return salvos;
+  }
+
+  /// Atualiza o status do OCR para VALIDADO após salvar
+  Future<void> marcarComoValidado(String ocrId) async {
+    try {
+      await _client
+          .from('ocr_gerenciamento')
+          .update({'status': 'VALIDADO'})
+          .eq('id', ocrId);
+    } catch (e) {
+      debugPrint('❌ Erro ao marcar OCR como validado: $e');
     }
   }
 }

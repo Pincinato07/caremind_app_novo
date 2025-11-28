@@ -67,7 +67,7 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
       final data = {
         'titulo': _tituloController.text.trim(),
         'horario': _horarioController.text.trim(),
-        'user_id': targetId,
+        'perfil_id': targetId,
         'created_at': DateTime.now().toIso8601String(),
         'concluida': false,
         // Só incluir descrição se não estiver vazia
@@ -151,8 +151,8 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      const Color(0xFF0400B9).withOpacity(0.1),
-                      const Color(0xFF0400B9).withOpacity(0.05),
+                      Colors.white.withValues(alpha: 0.1),
+                      const Color(0xFF0400B9).withValues(alpha: 0.05),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(16),
@@ -274,7 +274,7 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF0400B9).withOpacity(0.3),
+                      color: Colors.white.withValues(alpha: 0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),

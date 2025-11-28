@@ -199,7 +199,7 @@ class _EditarIdosoFormState extends State<EditarIdosoForm> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: colors.primary.withOpacity(0.1),
+                        color: colors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
@@ -245,7 +245,7 @@ class _EditarIdosoFormState extends State<EditarIdosoForm> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: colors.surfaceContainerHighest.withOpacity(0.3),
+                    fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.3),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -271,7 +271,7 @@ class _EditarIdosoFormState extends State<EditarIdosoForm> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: colors.surfaceContainerHighest.withOpacity(0.3),
+                    fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.3),
                   ),
                 ),
 
@@ -289,7 +289,7 @@ class _EditarIdosoFormState extends State<EditarIdosoForm> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: colors.surfaceContainerHighest.withOpacity(0.3),
+                    fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.3),
                     hintText: 'DD/MM/AAAA',
                   ),
                 ),

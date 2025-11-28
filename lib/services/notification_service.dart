@@ -34,6 +34,10 @@ class NotificationService {
   
   // Callback para quando o token FCM é atualizado (para enviar ao backend)
   static Function(String token)? onFcmTokenUpdated;
+  
+  // Callback para quando uma notificação FCM chega em foreground
+  // Use isso para mostrar in-app notifications
+  static Function(RemoteMessage message)? onForegroundMessage;
 
   /// Obtém o SettingsService (lazy)
   static SettingsService? _getSettingsService() {
@@ -183,6 +187,10 @@ class NotificationService {
   
   /// Obter token FCM (método público)
   static Future<String?> getFCMToken() async {
+    if (kIsWeb) {
+      debugPrint('ℹ️ FCM not supported on web');
+      return null;
+    }
     if (!_fcmInitialized) {
       await _initializeFCM();
     }
@@ -192,9 +200,13 @@ class NotificationService {
   /// Handler para notificações FCM quando o app está em foreground
   static Future<void> _handleForegroundMessage(RemoteMessage message) async {
     debugPrint('📨 Notificação FCM recebida (foreground): ${message.notification?.title}');
+    debugPrint('📦 Payload data: ${message.data}');
     
-    // Mostrar notificação local mesmo quando em foreground
-    // Isso garante que o usuário veja a notificação mesmo com o app aberto
+    // Notificar o app para mostrar in-app notification
+    // O callback será configurado no main.dart ou em um widget de nível superior
+    onForegroundMessage?.call(message);
+    
+    // Também mostrar notificação local (como backup/para histórico)
     if (message.notification != null) {
       await _showLocalNotificationFromFCM(message);
     }

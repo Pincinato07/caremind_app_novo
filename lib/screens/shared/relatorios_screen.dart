@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import 'package:intl/intl.dart';
-import 'package:fl_chart/fl_chart.dart';
 import '../../services/relatorios_service.dart';
 import '../../services/supabase_service.dart';
 import '../../core/injection/injection.dart';
@@ -70,18 +69,22 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
     if (_perfilId == null) {
       await _loadPerfilId();
       if (_perfilId == null) {
-        setState(() {
-          _error = 'Perfil não encontrado';
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _error = 'Perfil não encontrado';
+            _isLoading = false;
+          });
+        }
         return;
       }
     }
 
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
 
     try {
       final dataInicioISO = DateFormat('yyyy-MM-dd').format(_dataInicio);
@@ -103,24 +106,28 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
         mode: 'list',
       );
 
-      setState(() {
-        _analyticsData = analytics;
-        // A resposta em modo 'list' retorna um Map com 'data' contendo a lista
-        if (eventosResponse.containsKey('data')) {
-          final data = eventosResponse['data'];
-          _eventosList = data is List ? data : null;
-        } else {
-          _eventosList = null;
-        }
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _analyticsData = analytics;
+          // A resposta em modo 'list' retorna um Map com 'data' contendo a lista
+          if (eventosResponse.containsKey('data')) {
+            final data = eventosResponse['data'];
+            _eventosList = data is List ? data : null;
+          } else {
+            _eventosList = null;
+          }
+          _isLoading = false;
+        });
+      }
     } catch (error) {
-      setState(() {
-        _error = error is AppException
-            ? error.message
-            : 'Erro ao carregar relatórios: ${error.toString()}';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = error is AppException
+              ? error.message
+              : 'Erro ao carregar relatórios: ${error.toString()}';
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -146,7 +153,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
       },
     );
 
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() {
         _dataInicio = picked.start;
         _dataFim = picked.end;
@@ -217,6 +224,8 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                             // Seletor de período
                             GlassCard(
                               padding: const EdgeInsets.all(16),
+                              blurSigma: 15.0,
+                              opacity: 0.3,
                               child: Row(
                                 children: [
                                   Icon(
@@ -244,6 +253,8 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                                             fontWeight: FontWeight.w600,
                                             color: Colors.white,
                                           ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
                                         ),
                                       ],
                                     ),
@@ -297,15 +308,33 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Row(
+          children: [
+            Icon(
+              Icons.analytics_outlined,
+              color: Colors.white,
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Resumo do Período',
+              style: AppTextStyles.leagueSpartan(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         Text(
-          'Indicadores Principais',
+          'Visão geral da adesão aos medicamentos e rotinas',
           style: AppTextStyles.leagueSpartan(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
+            fontSize: 14,
+            color: Colors.white.withValues(alpha: 0.8),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -319,24 +348,28 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
               '${(kpis['taxa_adesao_total'] as num? ?? 0).toStringAsFixed(1)}%',
               Icons.check_circle,
               Colors.green,
+              'Porcentagem geral de medicamentos tomados corretamente',
             ),
             _buildKPICard(
               'Total de Eventos',
               '${kpis['total_eventos'] ?? 0}',
               Icons.event,
               const Color(0xFF0400BA),
+              'Todos os medicamentos e rotinas programados',
             ),
             _buildKPICard(
               'Confirmados',
               '${kpis['total_confirmados'] ?? 0}',
               Icons.done_all,
               Colors.blue,
+              'Medicamentos e rotinas realizados conforme esperado',
             ),
             _buildKPICard(
               'Esquecidos',
               '${kpis['total_esquecidos'] ?? 0}',
               Icons.warning,
               Colors.orange,
+              'Medicamentos ou rotinas não realizados',
             ),
           ],
         ),
@@ -344,19 +377,25 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
     );
   }
 
-  Widget _buildKPICard(String title, String value, IconData icon, Color color) {
+  Widget _buildKPICard(String title, String value, IconData icon, Color color, String description) {
     return GlassCard(
       padding: const EdgeInsets.all(16),
+      blurSigma: 15.0,
+      opacity: 0.3,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.25),
+              color: color.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: Colors.white, size: 24),
+            child: Icon(
+              icon,
+              color: color,
+              size: 28,
+            ),
           ),
           const SizedBox(height: 12),
           Text(
@@ -366,15 +405,28 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
           Text(
             title,
             style: AppTextStyles.leagueSpartan(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            description,
+            style: AppTextStyles.leagueSpartan(
               fontSize: 12,
               color: Colors.white.withValues(alpha: 0.8),
             ),
             textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -385,15 +437,33 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Row(
+          children: [
+            Icon(
+              Icons.insert_chart_outlined,
+              color: Colors.white,
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Análises Detalhadas',
+              style: AppTextStyles.leagueSpartan(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         Text(
-          'Análises Gráficas',
+          'Gráficos e tendências para entender melhor o padrão de adesão',
           style: AppTextStyles.leagueSpartan(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
+            fontSize: 14,
+            color: Colors.white.withValues(alpha: 0.8),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
 
         // Gráfico de Tendência Diária
         if (graficos['tendencia_diaria'] != null)
@@ -427,112 +497,45 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
 
     return GlassCard(
       padding: const EdgeInsets.all(20),
+      blurSigma: 15.0,
+      opacity: 0.3,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Tendência Diária de Adesão',
-            style: AppTextStyles.leagueSpartan(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+          Row(
+            children: [
+              Icon(
+                Icons.trending_up,
+                color: Colors.white,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Evolução da Adesão',
+                style: AppTextStyles.leagueSpartan(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
-          SizedBox(
+          // Gráfico de linha simulado
+          Container(
             height: 200,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: 25,
-                  getDrawingHorizontalLine: (value) {
-                    return FlLine(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      strokeWidth: 1,
-                    );
-                  },
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                'Gráfico de evolução\n(em desenvolvimento)',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.leagueSpartan(
+                  fontSize: 14,
+                  color: Colors.white.withValues(alpha: 0.7),
                 ),
-                titlesData: FlTitlesData(
-                  show: true,
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        if (value.toInt() >= tendencia.length) return const Text('');
-                        final data = tendencia[value.toInt()]['data'] as String;
-                        return Text(
-                          DateFormat('dd/MM').format(DateTime.parse(data)),
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 10,
-                            color: Colors.white.withValues(alpha: 0.7),
-                          ),
-                        );
-                      },
-                      reservedSize: 30,
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        return Text(
-                          '${value.toInt()}%',
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 10,
-                            color: Colors.white.withValues(alpha: 0.7),
-                          ),
-                        );
-                      },
-                      reservedSize: 40,
-                    ),
-                  ),
-                ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    width: 1,
-                  ),
-                ),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: tendencia.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final item = entry.value as Map<String, dynamic>;
-                      final percentual = item['percentual'] as num? ?? 0;
-                      return FlSpot(index.toDouble(), percentual.toDouble());
-                    }).toList(),
-                    isCurved: true,
-                    color: Colors.white,
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(
-                      show: true,
-                      getDotPainter: (spot, percent, barData, index) {
-                        return FlDotCirclePainter(
-                          radius: 4,
-                          color: Colors.white,
-                          strokeWidth: 2,
-                          strokeColor: const Color(0xFF0400BA),
-                        );
-                      },
-                    ),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: Colors.white.withValues(alpha: 0.1),
-                    ),
-                  ),
-                ],
-                minY: 0,
-                maxY: 100,
               ),
             ),
           ),
@@ -543,79 +546,85 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
 
   Widget _buildPerformanceTurnosChart(Map<String, dynamic> turnos) {
     final turnosList = [
-      {'nome': 'Manhã', 'data': turnos['manha'] ?? {}},
-      {'nome': 'Tarde', 'data': turnos['tarde'] ?? {}},
-      {'nome': 'Noite', 'data': turnos['noite'] ?? {}},
+      {'nome': 'Manhã', 'key': 'manha'},
+      {'nome': 'Tarde', 'key': 'tarde'},
+      {'nome': 'Noite', 'key': 'noite'},
     ];
 
     return GlassCard(
       padding: const EdgeInsets.all(20),
+      blurSigma: 15.0,
+      opacity: 0.3,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Performance por Turno',
-            style: AppTextStyles.leagueSpartan(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+          Row(
+            children: [
+              Icon(
+                Icons.schedule,
+                color: Colors.white,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Adesão por Turno',
+                style: AppTextStyles.leagueSpartan(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           ...turnosList.map((turno) {
-            final data = turno['data'] as Map<String, dynamic>;
+            final data = turnos[turno['key']] as Map<String, dynamic>? ?? {};
             final percentual = (data['percentual'] as num? ?? 0).toDouble();
             final total = data['total'] as int? ?? 0;
             final confirmados = data['confirmados'] as int? ?? 0;
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        turno['nome'] as String,
-                        style: AppTextStyles.leagueSpartan(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          turno['nome'] as String,
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
                         ),
-                      ),
-                      Text(
-                        '${percentual.toStringAsFixed(1)}%',
-                        style: AppTextStyles.leagueSpartan(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                        const SizedBox(height: 4),
+                        Text(
+                          '$confirmados realizados de $total',
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 12,
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: percentual / 100,
-                      minHeight: 8,
-                      backgroundColor: Colors.white.withValues(alpha: 0.2),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        percentual >= 80
-                            ? Colors.green
-                            : percentual >= 50
-                                ? Colors.orange
-                                : Colors.red,
-                      ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$confirmados de $total eventos',
-                    style: AppTextStyles.leagueSpartan(
-                      fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.7),
+                  Container(
+                    width: 60,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '${percentual.toStringAsFixed(0)}%',
+                      style: AppTextStyles.leagueSpartan(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -636,16 +645,28 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
 
     return GlassCard(
       padding: const EdgeInsets.all(20),
+      blurSigma: 15.0,
+      opacity: 0.3,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Resumo por Tipo',
-            style: AppTextStyles.leagueSpartan(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+          Row(
+            children: [
+              Icon(
+                Icons.pie_chart,
+                color: Colors.white,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Distribuição por Categoria',
+                style: AppTextStyles.leagueSpartan(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           ...tipos.map((tipo) {
@@ -659,6 +680,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
               child: Row(
                 children: [
                   Expanded(
+                    flex: 2,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -669,14 +691,18 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '$confirmados de $total',
+                          '$confirmados realizados de $total',
                           style: AppTextStyles.leagueSpartan(
                             fontSize: 12,
-                            color: Colors.white.withValues(alpha: 0.7),
+                            color: Colors.white.withValues(alpha: 0.9),
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ],
                     ),
@@ -706,53 +732,67 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Row(
+          children: [
+            Icon(
+              Icons.history,
+              color: Colors.white,
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Histórico Detalhado',
+              style: AppTextStyles.leagueSpartan(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         Text(
-          'Histórico de Eventos',
+          'Lista dos últimos eventos com seus status e detalhes',
           style: AppTextStyles.leagueSpartan(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
+            fontSize: 14,
+            color: Colors.white.withValues(alpha: 0.8),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         GlassCard(
           padding: EdgeInsets.zero,
+          blurSigma: 15.0,
+          opacity: 0.3,
           child: Column(
             children: eventos.take(20).map((evento) {
               final data = evento as Map<String, dynamic>;
               final dataPrevista = data['data_prevista'] as String?;
-              final status = (data['status'] as String? ?? '').toLowerCase();
-              final tipoEvento = (data['tipo_evento'] as String? ?? '').toLowerCase();
+              final status = data['status'] as String? ?? 'pendente';
 
-              Color statusColor;
-              IconData statusIcon;
-              switch (status) {
+              Color statusColor = Colors.grey;
+              IconData statusIcon = Icons.help_outline;
+              String statusText = 'Pendente';
+
+              switch (status.toLowerCase()) {
                 case 'confirmado':
-                case 'realizado':
-                case 'tomado':
                   statusColor = Colors.green;
                   statusIcon = Icons.check_circle;
+                  statusText = 'Confirmado';
                   break;
                 case 'atrasado':
+                  statusColor = Colors.red;
+                  statusIcon = Icons.warning;
+                  statusText = 'Atrasado';
+                  break;
                 case 'pendente':
                   statusColor = Colors.orange;
                   statusIcon = Icons.schedule;
+                  statusText = 'Pendente';
                   break;
-                default:
-                  statusColor = Colors.red;
-                  statusIcon = Icons.cancel;
               }
 
-              return Container(
+              return Padding(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      width: 1,
-                    ),
-                  ),
-                ),
                 child: Row(
                   children: [
                     Container(
@@ -761,41 +801,57 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                         color: statusColor.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(statusIcon, color: statusColor, size: 20),
+                      child: Icon(
+                        statusIcon,
+                        color: statusColor,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
+                      flex: 3,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            tipoEvento.toUpperCase(),
+                            data['titulo'] as String? ?? 'Evento',
                             style: AppTextStyles.leagueSpartan(
-                              fontSize: 12,
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white.withValues(alpha: 0.8),
+                              color: Colors.white,
                             ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
                           ),
                           const SizedBox(height: 4),
                           if (dataPrevista != null)
                             Text(
-                              DateFormat('dd/MM/yyyy HH:mm').format(
-                                DateTime.parse(dataPrevista),
-                              ),
+                              DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(dataPrevista)),
                               style: AppTextStyles.leagueSpartan(
-                                fontSize: 14,
-                                color: Colors.white,
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.9),
                               ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
                         ],
                       ),
                     ),
-                    Text(
-                      status.toUpperCase(),
-                      style: AppTextStyles.leagueSpartan(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: statusColor,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        statusText,
+                        style: AppTextStyles.leagueSpartan(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: statusColor,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
                   ],

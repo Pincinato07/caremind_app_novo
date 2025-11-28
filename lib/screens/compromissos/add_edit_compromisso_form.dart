@@ -117,7 +117,7 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
       final data = {
         'titulo': _tituloController.text.trim(),
         'data_hora': _dataHora.toIso8601String(),
-        'user_id': targetId,
+        'perfil_id': targetId,
         'created_at': DateTime.now().toIso8601String(),
         'concluido': false,
         // Só incluir descrição se não estiver vazia
@@ -201,8 +201,8 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      const Color(0xFF0400B9).withOpacity(0.1),
-                      const Color(0xFF0400B9).withOpacity(0.05),
+                      const Color(0xFF0400B9).withValues(alpha: 0.1),
+                      const Color(0xFF0400B9).withValues(alpha: 0.05),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(16),
@@ -313,7 +313,7 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF0400B9).withOpacity(0.3),
+                      color: const Color(0xFF0400B9).withValues(alpha: 0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),

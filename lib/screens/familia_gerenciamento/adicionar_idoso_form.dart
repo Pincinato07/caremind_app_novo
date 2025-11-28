@@ -105,7 +105,7 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: colors.primary.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
@@ -151,7 +151,7 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: colors.surfaceContainerHighest.withOpacity(0.3),
+                    fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.3),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -177,7 +177,7 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: colors.surfaceContainerHighest.withOpacity(0.3),
+                    fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.3),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -213,7 +213,7 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: colors.surfaceContainerHighest.withOpacity(0.3),
+                    fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.3),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -289,3 +289,4 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
     );
   }
 }
+

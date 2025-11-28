@@ -12,10 +12,23 @@ class CompromissoService {
   Future<List<Map<String, dynamic>>> getCompromissos(String userId) async {
     try {
       debugPrint('📤 CompromissoService: Buscando compromissos para userId: $userId');
+      
+      // Baseado no schema, obter o perfil_id do usuário usando user_id
+      final perfilResponse = await _client
+          .from('perfis')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+      
+      final perfilId = perfilResponse?['id'] as String?;
+      
+      // Usar perfil_id se disponível, senão usar user_id (compatibilidade durante transição)
       final response = await _client
           .from('compromissos')
           .select()
-          .eq('user_id', userId)
+          .or(perfilId != null 
+              ? 'perfil_id.eq.$perfilId'
+              : 'perfil_id.eq.$userId')
           .order('data_hora', ascending: true);
 
       debugPrint('✅ CompromissoService: ${response.length} compromisso(s) encontrado(s)');
@@ -38,10 +51,23 @@ class CompromissoService {
       String userId) async {
     try {
       final now = DateTime.now().toIso8601String();
+      
+      // Primeiro, obter o perfil_id do usuário
+      final perfilResponse = await _client
+          .from('perfis')
+          .select('id')
+          .eq('perfil_id', userId)
+          .maybeSingle();
+      
+      final perfilId = perfilResponse?['id'] as String?;
+      
+      // Usar perfil_id se disponível, senão usar user_id (compatibilidade durante transição)
       final response = await _client
           .from('compromissos')
           .select()
-          .eq('user_id', userId)
+          .or(perfilId != null 
+              ? 'perfil_id.eq.$perfilId'
+              : 'perfil_id.eq.$userId')
           .gte('data_hora', now)
           .order('data_hora', ascending: true);
 
@@ -55,6 +81,27 @@ class CompromissoService {
   Future<Map<String, dynamic>> addCompromisso(
       Map<String, dynamic> compromisso) async {
     try {
+      // Garantir que perfil_id ou user_id estejam presentes
+      if (compromisso['perfil_id'] == null || (compromisso['perfil_id'] as String).isEmpty) {
+        final userId = compromisso['user_id'] as String?;
+        if (userId != null && userId.isNotEmpty) {
+          final perfilResponse = await _client
+              .from('perfis')
+              .select('id')
+              .eq('perfil_id', userId)
+              .maybeSingle();
+          
+          if (perfilResponse != null) {
+            compromisso['perfil_id'] = perfilResponse['id'] as String;
+          } else {
+            // Se não encontrou perfil, usar o user_id como fallback
+            compromisso['perfil_id'] = userId;
+          }
+        } else {
+          throw Exception('perfil_id é obrigatório');
+        }
+      }
+      
       // Limpar dados antes de inserir (remove strings vazias)
       final cleanedData = DataCleaner.cleanData(compromisso);
       

@@ -5,7 +5,11 @@ import '../../widgets/caremind_app_bar.dart';
 import '../../widgets/glass_card.dart';
 import '../../services/supabase_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/alexa_auth_service.dart';
+import '../../services/accessibility_service.dart';
 import '../../core/injection/injection.dart';
+import '../../core/state/familiar_state.dart';
+import '../../core/accessibility/accessibility_helper.dart';
 
 /// Tela de Configurações
 /// Centraliza configurações do app
@@ -19,14 +23,128 @@ class ConfiguracoesScreen extends StatefulWidget {
 class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   final SupabaseService _supabaseService = getIt<SupabaseService>();
   final SettingsService _settingsService = getIt<SettingsService>();
+  final AlexaAuthService _alexaAuthService = getIt<AlexaAuthService>();
+  final FamiliarState _familiarState = getIt<FamiliarState>();
   bool _isLoading = true;
+  bool _wavesEnabled = true; // Default on
   bool _isSaving = false;
+  bool _isAlexaLinked = false;
+  bool _isLinkingAlexa = false;
   final _telefoneController = TextEditingController();
+  String? _perfilTipo;
 
   @override
   void initState() {
     super.initState();
-    _loadTelefoneEmergencia();
+    // Inicializar SettingsService ANTES de tudo
+    _settingsService.initialize().then((_) {
+      _loadPerfilTipo();
+      _loadTelefoneEmergencia();
+      _checkAlexaStatus();
+      _wavesEnabled = _settingsService.wavesEnabled;
+    });
+    // Inicializa o serviço de acessibilidade
+    AccessibilityService.initialize();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Leitura automática do título da tela se habilitada
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AccessibilityHelper.autoReadIfEnabled('Configurações. Ajuste as preferências do aplicativo.');
+    });
+  }
+
+  Future<void> _loadPerfilTipo() async {
+    try {
+      final user = _supabaseService.currentUser;
+      if (user != null) {
+        final perfil = await _supabaseService.getProfile(user.id);
+        if (perfil != null && mounted) {
+          setState(() {
+            _perfilTipo = perfil.tipo?.toLowerCase();
+          });
+        }
+      }
+    } catch (e) {
+      // Se não conseguir carregar, continua sem o campo de telefone
+    }
+  }
+
+  Future<void> _checkAlexaStatus() async {
+    final isLinked = await _alexaAuthService.isLinked();
+    if (mounted) {
+      setState(() => _isAlexaLinked = isLinked);
+    }
+  }
+
+  Future<void> _linkAlexa() async {
+    if (_isLinkingAlexa) return;
+    
+    setState(() => _isLinkingAlexa = true);
+    
+    try {
+      await _alexaAuthService.startLinking();
+      // O resultado será processado quando o app receber o deep link
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao conectar Alexa: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLinkingAlexa = false);
+      }
+    }
+  }
+
+  Future<void> _unlinkAlexa() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Desvincular Alexa'),
+        content: const Text('Deseja realmente desvincular sua conta Alexa?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Desvincular'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _alexaAuthService.unlink();
+      if (mounted) {
+        setState(() => _isAlexaLinked = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Alexa desvinculada com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao desvincular: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -36,6 +154,12 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   }
 
   Future<void> _loadTelefoneEmergencia() async {
+    // Só carrega telefone se não for familiar
+    if (_perfilTipo == 'familiar') {
+      setState(() => _isLoading = false);
+      return;
+    }
+
     try {
       final user = _supabaseService.currentUser;
       if (user != null) {
@@ -98,9 +222,14 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffoldWithWaves(
-      appBar: const CareMindAppBar(
+      appBar: CareMindAppBar(
         title: 'Configurações',
         showBackButton: true,
+        leading: IconButton(
+          icon: const Icon(Icons.account_circle_outlined),
+          onPressed: () => Navigator.pushNamed(context, '/perfil'),
+          tooltip: 'Meu Perfil',
+        ),
       ),
       body: SafeArea(
         child: _isLoading
@@ -110,126 +239,132 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
             : SingleChildScrollView(
                 child: Column(
                   children: [
-                    // Seção: Emergência
-                    _buildSection(
-                      context,
-                      title: '🚨 Emergência',
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-                          child: GlassCard(
-                            padding: const EdgeInsets.all(20),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.phone_outlined,
-                                      color: Colors.white,
-                                      size: 24,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        'Telefone de Emergência',
-                                        style: AppTextStyles.leagueSpartan(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white,
+                    // Seção: Emergência (apenas para Idoso e Individual)
+                    if (_perfilTipo != 'familiar')
+                      _buildSection(
+                        context,
+                        title: '🚨 Emergência',
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+                            child: GlassCard(
+                              padding: const EdgeInsets.all(20),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.phone_outlined,
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'Telefone de Emergência',
+                                          style: AppTextStyles.leagueSpartan(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Este número será usado para enviar SMS quando o botão de pânico for acionado.',
-                                  style: AppTextStyles.leagueSpartan(
-                                    fontSize: 14,
-                                    color: Colors.white.withValues(alpha: 0.8),
-                                    height: 1.4,
+                                    ],
                                   ),
-                                ),
-                                const SizedBox(height: 16),
-                                TextField(
-                                  controller: _telefoneController,
-                                  keyboardType: TextInputType.phone,
-                                  style: AppTextStyles.leagueSpartan(
-                                    fontSize: 16,
-                                    color: Colors.white,
-                                  ),
-                                  decoration: InputDecoration(
-                                    hintText: '+55 11 99999-9999',
-                                    hintStyle: AppTextStyles.leagueSpartan(
-                                      color: Colors.white.withValues(alpha: 0.5),
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.white.withValues(alpha: 0.1),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color: Colors.white.withValues(alpha: 0.3),
-                                      ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color: Colors.white.withValues(alpha: 0.3),
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                        color: Colors.white,
-                                        width: 2,
-                                      ),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 16,
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Este número será usado para enviar SMS quando o botão de pânico for acionado.',
+                                    style: AppTextStyles.leagueSpartan(
+                                      fontSize: 14,
+                                      color: Colors.white.withValues(alpha: 0.8),
+                                      height: 1.4,
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 16),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: _isSaving ? null : _saveTelefoneEmergencia,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: const Color(0xFF0400BA),
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
-                                      shape: RoundedRectangleBorder(
+                                  const SizedBox(height: 16),
+                                  TextField(
+                                    controller: _telefoneController,
+                                    keyboardType: TextInputType.phone,
+                                    style: AppTextStyles.leagueSpartan(
+                                      fontSize: 16,
+                                      color: Colors.white,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: '+55 11 99999-9999',
+                                      hintStyle: AppTextStyles.leagueSpartan(
+                                        color: Colors.white.withValues(alpha: 0.5),
+                                      ),
+                                      filled: true,
+                                      fillColor: Colors.white.withValues(alpha: 0.1),
+                                      border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                          color: Colors.white.withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                          color: Colors.white.withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(
+                                          color: Colors.white,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 16,
                                       ),
                                     ),
-                                    child: _isSaving
-                                        ? const SizedBox(
-                                            width: 20,
-                                            height: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor: AlwaysStoppedAnimation<Color>(
-                                                Color(0xFF0400BA),
-                                              ),
-                                            ),
-                                          )
-                                        : Text(
-                                            'Salvar Telefone',
-                                            style: AppTextStyles.leagueSpartan(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 16),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: Semantics(
+                                      label: 'Botão salvar telefone',
+                                      hint: 'Toque para salvar o número de telefone de emergência',
+                                      button: true,
+                                      child: ElevatedButton(
+                                        onPressed: _isSaving ? null : _saveTelefoneEmergencia,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.white,
+                                          foregroundColor: const Color(0xFF0400BA),
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                        child: _isSaving
+                                            ? const SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                                    Color(0xFF0400BA),
+                                                  ),
+                                                ),
+                                              )
+                                            : Text(
+                                                'Salvar Telefone',
+                                                style: AppTextStyles.leagueSpartan(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
 
                     // Seção: Notificações
                     ListenableBuilder(
@@ -288,6 +423,130 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                           ],
                         );
                       },
+                    ),
+
+                    // Seção: Integrações
+                    _buildSection(
+                      context,
+                      title: '🔗 Integrações',
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+                          child: GlassCard(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Center(
+                                        child: Text(
+                                          '🔊',
+                                          style: TextStyle(fontSize: 24),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Amazon Alexa',
+                                            style: AppTextStyles.leagueSpartan(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _isAlexaLinked 
+                                                ? 'Conta vinculada' 
+                                                : 'Não vinculada',
+                                            style: AppTextStyles.leagueSpartan(
+                                              fontSize: 14,
+                                              color: _isAlexaLinked 
+                                                  ? Colors.greenAccent 
+                                                  : Colors.white.withValues(alpha: 0.7),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (_isAlexaLinked)
+                                      Icon(
+                                        Icons.check_circle,
+                                        color: Colors.greenAccent,
+                                        size: 28,
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Vincule sua conta Amazon para receber lembretes de medicamentos pela Alexa.',
+                                  style: AppTextStyles.leagueSpartan(
+                                    fontSize: 14,
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    height: 1.4,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    onPressed: _isLinkingAlexa 
+                                        ? null 
+                                        : (_isAlexaLinked ? _unlinkAlexa : _linkAlexa),
+                                    icon: _isLinkingAlexa
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(
+                                                Color(0xFF0400BA),
+                                              ),
+                                            ),
+                                          )
+                                        : Icon(_isAlexaLinked 
+                                            ? Icons.link_off 
+                                            : Icons.link),
+                                    label: Text(
+                                      _isAlexaLinked 
+                                          ? 'Desvincular Alexa' 
+                                          : 'Vincular Alexa',
+                                      style: AppTextStyles.leagueSpartan(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: _isAlexaLinked 
+                                          ? Colors.red.shade400 
+                                          : Colors.white,
+                                      foregroundColor: _isAlexaLinked 
+                                          ? Colors.white 
+                                          : const Color(0xFF0400BA),
+                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
 
                     // Seção: Acessibilidade
@@ -382,6 +641,30 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                         value 
                                           ? 'Leitura automática ativada' 
                                           : 'Leitura automática desativada',
+                                      ),
+                                      duration: const Duration(seconds: 2),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                            _buildSwitchTile(
+                              context,
+                              icon: Icons.waves,
+                              title: 'Animações de Ondas',
+                              subtitle: 'Fundo animado das ondas',
+                              value: _wavesEnabled,
+                              onChanged: (value) async {
+                                await _settingsService.setWavesEnabled(value);
+                                setState(() => _wavesEnabled = value);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        value 
+                                          ? 'Ondas ativadas' 
+                                          : 'Ondas desativadas',
                                       ),
                                       duration: const Duration(seconds: 2),
                                       backgroundColor: Colors.green,
@@ -625,4 +908,3 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
     );
   }
 }
-

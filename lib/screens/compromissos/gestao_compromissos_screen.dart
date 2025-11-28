@@ -329,10 +329,10 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
             margin: const EdgeInsets.all(24),
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
               ),
             ),
             child: Row(
@@ -515,13 +515,13 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Colors.white, const Color(0xFF0400B9).withOpacity(0.02)],
+                colors: [Colors.white, const Color(0xFF0400B9).withValues(alpha: 0.02)],
               ),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF0400B9).withOpacity(0.1), width: 1),
+              border: Border.all(color: const Color(0xFF0400B9).withValues(alpha: 0.1), width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF0400B9).withOpacity(0.1),
+                  color: const Color(0xFF0400B9).withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -612,7 +612,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
             children: [
               Icon(
                 icon,
-                color: isActive ? Colors.white : Colors.white.withOpacity(0.7),
+                color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.3),
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -621,7 +621,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                 style: AppTextStyles.leagueSpartan(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: isActive ? Colors.white : Colors.white.withOpacity(0.7),
+                  color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.3),
                 ),
               ),
             ],
@@ -685,7 +685,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
               ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0400B9).withOpacity(0.1),
+            color: const Color(0xFF0400B9).withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -848,7 +848,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.green.withOpacity(0.3),
+                          color: Colors.green.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -892,7 +892,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.orange.withOpacity(0.3),
+                          color: Colors.orange.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),

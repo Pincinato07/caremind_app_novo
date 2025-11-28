@@ -21,9 +21,9 @@ class AppPrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final baseColor = const Color(0xFF0400BA);
-    return SizedBox(
-      height: height ?? 44,
-      width: width,
+  return SizedBox(
+    height: height ?? 64,
+    width: width,
       child: Semantics(
         label: label,
         hint: isLoading ? 'Carregando...' : 'Toque para executar ação',
@@ -95,9 +95,9 @@ class AppOutlineButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: height ?? 44,
-      width: width,
+  return SizedBox(
+    height: height ?? 64,
+    width: width,
       child: Semantics(
         label: label,
         hint: onPressed == null ? 'Botão desabilitado' : 'Toque para executar ação',
@@ -112,7 +112,7 @@ class AppOutlineButton extends StatelessWidget {
                   : Colors.white.withValues(alpha: 0.8),
               width: 1.5,
             ),
-            backgroundColor: Colors.white.withValues(alpha: 0.08),
+            backgroundColor: Colors.white.withValues(alpha: 0.15),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
@@ -134,6 +134,3 @@ class AppOutlineButton extends StatelessWidget {
     );
   }
 }
-
-
-

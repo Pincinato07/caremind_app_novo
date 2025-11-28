@@ -3,13 +3,14 @@ import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/medicamento_service.dart';
 import '../../services/rotina_service.dart';
+import '../../services/accessibility_service.dart';
 import '../../core/injection/injection.dart';
 import '../../models/medicamento.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/caremind_app_bar.dart';
 import '../../widgets/voice_interface_widget.dart';
-import '../../core/accessibility/accessibility_helper.dart';
+import '../../core/accessibility/tts_enhancer.dart';
 
 class IndividualDashboardScreen extends StatefulWidget {
   const IndividualDashboardScreen({super.key});
@@ -37,6 +38,8 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
   void initState() {
     super.initState();
     _loadUserData();
+    // Inicializa o serviço de acessibilidade
+    AccessibilityService.initialize();
   }
 
   @override
@@ -44,7 +47,11 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     super.didChangeDependencies();
     // Leitura automática do título da tela se habilitada
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      AccessibilityHelper.autoReadIfEnabled('Dashboard. Bem-vindo, $_userName');
+      TTSEnhancer.announceScreenChange(
+        context, 
+        'Dashboard',
+        userName: _userName,
+      );
     });
   }
 
@@ -186,6 +193,39 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     }
   }
 
+  /// Lê o resumo do dashboard
+  Future<void> _readDashboardSummary() async {
+    final buffer = StringBuffer();
+    buffer.write('Resumo do seu dia, $_userName. ');
+    
+    // Status dos medicamentos
+    if (_totalMedicamentos > 0) {
+      buffer.write('Você tem $_totalMedicamentos medicamentos hoje. ');
+      buffer.write('Já tomou $_medicamentosTomados. ');
+      
+      if (_temAtraso) {
+        buffer.write(_mensagemStatus);
+      } else {
+        buffer.write('Parabéns! Está em dia com seus medicamentos.');
+      }
+      
+      // Próximo medicamento
+      if (_proximoMedicamento != null && _proximoHorario != null) {
+        final timeStr = '${_proximoHorario!.hour.toString().padLeft(2, '0')}:${_proximoHorario!.minute.toString().padLeft(2, '0')}';
+        buffer.write(' Próximo: ${_proximoMedicamento!.nome} às $timeStr.');
+      }
+    } else {
+      buffer.write('Nenhum medicamento programado para hoje.');
+    }
+    
+    // Rotinas
+    if (_rotinas.isNotEmpty) {
+      buffer.write(' Você tem ${_rotinas.length} rotinas para hoje.');
+    }
+    
+    await AccessibilityService.speak(buffer.toString());
+  }
+
   @override
   Widget build(BuildContext context) {
     final supabaseService = getIt<SupabaseService>();
@@ -207,14 +247,31 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Olá, $_userName!',
-                            style: AppTextStyles.leagueSpartan(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: -0.5,
-                            ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Olá, $_userName!',
+                                  style: AppTextStyles.leagueSpartan(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                              ),
+                              Semantics(
+                                label: 'Botão ouvir resumo',
+                                hint: 'Lê em voz alta o resumo do seu dia',
+                                button: true,
+                                child: IconButton(
+                                  onPressed: _readDashboardSummary,
+                                  icon: Icon(Icons.volume_up, 
+                                           color: Colors.white.withValues(alpha: 0.8)),
+                                  iconSize: 28,
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 8),
                           Text(
@@ -249,11 +306,11 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       child: _buildTimelineRotina(),
                     ),
                   ),
-                      SliverToBoxAdapter(
-                        child: SizedBox(height: 100), // Padding inferior para evitar corte pela navbar
-                      ),
-                    ],
+                  SliverToBoxAdapter(
+                    child: SizedBox(height: 100), // Padding inferior para evitar corte pela navbar
                   ),
+                ],
+              ),
             // Interface de voz flutuante
             if (userId.isNotEmpty && !_isLoading)
               VoiceInterfaceWidget(
@@ -267,89 +324,32 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
   }
 
   Widget _buildSemaforoStatus() {
-    return GlassCard(
-      padding: const EdgeInsets.all(20),
-      borderColor: _temAtraso 
-          ? Colors.red.withValues(alpha: 0.6) 
-          : Colors.green.withValues(alpha: 0.6),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: _temAtraso ? Colors.red : Colors.green,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: (_temAtraso ? Colors.red : Colors.green).withValues(alpha: 0.4),
-                  blurRadius: 12,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: Icon(
-              _temAtraso ? Icons.warning_rounded : Icons.check_circle_rounded,
-              color: Colors.white,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _temAtraso ? 'Atenção necessária' : 'Tudo em dia!',
-                  style: AppTextStyles.leagueSpartan(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white.withValues(alpha: 0.9),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$_medicamentosTomados/$_totalMedicamentos medicamentos tomados',
-                  style: AppTextStyles.leagueSpartan(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.85),
-                  ),
-                ),
-                if (_mensagemStatus.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    _mensagemStatus,
-                    style: AppTextStyles.leagueSpartan(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white.withValues(alpha: 0.75),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProximoMedicamento() {
-    if (_proximoMedicamento == null) {
-      return GlassCard(
+    return Semantics(
+      label: 'Status dos medicamentos',
+      hint: 'Mostra se você está em dia com seus medicamentos',
+      child: GlassCard(
         padding: const EdgeInsets.all(20),
+        borderColor: _temAtraso 
+            ? Colors.red.withValues(alpha: 0.6) 
+            : Colors.green.withValues(alpha: 0.6),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.25),
-                borderRadius: BorderRadius.circular(12),
+                color: _temAtraso ? Colors.red : Colors.green,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: (_temAtraso ? Colors.red : Colors.green).withValues(alpha: 0.4),
+                    blurRadius: 12,
+                    spreadRadius: 2,
+                  ),
+                ],
               ),
-              child: const Icon(
-                Icons.check_circle,
+              child: Icon(
+                _temAtraso ? Icons.warning_rounded : Icons.check_circle_rounded,
                 color: Colors.white,
                 size: 28,
               ),
@@ -360,7 +360,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Tudo tomado por hoje! ✅',
+                    _mensagemStatus,
                     style: AppTextStyles.leagueSpartan(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -369,7 +369,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Parabéns! Você está em dia com seus medicamentos.',
+                    '$_medicamentosTomados de $_totalMedicamentos medicamentos tomados hoje',
                     style: AppTextStyles.leagueSpartan(
                       fontSize: 14,
                       color: Colors.white.withValues(alpha: 0.85),
@@ -380,28 +380,27 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
             ),
           ],
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    final horarioStr = _proximoHorario != null
-        ? '${_proximoHorario!.hour.toString().padLeft(2, '0')}:${_proximoHorario!.minute.toString().padLeft(2, '0')}'
-        : '';
-
-    return GlassCard(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+  Widget _buildProximoMedicamento() {
+    if (_proximoMedicamento == null) {
+      return Semantics(
+        label: 'Medicamentos em dia',
+        hint: 'Todos os medicamentos do dia foram tomados',
+        child: GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE91E63).withValues(alpha: 0.25),
+                  color: Colors.green.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
-                  Icons.medication_liquid,
+                  Icons.check_circle,
                   color: Colors.white,
                   size: 28,
                 ),
@@ -412,69 +411,133 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Próximo Medicamento',
-                      style: AppTextStyles.leagueSpartan(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white.withValues(alpha: 0.8),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _proximoMedicamento!.nome,
+                      'Tudo tomado por hoje! ✅',
                       style: AppTextStyles.leagueSpartan(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.access_time,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 6),
+                    const SizedBox(height: 4),
                     Text(
-                      horarioStr,
+                      'Parabéns! Você está em dia com seus medicamentos.',
                       style: AppTextStyles.leagueSpartan(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.85),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  _proximoMedicamento!.dosagem,
-                  style: AppTextStyles.leagueSpartan(
-                    fontSize: 14,
-                    color: Colors.white.withValues(alpha: 0.9),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final horarioStr = _proximoHorario != null
+        ? '${_proximoHorario!.hour.toString().padLeft(2, '0')}:${_proximoHorario!.minute.toString().padLeft(2, '0')}'
+        : '';
+
+    return Semantics(
+      label: 'Próximo medicamento',
+      hint: '${_proximoMedicamento!.nome}, às $horarioStr. Toque para ouvir detalhes.',
+      child: GestureDetector(
+        onTap: () {
+          AccessibilityService.speak(
+            'Próximo medicamento: ${_proximoMedicamento!.nome}, dosagem: ${_proximoMedicamento!.dosagem}, horário: $horarioStr',
+          );
+        },
+        child: GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE91E63).withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.medication_liquid,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Próximo Medicamento',
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _proximoMedicamento!.nome,
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.access_time,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          horarioStr,
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _proximoMedicamento!.dosagem,
+                      style: AppTextStyles.leagueSpartan(
+                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -490,88 +553,102 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
       return const SizedBox.shrink();
     }
 
-    return GlassCard(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50).withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.schedule_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Próximas Atividades',
-                style: AppTextStyles.leagueSpartan(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ...rotinasPendentes.asMap().entries.map((entry) {
-            final index = entry.key;
-            final rotina = entry.value;
-            final nome = rotina['nome'] as String? ?? 'Atividade';
-            final horario = rotina['horario'] as String? ?? '';
-            
-            return Padding(
-              padding: EdgeInsets.only(bottom: index < rotinasPendentes.length - 1 ? 12 : 0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 4,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+    return Semantics(
+      label: 'Próximas atividades',
+      hint: 'Lista das próximas rotinas e atividades',
+      child: GlassCard(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4CAF50).withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  child: const Icon(
+                    Icons.schedule_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Próximas Atividades',
+                  style: AppTextStyles.leagueSpartan(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...rotinasPendentes.asMap().entries.map((entry) {
+              final index = entry.key;
+              final rotina = entry.value;
+              final nome = rotina['nome'] as String? ?? 'Atividade';
+              final horario = rotina['horario'] as String? ?? '';
+              
+              return Semantics(
+                label: 'Atividade $nome',
+                hint: 'Horário: $horario. Toque para ouvir detalhes.',
+                child: GestureDetector(
+                  onTap: () {
+                    AccessibilityService.speak(
+                      'Atividade: $nome, horário: $horario',
+                    );
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: index < rotinasPendentes.length - 1 ? 12 : 0),
+                    child: Row(
                       children: [
-                        if (horario.isNotEmpty)
-                          Text(
-                            horario,
-                            style: AppTextStyles.leagueSpartan(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white.withValues(alpha: 0.9),
-                            ),
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            shape: BoxShape.circle,
                           ),
-                        const SizedBox(height: 2),
-                        Text(
-                          nome,
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                nome,
+                                style: AppTextStyles.leagueSpartan(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                horario,
+                                style: AppTextStyles.leagueSpartan(
+                                  fontSize: 14,
+                                  color: Colors.white.withValues(alpha: 0.75),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            );
-          }).toList(),
-        ],
+                ),
+              );
+            }).toList(),
+          ],
+        ),
       ),
     );
   }
 
 }
+

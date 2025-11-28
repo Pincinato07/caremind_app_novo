@@ -408,7 +408,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
+                                    color: Colors.black.withValues(alpha: 0.2),
                                     blurRadius: 20,
                                     offset: const Offset(0, 8),
                                   ),
@@ -423,7 +423,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                                         fit: BoxFit.cover,
                                         errorBuilder: (context, error, stackTrace) {
                                           return Container(
-                                            color: Colors.white.withOpacity(0.2),
+                                            color: Colors.white.withValues(alpha: 0.2),
                                             child: const Icon(
                                               Icons.person_rounded,
                                               size: 60,
@@ -433,7 +433,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                                         },
                                       )
                                     : Container(
-                                        color: Colors.white.withOpacity(0.2),
+                                        color: Colors.white.withValues(alpha: 0.2),
                                         child: const Icon(
                                           Icons.person_rounded,
                                           size: 60,
@@ -522,7 +522,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                             style: AppTextStyles.leagueSpartan(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -607,7 +607,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: Colors.white, size: 20),
@@ -625,11 +625,32 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 labelText: label,
                 labelStyle: AppTextStyles.leagueSpartan(
                   fontSize: 14,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                 ),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
+                filled: true,
+                fillColor: Colors.transparent,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    width: 2,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
               onSubmitted: (_) => onSave(),
             ),
@@ -665,7 +686,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.access_time, color: Colors.white, size: 20),
@@ -679,7 +700,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   'Fuso Horário',
                   style: AppTextStyles.leagueSpartan(
                     fontSize: 14,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -729,7 +750,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: Colors.white, size: 20),
@@ -743,7 +764,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   label,
                   style: AppTextStyles.leagueSpartan(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -803,7 +824,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 Icon(
                   Icons.arrow_forward_ios,
                   size: 16,
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withValues(alpha: 0.1),
                 ),
             ],
           ),
@@ -824,7 +845,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.red.withOpacity(0.3),
+            color: Colors.red.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -1075,3 +1096,4 @@ class _PerfilScreenState extends State<PerfilScreen> {
     );
   }
 }
+

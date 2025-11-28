@@ -61,7 +61,7 @@ class AppTextField extends StatelessWidget {
           prefixIcon: prefixIcon,
           suffixIcon: suffixIcon,
           filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.12),
+          fillColor: Colors.white.withValues(alpha: 0.2),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide.none,
@@ -69,7 +69,7 @@ class AppTextField extends StatelessWidget {
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: Colors.white.withValues(alpha: 0.3),
               width: 1,
             ),
           ),

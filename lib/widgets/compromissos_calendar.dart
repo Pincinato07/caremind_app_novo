@@ -99,14 +99,6 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
     });
   }
 
-  void _navigateMonth(int months) {
-    setState(() {
-      _focusedDay = DateTime(_focusedDay.year, _focusedDay.month + months);
-      _selectedDay = DateTime(_selectedDay.year, _selectedDay.month + months);
-      _selectedEvents.value = _getEventsForDay(_selectedDay);
-    });
-  }
-
   List<DateTime> _getWeekDays(DateTime weekStart) {
     return List.generate(7, (index) => weekStart.add(Duration(days: index)));
   }
@@ -126,18 +118,18 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.15),
-            Colors.white.withOpacity(0.1),
+            Colors.white.withValues(alpha: 0.25),
+            Colors.white.withValues(alpha: 0.2),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha: 0.35),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0400B9).withOpacity(0.1),
+            color: const Color(0xFF0400B9).withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -166,10 +158,10 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha: 0.25),
         ),
       ),
       child: Row(
@@ -208,7 +200,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
             children: [
               Icon(
                 icon,
-                color: isActive ? Colors.white : Colors.white.withOpacity(0.7),
+                color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.7),
                 size: 18,
               ),
               const SizedBox(width: 6),
@@ -217,7 +209,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                 style: AppTextStyles.leagueSpartan(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: isActive ? Colors.white : Colors.white.withOpacity(0.7),
+                  color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.7),
                 ),
               ),
             ],
@@ -241,7 +233,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                 onPressed: () => _navigateDate(-1),
                 icon: const Icon(Icons.chevron_left, color: Colors.white),
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withOpacity(0.2),
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
                 ),
               ),
               Text(
@@ -257,7 +249,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                 onPressed: () => _navigateDate(1),
                 icon: const Icon(Icons.chevron_right, color: Colors.white),
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withOpacity(0.2),
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
                 ),
               ),
             ],
@@ -274,7 +266,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                     child: Text(
                       'Nenhum compromisso neste dia',
                       style: AppTextStyles.leagueSpartan(
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 16,
                       ),
                     ),
@@ -306,17 +298,17 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: concluido
-              ? Colors.green.withOpacity(0.2)
+              ? Colors.green.withValues(alpha: 0.25)
               : isPassado
-                  ? Colors.red.withOpacity(0.2)
-                  : Colors.white.withOpacity(0.1),
+                  ? Colors.red.withValues(alpha: 0.25)
+                  : Colors.white.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: concluido
-                ? Colors.green.withOpacity(0.5)
+                ? Colors.green.withValues(alpha: 0.5)
                 : isPassado
-                    ? Colors.red.withOpacity(0.5)
-                    : Colors.white.withOpacity(0.3),
+                    ? Colors.red.withValues(alpha: 0.5)
+                    : Colors.white.withValues(alpha: 0.35),
             width: 2,
           ),
         ),
@@ -398,14 +390,14 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                       Icon(
                         Icons.access_time,
                         size: 14,
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         DateFormat('HH:mm').format(dataHora),
                         style: AppTextStyles.leagueSpartan(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
                       if (compromisso['local'] != null && compromisso['local'].toString().isNotEmpty) ...[
@@ -413,7 +405,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                         Icon(
                           Icons.location_on,
                           size: 14,
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                         const SizedBox(width: 4),
                         Expanded(
@@ -421,7 +413,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                             compromisso['local'] as String,
                             style: AppTextStyles.leagueSpartan(
                               fontSize: 14,
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -436,7 +428,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                       compromisso['descricao'] as String,
                       style: AppTextStyles.leagueSpartan(
                         fontSize: 12,
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -467,7 +459,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                 onPressed: () => _navigateWeek(-1),
                 icon: const Icon(Icons.chevron_left, color: Colors.white),
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withOpacity(0.2),
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
                 ),
               ),
               Text(
@@ -482,7 +474,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                 onPressed: () => _navigateWeek(1),
                 icon: const Icon(Icons.chevron_right, color: Colors.white),
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withOpacity(0.2),
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
                 ),
               ),
             ],
@@ -514,17 +506,17 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? Colors.white.withOpacity(0.2)
+                            ? Colors.white.withValues(alpha: 0.2)
                             : isToday
-                                ? Colors.white.withOpacity(0.1)
+                                ? Colors.white.withValues(alpha: 0.1)
                                 : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isSelected
                               ? Colors.white
                               : isToday
-                                  ? Colors.white.withOpacity(0.5)
-                                  : Colors.white.withOpacity(0.2),
+                                  ? Colors.white.withValues(alpha: 0.5)
+                                  : Colors.white.withValues(alpha: 0.2),
                           width: isSelected ? 2 : 1,
                         ),
                       ),
@@ -535,7 +527,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                             style: AppTextStyles.leagueSpartan(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -575,11 +567,11 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
                                   color: (comp['concluido'] as bool? ?? false)
-                                      ? Colors.green.withOpacity(0.3)
-                                      : Colors.white.withOpacity(0.1),
+                                      ? Colors.green.withValues(alpha: 0.35)
+                                      : Colors.white.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: Colors.white.withOpacity(0.2),
+                                    color: Colors.white.withValues(alpha: 0.3),
                                   ),
                                 ),
                                 child: Column(
@@ -598,7 +590,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                                       comp['titulo'] as String? ?? 'Compromisso',
                                       style: AppTextStyles.leagueSpartan(
                                         fontSize: 10,
-                                        color: Colors.white.withOpacity(0.9),
+                                        color: Colors.white.withValues(alpha: 0.9),
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -615,7 +607,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                                 '+${dayEvents.length - 2}',
                                 style: AppTextStyles.leagueSpartan(
                                   fontSize: 10,
-                                  color: Colors.white.withOpacity(0.7),
+                                  color: Colors.white.withValues(alpha: 0.7),
                                 ),
                               ),
                             ),
@@ -646,7 +638,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
             calendarStyle: CalendarStyle(
               outsideDaysVisible: false,
               weekendTextStyle: AppTextStyles.leagueSpartan(
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 fontWeight: FontWeight.w600,
               ),
               defaultTextStyle: AppTextStyles.leagueSpartan(
@@ -695,12 +687,12 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
             ),
             daysOfWeekStyle: DaysOfWeekStyle(
               weekdayStyle: AppTextStyles.leagueSpartan(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
               weekendStyle: AppTextStyles.leagueSpartan(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
@@ -723,7 +715,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                     child: Text(
                       'Nenhum compromisso neste dia',
                       style: AppTextStyles.leagueSpartan(
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 16,
                       ),
                     ),
@@ -756,17 +748,18 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: concluido
-                                  ? Colors.green.withOpacity(0.2)
+                                  ? Colors.green.withValues(alpha: 0.25)
                                   : isPassado
-                                      ? Colors.red.withOpacity(0.2)
-                                      : Colors.white.withOpacity(0.1),
+                                      ? Colors.red.withValues(alpha: 0.25)
+                                      : Colors.white.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: concluido
-                                    ? Colors.green.withOpacity(0.5)
+                                    ? Colors.green.withValues(alpha: 0.5)
                                     : isPassado
-                                        ? Colors.red.withOpacity(0.5)
-                                        : Colors.white.withOpacity(0.3),
+                                        ? Colors.red.withValues(alpha: 0.5)
+                                        : Colors.white.withValues(alpha: 0.35),
+                                width: 2,
                               ),
                             ),
                             child: Row(
@@ -808,7 +801,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                                         DateFormat('HH:mm').format(dataHora),
                                         style: AppTextStyles.leagueSpartan(
                                           fontSize: 12,
-                                          color: Colors.white.withOpacity(0.8),
+                                          color: Colors.white.withValues(alpha: 0.8),
                                         ),
                                       ),
                                     ],
@@ -844,4 +837,5 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
     );
   }
 }
+
 

@@ -12,10 +12,10 @@ class MedicamentoService {
   MedicamentoService(this._client);
 
   // Buscar todos os medicamentos de um usuário
-  // Atualizado para usar perfil_id (com fallback para user_id durante transição)
+  // Atualizado para usar user_id (campo correto baseado no schema)
   Future<List<Medicamento>> getMedicamentos(String userId) async {
     try {
-      // Primeiro, obter o perfil_id do usuário
+      // Baseado no schema, obter o perfil_id do usuário usando user_id
       final perfilResponse = await _client
           .from('perfis')
           .select('id')
@@ -29,8 +29,8 @@ class MedicamentoService {
           .from('medicamentos')
           .select()
           .or(perfilId != null 
-              ? 'perfil_id.eq.$perfilId,user_id.eq.$userId'
-              : 'user_id.eq.$userId')
+              ? 'perfil_id.eq.$perfilId'
+              : 'perfil_id.eq.$userId')
           .order('created_at', ascending: false);
 
       return (response as List)
@@ -49,23 +49,23 @@ class MedicamentoService {
       
       // Garantir que perfil_id ou user_id estejam presentes
       if (data['perfil_id'] == null) {
-        if (medicamento.userId.isNotEmpty) {
+        if (medicamento.userId != null && medicamento.userId!.isNotEmpty) {
           final perfilResponse = await _client
               .from('perfis')
               .select('id')
-              .eq('user_id', medicamento.userId)
+              .eq('perfil_id', medicamento.userId!)
               .maybeSingle();
           
           if (perfilResponse != null) {
             data['perfil_id'] = perfilResponse['id'] as String;
           } else {
             // Se não encontrou perfil, garantir que user_id esteja presente
-            if (data['user_id'] == null || (data['user_id'] as String).isEmpty) {
-              data['user_id'] = medicamento.userId;
+            if (data['perfil_id'] == null || (data['perfil_id'] as String).isEmpty) {
+              data['perfil_id'] = medicamento.userId!;
             }
           }
         } else {
-          throw Exception('user_id é obrigatório quando perfil_id não está disponível');
+          throw Exception('perfil_id é obrigatório');
         }
       }
 
@@ -77,13 +77,12 @@ class MedicamentoService {
       // Limpar dados antes de inserir (remove strings vazias, mas mantém campos obrigatórios)
       final cleanedData = DataCleaner.cleanData(
         data,
-        fieldsToKeepEmpty: ['user_id', 'perfil_id'], // Manter mesmo se vazios durante transição
+        fieldsToKeepEmpty: ['perfil_id'],
       );
       
       // Garantir que pelo menos perfil_id ou user_id estejam presentes após limpeza
-      if (cleanedData['perfil_id'] == null && 
-          (cleanedData['user_id'] == null || (cleanedData['user_id'] as String).isEmpty)) {
-        throw Exception('É necessário perfil_id ou user_id para criar medicamento');
+      if (cleanedData['perfil_id'] == null) {
+        throw Exception('É necessário perfil_id para criar medicamento');
       }
       
       debugPrint('📤 MedicamentoService: Dados para inserção: $cleanedData');
@@ -127,7 +126,7 @@ class MedicamentoService {
       // Limpar dados antes de atualizar (remove strings vazias, mas mantém campos importantes)
       final cleanedUpdates = DataCleaner.cleanData(
         updates,
-        fieldsToKeepEmpty: ['user_id', 'perfil_id'], // Manter mesmo se vazios durante transição
+        fieldsToKeepEmpty: ['perfil_id'],
       );
       
       debugPrint('📤 MedicamentoService: Dados para atualização: $cleanedUpdates');
@@ -210,7 +209,7 @@ class MedicamentoService {
         if (novaQuantidade <= 5 && novaQuantidade > 0) {
           try {
             // Obter perfil_id do medicamento
-            final perfilId = medicamentoAtual.perfilId ?? medicamentoAtual.userId;
+            final perfilId = medicamentoAtual.perfilId;
             await HistoricoEventosService.addEvento({
               'perfil_id': perfilId,
               'tipo_evento': 'estoque_baixo',
@@ -264,7 +263,7 @@ class MedicamentoService {
       final perfilResponse = await _client
           .from('perfis')
           .select('id')
-          .eq('user_id', userId)
+          .eq('perfil_id', userId)
           .maybeSingle();
       
       final perfilId = perfilResponse?['id'] as String?;
@@ -274,8 +273,8 @@ class MedicamentoService {
           .from('medicamentos')
           .select()
           .or(perfilId != null 
-              ? 'perfil_id.eq.$perfilId,user_id.eq.$userId'
-              : 'user_id.eq.$userId')
+              ? 'perfil_id.eq.$perfilId'
+              : 'perfil_id.eq.$userId')
           .eq('concluido', concluido)
           .order('created_at', ascending: false);
 

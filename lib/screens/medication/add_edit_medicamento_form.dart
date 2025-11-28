@@ -245,8 +245,8 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      const Color(0xFF0400B9).withOpacity(0.1),
-                      const Color(0xFF0400B9).withOpacity(0.05),
+                      const Color(0xFF0400B9).withValues(alpha: 0.1),
+                      const Color(0xFF0400B9).withValues(alpha: 0.05),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(16),
@@ -425,7 +425,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF0400B9).withOpacity(0.3),
+                      color: const Color(0xFF0400B9).withValues(alpha: 0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -486,7 +486,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -502,7 +502,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
             margin: const EdgeInsets.all(12),
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF0400B9).withOpacity(0.1),
+              color: const Color(0xFF0400B9).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -535,7 +535,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
     final isSelected = _tipoFrequencia == value;
     return Container(
       decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF0400B9).withOpacity(0.05) : Colors.transparent,
+        color: isSelected ? const Color(0xFF0400B9).withValues(alpha: 0.05) : Colors.transparent,
       ),
       child: RadioListTile<String>(
         title: Row(
@@ -573,7 +573,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF0400B9).withOpacity(0.05),
+            color: const Color(0xFF0400B9).withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -626,7 +626,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF0400B9).withOpacity(0.05),
+            color: const Color(0xFF0400B9).withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -657,7 +657,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                         }
                       });
                     },
-                    selectedColor: const Color(0xFF0400B9).withOpacity(0.2),
+                    selectedColor: const Color(0xFF0400B9).withValues(alpha: 0.2),
                     checkmarkColor: const Color(0xFF0400B9),
                   );
                 }).toList(),
@@ -670,7 +670,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF0400B9).withOpacity(0.05),
+            color: const Color(0xFF0400B9).withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(

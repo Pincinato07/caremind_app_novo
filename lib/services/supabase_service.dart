@@ -202,15 +202,43 @@ class SupabaseService {
   // Profile methods
   Future<Perfil?> getProfile(String userId) async {
     try {
+      // Baseado no schema real, a tabela perfis tem:
+      // - id (uuid, primary key, referencia auth.users(id))
+      // - user_id (uuid, unique, referencia auth.users(id))
+      
+      // Primeiro, tentar buscar por user_id (campo correto baseado no schema)
       final response = await _client
           .from('perfis')
           .select()
-          .eq('id', userId)
+          .eq('user_id', userId)
           .maybeSingle();
 
       if (response != null) {
         return Perfil.fromMap(response);
       }
+      
+      // Se não encontrar por user_id, tentar por id (fallback)
+      final fallbackResponse = await _client
+          .from('perfis')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (fallbackResponse != null) {
+        return Perfil.fromMap(fallbackResponse);
+      }
+      
+      // Se não encontrar por nenhum dos métodos, tentar usar .or() para compatibilidade
+      final orResponse = await _client
+          .from('perfis')
+          .select()
+          .or('user_id.eq.$userId,id.eq.$userId')
+          .maybeSingle();
+      
+      if (orResponse != null) {
+        return Perfil.fromMap(orResponse);
+      }
+      
       return null;
     } catch (error) {
       throw ErrorHandler.toAppException(error);
@@ -246,7 +274,20 @@ class SupabaseService {
       if (updates.isNotEmpty) {
         // Limpar dados antes de atualizar (remove strings vazias)
         final cleanedUpdates = DataCleaner.cleanData(updates);
-        await _client.from('perfis').update(cleanedUpdates).eq('id', userId);
+        
+        // Baseado no schema, buscar pelo user_id (campo correto)
+        final perfilResponse = await _client
+            .from('perfis')
+            .select('id')
+            .eq('user_id', userId)
+            .maybeSingle();
+        
+        final perfilId = perfilResponse?['id'] as String?;
+        
+        // Usar o ID do perfil encontrado, senão usar o userId (fallback)
+        final targetId = perfilId ?? userId;
+        
+        await _client.from('perfis').update(cleanedUpdates).eq('id', targetId);
       }
     } catch (error) {
       throw ErrorHandler.toAppException(error);
@@ -256,11 +297,23 @@ class SupabaseService {
   // Buscar idosos vinculados a um familiar
   Future<List<Perfil>> getIdososVinculados(String familiarId) async {
     try {
+      // Baseado no schema, encontrar o perfil_id do familiar usando user_id
+      final familiarPerfilResponse = await _client
+          .from('perfis')
+          .select('id')
+          .eq('user_id', familiarId)
+          .maybeSingle();
+      
+      final familiarPerfilId = familiarPerfilResponse?['id'] as String?;
+      
+      // Usar perfil_id se encontrado, senão usar familiarId (fallback)
+      final targetFamiliarId = familiarPerfilId ?? familiarId;
+      
       // Buscar vínculos
       final vinculosResponse = await _client
           .from('vinculos_familiares')
           .select('id_idoso')
-          .eq('id_familiar', familiarId);
+          .eq('id_familiar', targetFamiliarId);
 
       if (vinculosResponse.isEmpty) {
         return [];
@@ -310,7 +363,7 @@ class SupabaseService {
         throw Exception('Perfil do familiar não encontrado');
       }
 
-      // Remover vínculo
+      // Remover vínculo usando o ID do perfil do familiar
       await _client
           .from('vinculos_familiares')
           .delete()

@@ -20,6 +20,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyAccessibilityHighContrast = 'accessibility_high_contrast';
   static const String _keyAccessibilityAutoRead = 'accessibility_auto_read';
   static const String _keyAccessibilityVoiceSpeed = 'accessibility_voice_speed';
+  static const String _keyWavesEnabled = 'waves_enabled';
 
   // Valores padrão
   static const bool _defaultNotificationsMedicamentos = true;
@@ -30,6 +31,7 @@ class SettingsService extends ChangeNotifier {
   static const bool _defaultAccessibilityHighContrast = false;
   static const bool _defaultAccessibilityAutoRead = false;
   static const double _defaultAccessibilityVoiceSpeed = 0.5;
+  static const bool _defaultWavesEnabled = true;
 
   // Valores em memória (cache)
   bool? _notificationsMedicamentos;
@@ -40,6 +42,7 @@ class SettingsService extends ChangeNotifier {
   bool? _accessibilityHighContrast;
   bool? _accessibilityAutoRead;
   double? _accessibilityVoiceSpeed;
+  bool? _wavesEnabled;
 
   /// Inicializa o serviço carregando preferências
   Future<void> initialize() async {
@@ -68,6 +71,7 @@ class SettingsService extends ChangeNotifier {
     _accessibilityHighContrast = _prefs!.getBool(_keyAccessibilityHighContrast) ?? _defaultAccessibilityHighContrast;
     _accessibilityAutoRead = _prefs!.getBool(_keyAccessibilityAutoRead) ?? _defaultAccessibilityAutoRead;
     _accessibilityVoiceSpeed = _prefs!.getDouble(_keyAccessibilityVoiceSpeed) ?? _defaultAccessibilityVoiceSpeed;
+    _wavesEnabled = _prefs!.getBool(_keyWavesEnabled) ?? _defaultWavesEnabled;
   }
 
   // Getters
@@ -79,6 +83,7 @@ class SettingsService extends ChangeNotifier {
   bool get accessibilityHighContrast => _accessibilityHighContrast ?? _defaultAccessibilityHighContrast;
   bool get accessibilityAutoRead => _accessibilityAutoRead ?? _defaultAccessibilityAutoRead;
   double get accessibilityVoiceSpeed => _accessibilityVoiceSpeed ?? _defaultAccessibilityVoiceSpeed;
+  bool get wavesEnabled => _wavesEnabled ?? _defaultWavesEnabled;
 
   // Setters com persistência
   Future<bool> setNotificationsMedicamentos(bool value) async {
@@ -181,6 +186,18 @@ class SettingsService extends ChangeNotifier {
     return success;
   }
 
+  Future<bool> setWavesEnabled(bool value) async {
+    if (_prefs == null) await initialize();
+    if (_prefs == null) return false;
+
+    final success = await _prefs!.setBool(_keyWavesEnabled, value);
+    if (success) {
+      _wavesEnabled = value;
+      notifyListeners();
+    }
+    return success;
+  }
+
   /// Reseta todas as configurações para os valores padrão
   Future<void> resetToDefaults() async {
     if (_prefs == null) await initialize();
@@ -194,6 +211,7 @@ class SettingsService extends ChangeNotifier {
     await setAccessibilityHighContrast(_defaultAccessibilityHighContrast);
     await setAccessibilityAutoRead(_defaultAccessibilityAutoRead);
     await setAccessibilityVoiceSpeed(_defaultAccessibilityVoiceSpeed);
+    await setWavesEnabled(_defaultWavesEnabled);
   }
 }
 

@@ -57,5 +57,17 @@
 		<array>
 			<string>remote-notification</string>
 		</array>
+		<!-- Deep Link para callbacks OAuth (Alexa, etc) -->
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleURLName</key>
+				<string>com.caremind.app</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>caremind</string>
+				</array>
+			</dict>
+		</array>
 	</dict>
 </plist>

@@ -19,8 +19,9 @@ class ErrorHandler {
     }
 
     if (error is AuthException) {
+      String message = _translateAuthErrorMessage(error.message);
       return AuthenticationException(
-        message: error.message,
+        message: message,
         code: error.statusCode?.toString(),
         originalError: error,
       );
@@ -55,10 +56,82 @@ class ErrorHandler {
     }
 
     // Erro desconhecido
+    String message = _translateGenericError(error.toString());
     return UnknownException(
-      message: error.toString(),
+      message: message,
       originalError: error,
     );
+  }
+
+  /// Traduz mensagens de erro de autenticação para português
+  static String _translateAuthErrorMessage(String message) {
+    final lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.contains('invalid login credentials')) {
+      return 'E-mail ou senha incorretos.';
+    }
+    if (lowerMessage.contains('invalid credentials')) {
+      return 'E-mail ou senha incorretos.';
+    }
+    if (lowerMessage.contains('user not found')) {
+      return 'Usuário não encontrado. Verifique o e-mail informado.';
+    }
+    if (lowerMessage.contains('email already registered')) {
+      return 'Este e-mail já está cadastrado.';
+    }
+    if (lowerMessage.contains('weak password')) {
+      return 'Senha muito fraca. Use pelo menos 6 caracteres.';
+    }
+    if (lowerMessage.contains('email not confirmed')) {
+      return 'E-mail não confirmado. Verifique sua caixa de entrada.';
+    }
+    if (lowerMessage.contains('too many requests')) {
+      return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+    }
+    if (lowerMessage.contains('bad request') || lowerMessage.contains('400')) {
+      return 'Dados inválidos. Verifique seu e-mail e senha.';
+    }
+    if (lowerMessage.contains('unauthorized') || lowerMessage.contains('401')) {
+      return 'Não autorizado. Verifique suas credenciais.';
+    }
+    if (lowerMessage.contains('forbidden') || lowerMessage.contains('403')) {
+      return 'Acesso negado.';
+    }
+    if (lowerMessage.contains('not found') || lowerMessage.contains('404')) {
+      return 'Recurso não encontrado.';
+    }
+    
+    // Se não for uma mensagem conhecida, retorna a original
+    return message;
+  }
+
+  /// Traduz mensagens de erro genéricas para português
+  static String _translateGenericError(String message) {
+    final lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.contains('bad request') || lowerMessage.contains('400')) {
+      return 'Dados inválidos. Verifique as informações informadas.';
+    }
+    if (lowerMessage.contains('unauthorized') || lowerMessage.contains('401')) {
+      return 'Não autorizado. Faça login novamente.';
+    }
+    if (lowerMessage.contains('forbidden') || lowerMessage.contains('403')) {
+      return 'Acesso negado.';
+    }
+    if (lowerMessage.contains('not found') || lowerMessage.contains('404')) {
+      return 'Recurso não encontrado.';
+    }
+    if (lowerMessage.contains('timeout')) {
+      return 'Tempo esgotado. Verifique sua conexão e tente novamente.';
+    }
+    if (lowerMessage.contains('network') || lowerMessage.contains('connection')) {
+      return 'Erro de conexão. Verifique sua internet.';
+    }
+    if (lowerMessage.contains('socket')) {
+      return 'Erro de conexão. Verifique sua internet.';
+    }
+    
+    return message;
   }
 
   /// Converte uma exceção em uma Failure
@@ -128,19 +201,33 @@ class ErrorHandler {
           // Se contém informações sobre campos faltando, destacar
           if (details.toLowerCase().contains('null value') || 
               details.toLowerCase().contains('violates not-null')) {
-            return 'Campos obrigatórios não foram preenchidos. Detalhes: $details';
+            return 'Campos obrigatórios não foram preenchidos. Verifique todos os campos.';
+          }
+          // Traduzir mensagens comuns
+          if (details.toLowerCase().contains('invalid')) {
+            return 'Dados inválidos. Verifique as informações informadas.';
           }
           return details;
         }
         // Se a mensagem contém "Bad Request" ou similar, fornecer mensagem mais amigável
         if (error.message.toLowerCase().contains('bad request') ||
             error.message.toLowerCase().contains('400')) {
-          return 'Erro na requisição. Verifique se todos os campos obrigatórios foram preenchidos corretamente.';
+          return 'Dados inválidos. Verifique seu e-mail e senha.';
         }
         // Verificar se é erro de campo obrigatório
         if (error.message.toLowerCase().contains('null value') ||
             error.message.toLowerCase().contains('not-null constraint')) {
           return 'Campos obrigatórios não foram preenchidos. Verifique todos os campos do formulário.';
+        }
+        // Traduzir outras mensagens comuns
+        if (error.message.toLowerCase().contains('invalid credentials')) {
+          return 'E-mail ou senha incorretos.';
+        }
+        if (error.message.toLowerCase().contains('user not found')) {
+          return 'Usuário não encontrado. Verifique o e-mail informado.';
+        }
+        if (error.message.toLowerCase().contains('email already registered')) {
+          return 'Este e-mail já está cadastrado.';
         }
         return error.message.isNotEmpty
             ? error.message

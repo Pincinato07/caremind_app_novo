@@ -24,20 +24,26 @@ class Perfil {
   });
 
   factory Perfil.fromMap(Map<String, dynamic> map) {
-    return Perfil(
-      id: map['id'] as String,
-      createdAt: DateTime.parse(map['created_at'] as String),
-      nome: map['nome'] as String?,
-      tipo: map['tipo'] as String?,
-      codigoVinculacao: map['codigo_vinculacao'] as String?,
-      fotoUsuario: map['foto_usuario'] as String?,
-      codigoVinculacaoExpiraEm: map['codigo_vinculacao_expira_em'] != null
-          ? DateTime.parse(map['codigo_vinculacao_expira_em'] as String)
-          : null,
-      telefone: map['telefone'] as String?,
-      dataNascimento: map['data_nascimento'] as String?,
-      timezone: map['timezone'] as String?,
-    );
+    try {
+      return Perfil(
+        id: map['id'] as String,
+        createdAt: map['created_at'] != null 
+            ? DateTime.parse(map['created_at'] as String)
+            : DateTime.now(),
+        nome: map['nome'] as String?,
+        tipo: map['tipo'] as String?,
+        codigoVinculacao: map['codigo_vinculacao'] as String?,
+        fotoUsuario: map['foto_usuario'] as String?,
+        codigoVinculacaoExpiraEm: map['codigo_vinculacao_expira_em'] != null
+            ? DateTime.parse(map['codigo_vinculacao_expira_em'] as String)
+            : null,
+        telefone: map['telefone'] as String?,
+        dataNascimento: map['data_nascimento'] as String?,
+        timezone: map['timezone'] as String?,
+      );
+    } catch (e) {
+      throw Exception('Erro ao converter Perfil: $e. Map: $map');
+    }
   }
 
   Map<String, dynamic> toMap() {

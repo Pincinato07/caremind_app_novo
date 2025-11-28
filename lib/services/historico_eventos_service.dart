@@ -7,10 +7,19 @@ class HistoricoEventosService {
   // Buscar histórico de eventos de um perfil
   static Future<List<Map<String, dynamic>>> getHistoricoEventos(String perfilId) async {
     try {
+      // Baseado no schema, tentar encontrar o perfil usando user_id
+      final perfilResponse = await _client
+          .from('perfis')
+          .select('id')
+          .eq('user_id', perfilId)
+          .maybeSingle();
+      
+      final targetPerfilId = perfilResponse?['id'] as String? ?? perfilId;
+      
       final response = await _client
           .from('historico_eventos')
           .select()
-          .eq('perfil_id', perfilId)
+          .eq('perfil_id', targetPerfilId)
           .order('data_hora', ascending: false);
 
       return List<Map<String, dynamic>>.from(response);

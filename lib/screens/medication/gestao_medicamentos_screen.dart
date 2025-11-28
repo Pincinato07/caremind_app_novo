@@ -5,10 +5,12 @@ import 'dart:io';
 import '../../models/medicamento.dart';
 import '../../services/medicamento_service.dart';
 import '../../services/supabase_service.dart';
+import '../../services/accessibility_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
 import '../../core/navigation/app_navigation.dart';
 import '../../core/state/familiar_state.dart';
+import '../../core/accessibility/tts_enhancer.dart';
 import '../../services/historico_eventos_service.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/glass_card.dart';
@@ -46,6 +48,18 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
     // Escutar mudanças no FamiliarState para recarregar quando o idoso mudar
     final familiarState = getIt<FamiliarState>();
     familiarState.addListener(_onFamiliarStateChanged);
+    
+    // Inicializa o serviço de acessibilidade
+    AccessibilityService.initialize();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Leitura automática do título da tela se habilitada
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      TTSEnhancer.announceScreenChange(context, 'Medicamentos');
+    });
   }
 
   @override
@@ -872,17 +886,17 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                 end: Alignment.bottomRight,
                 colors: [
                   Colors.white,
-                  const Color(0xFF0400B9).withOpacity(0.02),
+                  const Color(0xFF0400B9).withValues(alpha: 0.02),
                 ],
               ),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: const Color(0xFF0400B9).withOpacity(0.1),
+                color: const Color(0xFF0400B9).withValues(alpha: 0.1),
                 width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF0400B9).withOpacity(0.1),
+                  color: const Color(0xFF0400B9).withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -902,7 +916,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF0400B9).withOpacity(0.3),
+                            color: const Color(0xFF0400B9).withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -1021,7 +1035,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
@@ -1059,17 +1073,17 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
           end: Alignment.bottomRight,
           colors: [
             Colors.white,
-            const Color(0xFF0400B9).withOpacity(0.02),
+            const Color(0xFF0400B9).withValues(alpha: 0.02),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFF0400B9).withOpacity(0.1),
+          color: const Color(0xFF0400B9).withValues(alpha: 0.1),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0400B9).withOpacity(0.1),
+            color: const Color(0xFF0400B9).withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -1123,7 +1137,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: (medicamento.concluido ? Colors.green : const Color(0xFF0400B9)).withOpacity(0.3),
+                            color: (medicamento.concluido ? Colors.green : const Color(0xFF0400B9)).withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -1153,7 +1167,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0400B9).withOpacity(0.1),
+                              color: const Color(0xFF0400B9).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -1357,7 +1371,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.green.withOpacity(0.3),
+                          color: Colors.green.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -1401,7 +1415,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.orange.withOpacity(0.3),
+                          color: Colors.orange.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),

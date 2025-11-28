@@ -33,94 +33,103 @@ class GlassContainer extends StatelessWidget {
           return ClipRRect(
             borderRadius: borderRadius ?? BorderRadius.circular(18),
             child: Stack(
-            children: [
-              // Neutral underlay
-              Positioned.fill(
-                child: Container(color: Colors.white.withValues(alpha: 0.08)),
-              ),
-              // BackdropFilter para blur (otimizado: reduzido de 24 para 12)
-              // Blur menor mantém o efeito visual mas reduz drasticamente o processamento
-              BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                child: Container(
-                  width: width ?? screenW * 0.85,
-                  constraints: BoxConstraints(
-                    maxWidth: maxWidth ?? 380,
-                    maxHeight: maxHeight ?? screenH * 0.8,
-                  ),
-                  padding: pad,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
-                    borderRadius: borderRadius ?? BorderRadius.circular(18),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      width: 1,
-                    ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color.fromRGBO(0, 0, 0, 0.15),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  foregroundDecoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.white.withValues(alpha: 0.25),
-                        Colors.white.withValues(alpha: 0.08),
-                        Colors.transparent,
-                      ],
-                      stops: const [0.0, 0.2, 0.6],
-                    ),
-                  ),
-                  child: child,
+              children: [
+                // Fundo mais sólido para melhor contraste
+                Positioned.fill(
+                  child: Container(color: Colors.white.withValues(alpha: 0.15)),
                 ),
-              ),
-              // Top glow line
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  height: 1,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.transparent,
-                        Colors.white.withValues(alpha: 0.5),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              // Bottom inner shadow
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: IgnorePointer(
+                // BackdropFilter para blur com intensidade aumentada
+                BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                   child: Container(
-                    height: 18,
-                    decoration: const BoxDecoration(
+                    width: width ?? screenW * 0.85,
+                    constraints: BoxConstraints(
+                      maxWidth: maxWidth ?? 380,
+                      maxHeight: maxHeight ?? screenH * 0.8,
+                    ),
+                    padding: pad,
+                    decoration: BoxDecoration(
+                      // Cor mais opaca para melhor legibilidade
+                      color: Colors.white.withValues(alpha: 0.25),
+                      borderRadius: borderRadius ?? BorderRadius.circular(18),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.4),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        // Sombra mais forte para melhor definição
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                          spreadRadius: 0,
+                        ),
+                        // Brilho sutil no topo
+                        BoxShadow(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, -2),
+                          spreadRadius: 0,
+                        ),
+                      ],
+                    ),
+                    foregroundDecoration: BoxDecoration(
                       gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                         colors: [
-                          Color(0x0F000000),
+                          Colors.white.withValues(alpha: 0.4),
+                          Colors.white.withValues(alpha: 0.15),
+                          Colors.transparent,
+                        ],
+                        stops: const [0.0, 0.3, 0.7],
+                      ),
+                    ),
+                    child: child,
+                  ),
+                ),
+                // Top glow line mais destacado
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    height: 1.5,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.transparent,
+                          Colors.white.withValues(alpha: 0.7),
                           Colors.transparent,
                         ],
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        );
+                // Bottom inner shadow mais forte
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: IgnorePointer(
+                    child: Container(
+                      height: 20,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0x1A000000),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
         },
       ),
     );

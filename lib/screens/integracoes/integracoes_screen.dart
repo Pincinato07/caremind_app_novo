@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
@@ -35,7 +34,6 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
   bool _isPolling = false;
   String? _currentStatus;
   String? _error;
-  String? _ocrId;
 
   @override
   void initState() {
@@ -453,7 +451,6 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
       _selectedImage = null;
       _error = null;
       _currentStatus = null;
-      _ocrId = null;
       _isProcessing = false;
       _isPolling = false;
     });
@@ -503,7 +500,6 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
         );
 
       setState(() {
-        _ocrId = ocrId;
         _isProcessing = false;
         _isPolling = true;
         _currentStatus = 'PENDENTE';

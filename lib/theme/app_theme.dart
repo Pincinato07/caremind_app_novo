@@ -71,6 +71,8 @@ class AppTextStyles {
     Color? color,
     double? height,
     TextDecoration? decoration,
+    double? letterSpacing,
+    FontStyle? fontStyle,
   }) {
     return TextStyle(
       fontFamily: fontFamily,
@@ -79,6 +81,8 @@ class AppTextStyles {
       color: color,
       height: height,
       decoration: decoration,
+      letterSpacing: letterSpacing,
+      fontStyle: fontStyle,
     );
   }
 

@@ -233,6 +233,76 @@ class VoiceService {
       );
     }
 
+    // Comandos de navegação
+    if (_matchesCommand(lowerCommand, [
+      'ir para medicamentos',
+      'abrir medicamentos',
+      'meus remédios',
+      'ver remédios',
+      'medicamentos',
+    ])) {
+      return VoiceCommandResult(
+        success: true,
+        message: 'Abrindo seus medicamentos...',
+        action: VoiceAction.navigateToMedications,
+      );
+    }
+
+    if (_matchesCommand(lowerCommand, [
+      'ir para compromissos',
+      'abrir compromissos',
+      'meus compromissos',
+      'ver compromissos',
+      'compromissos',
+    ])) {
+      return VoiceCommandResult(
+        success: true,
+        message: 'Abrindo seus compromissos...',
+        action: VoiceAction.navigateToAppointments,
+      );
+    }
+
+    if (_matchesCommand(lowerCommand, [
+      'ir para dashboard',
+      'voltar ao início',
+      'início',
+      'menu principal',
+      'tela inicial',
+    ])) {
+      return VoiceCommandResult(
+        success: true,
+        message: 'Voltando ao menu principal...',
+        action: VoiceAction.navigateToDashboard,
+      );
+    }
+
+    if (_matchesCommand(lowerCommand, [
+      'ir para configurações',
+      'abrir configurações',
+      'configurações',
+      'ajustes',
+    ])) {
+      return VoiceCommandResult(
+        success: true,
+        message: 'Abrindo configurações...',
+        action: VoiceAction.navigateToSettings,
+      );
+    }
+
+    if (_matchesCommand(lowerCommand, [
+      'ligar para ajuda',
+      'chamar ajuda',
+      'emergência',
+      'socorro',
+      'ajuda',
+    ])) {
+      return VoiceCommandResult(
+        success: true,
+        message: 'Chamando ajuda...',
+        action: VoiceAction.emergencyCall,
+      );
+    }
+
     // Comandos de ajuda
     if (_matchesCommand(lowerCommand, [
       'ajuda',
@@ -242,7 +312,7 @@ class VoiceService {
     ])) {
       return VoiceCommandResult(
         success: true,
-        message: 'Você pode me pedir para: confirmar um remédio, confirmar uma rotina, listar seus remédios ou listar suas rotinas. O que deseja fazer?',
+        message: 'Você pode me pedir para: confirmar um remédio, confirmar uma rotina, listar seus remédios, listar suas rotinas, ir para medicamentos, ir para compromissos, voltar ao início, ir para configurações, ou chamar ajuda. O que deseja fazer?',
         action: VoiceAction.help,
       );
     }
@@ -250,7 +320,7 @@ class VoiceService {
     // Comando não reconhecido
     return VoiceCommandResult(
       success: false,
-      message: 'Desculpe, não entendi. Você pode me pedir para confirmar um remédio ou rotina. Diga "ajuda" para ver os comandos disponíveis.',
+      message: 'Desculpe, não entendi. Você pode me pedir para confirmar um remédio, confirmar uma rotina, listar itens, navegar entre telas ou chamar ajuda. Diga "ajuda" para ver todos os comandos.',
       action: VoiceAction.unknown,
     );
   }
@@ -510,6 +580,11 @@ enum VoiceAction {
   routineConfirmed,
   listMedications,
   listRoutines,
+  navigateToMedications,
+  navigateToAppointments,
+  navigateToDashboard,
+  navigateToSettings,
+  emergencyCall,
   multipleItems,
   noPendingItems,
   listEmpty,

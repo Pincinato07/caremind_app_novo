@@ -38,6 +38,27 @@ class _GestaoScreenState extends State<GestaoScreen> {
     _loadUserProfile();
   }
 
+  // Resetar para o hub quando a tela for reconstruída (voltar de outra tela)
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Verificar se estamos voltando para esta tela
+    final route = ModalRoute.of(context);
+    if (route != null && route.isCurrent) {
+      // Se estamos voltando e não estamos no hub, resetar para o hub
+      if (_currentView != GestaoView.hub) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _currentView = GestaoView.hub;
+              _refreshKey++; // Incrementar para forçar recriação das sub-telas
+            });
+          }
+        });
+      }
+    }
+  }
+
   Future<void> _loadUserProfile() async {
     try {
       final supabaseService = getIt<SupabaseService>();
@@ -183,17 +204,27 @@ class _GestaoScreenState extends State<GestaoScreen> {
     final familiarState = getIt<FamiliarState>();
     final isFamiliar = familiarState.hasIdosos;
 
-    return AppScaffoldWithWaves(
-      appBar: CareMindAppBar(
-        title: _getAppBarTitle(),
-        isFamiliar: isFamiliar,
+    return PopScope(
+      canPop: _currentView == GestaoView.hub,
+      onPopInvoked: (didPop) {
+        if (!didPop && _currentView != GestaoView.hub) {
+          // Se não estiver no hub, voltar para o hub
+          _navigateToView(GestaoView.hub);
+        }
+      },
+      child: AppScaffoldWithWaves(
+        appBar: CareMindAppBar(
+          title: _getAppBarTitle(),
+          isFamiliar: isFamiliar,
+          showBackButton: _currentView != GestaoView.hub,
+        ),
+        body: SafeArea(
+          child: _currentView == GestaoView.hub
+              ? _buildHubView(isFamiliar)
+              : _buildSubView(_currentView),
+        ),
+        floatingActionButton: _buildFloatingActionButton(),
       ),
-      body: SafeArea(
-        child: _currentView == GestaoView.hub
-            ? _buildHubView(isFamiliar)
-            : _buildSubView(_currentView),
-      ),
-      floatingActionButton: _buildFloatingActionButton(),
     );
   }
 
@@ -318,6 +349,9 @@ class _GestaoScreenState extends State<GestaoScreen> {
     return GlassCard(
       onTap: onTap,
       padding: const EdgeInsets.all(16),
+      blurSigma: 15.0,
+      opacity: 0.3,
+      useGradient: false, // Sem degrade
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,7 +388,7 @@ class _GestaoScreenState extends State<GestaoScreen> {
               subtitle,
               style: AppTextStyles.leagueSpartan(
                 fontSize: 12,
-                color: Colors.white.withValues(alpha: 0.85),
+                color: Colors.white.withValues(alpha: 0.9),
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,

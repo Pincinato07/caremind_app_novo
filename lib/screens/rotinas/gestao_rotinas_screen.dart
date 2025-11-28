@@ -380,12 +380,12 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      const Color(0xFF0400B9).withOpacity(0.1),
-                      const Color(0xFF0600E0).withOpacity(0.05),
+                      const Color(0xFF0400B9).withValues(alpha: 0.1),
+                      const Color(0xFF0600E0).withValues(alpha: 0.05),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFF0400B9).withOpacity(0.2), width: 1),
+                  border: Border.all(color: const Color(0xFF0400B9).withValues(alpha: 0.2), width: 1),
                 ),
                 child: Column(
                   children: [
@@ -431,13 +431,13 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Colors.white, const Color(0xFF0400B9).withOpacity(0.02)],
+                colors: [Colors.white, const Color(0xFF0400B9).withValues(alpha: 0.02)],
               ),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF0400B9).withOpacity(0.1), width: 1),
+              border: Border.all(color: const Color(0xFF0400B9).withValues(alpha: 0.1), width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF0400B9).withOpacity(0.1),
+                  color: const Color(0xFF0400B9).withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -495,19 +495,19 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
           end: Alignment.bottomRight,
           colors: [
             Colors.white,
-            const Color(0xFF0400B9).withOpacity(0.02),
+            const Color(0xFF0400B9).withValues(alpha: 0.02),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: concluida
               ? Colors.green.shade300
-              : const Color(0xFF0400B9).withOpacity(0.1),
+              : const Color(0xFF0400B9).withValues(alpha: 0.1),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0400B9).withOpacity(0.1),
+            color: const Color(0xFF0400B9).withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -663,7 +663,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.green.withOpacity(0.3),
+                          color: Colors.green.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -707,7 +707,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.orange.withOpacity(0.3),
+                          color: Colors.orange.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -748,4 +748,5 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
     );
   }
 }
+
 

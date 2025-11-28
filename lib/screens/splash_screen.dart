@@ -140,24 +140,87 @@ class _SplashScreenState extends State<SplashScreen>
       // Progresso: 50% - Carregando perfil
       await _updateProgress('Carregando perfil...', 0.5);
       
-      final perfil = await supabaseService.getProfile(user.id);
-      await Future.delayed(const Duration(milliseconds: 400));
+      try {
+        final perfil = await supabaseService.getProfile(user.id);
+        await Future.delayed(const Duration(milliseconds: 400));
 
-      if (perfil == null) {
-        // Progresso: 70% - Perfil não encontrado, redirecionar para cadastro
-        await _updateProgress('Perfil não encontrado...', 0.7);
-        await Future.delayed(const Duration(milliseconds: 500));
-        
-        // Progresso: 100%
+        if (perfil == null) {
+          // Progresso: 70% - Perfil não encontrado, redirecionar para cadastro
+          await _updateProgress('Perfil não encontrado...', 0.7);
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          // Progresso: 100%
+          await _updateProgress('Finalizando...', 1.0);
+          await Future.delayed(const Duration(milliseconds: 300));
+
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) => const OnboardingScreen(),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  // Fade out da splash enquanto fade in do onboarding
+                  final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+                    CurvedAnimation(
+                      parent: animation,
+                      curve: const Interval(0.3, 1.0, curve: Curves.easeInOut),
+                    ),
+                  );
+                  
+                  // Scale suave para o onboarding
+                  final scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+                    CurvedAnimation(
+                      parent: animation,
+                      curve: const Interval(0.3, 1.0, curve: Curves.easeOutCubic),
+                    ),
+                  );
+                  
+                  return FadeTransition(
+                    opacity: fadeAnimation,
+                    child: ScaleTransition(
+                      scale: scaleAnimation,
+                      child: child,
+                    ),
+                  );
+                },
+                transitionDuration: const Duration(milliseconds: 800),
+                reverseTransitionDuration: const Duration(milliseconds: 400),
+              ),
+            );
+          }
+          return;
+        }
+
+        // Progresso: 70% - Carregando dados do usuário
+        await _updateProgress('Carregando dados...', 0.7);
+        await Future.delayed(const Duration(milliseconds: 300));
+
+        // Progresso: 90% - Preparando interface
+        await _updateProgress('Preparando interface...', 0.9);
+        await Future.delayed(const Duration(milliseconds: 200));
+
+        // Progresso: 100% - Finalizando
         await _updateProgress('Finalizando...', 1.0);
         await Future.delayed(const Duration(milliseconds: 300));
 
         if (mounted) {
+          // Navegar para a tela principal baseada no perfil
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => MainNavigatorScreen(perfil: perfil),
+            ),
+          );
+        }
+      } catch (profileError) {
+        debugPrint('❌ Erro ao carregar perfil: $profileError');
+        // Em caso de erro no perfil, tentar redirecionar para onboarding
+        if (mounted) {
+          await _updateProgress('Erro ao carregar perfil. Redirecionando...', 0.8);
+          await Future.delayed(const Duration(milliseconds: 500));
+          
           Navigator.of(context).pushReplacement(
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) => const OnboardingScreen(),
               transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                // Fade out da splash enquanto fade in do onboarding
                 final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
                   CurvedAnimation(
                     parent: animation,
@@ -165,7 +228,6 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 );
                 
-                // Scale suave para o onboarding
                 final scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
                   CurvedAnimation(
                     parent: animation,
@@ -187,27 +249,6 @@ class _SplashScreenState extends State<SplashScreen>
           );
         }
         return;
-      }
-
-      // Progresso: 70% - Carregando dados do usuário
-      await _updateProgress('Carregando dados...', 0.7);
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      // Progresso: 90% - Preparando interface
-      await _updateProgress('Preparando interface...', 0.9);
-      await Future.delayed(const Duration(milliseconds: 200));
-
-      // Progresso: 100% - Finalizando
-      await _updateProgress('Finalizando...', 1.0);
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      if (mounted) {
-        // Navegar para a tela principal baseada no perfil
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => MainNavigatorScreen(perfil: perfil),
-          ),
-        );
       }
     } catch (e) {
       debugPrint('❌ Erro na inicialização: $e');
@@ -273,6 +314,7 @@ class _SplashScreenState extends State<SplashScreen>
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
                             letterSpacing: 2,
+                          ).copyWith(
                             shadows: [
                               Shadow(
                                 color: Colors.black.withValues(alpha: 0.2),
