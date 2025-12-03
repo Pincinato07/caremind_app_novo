@@ -17,10 +17,11 @@ CareMind Mobile é a ponta de execução móvel do sistema de gerenciamento de m
 
 O aplicativo foi projetado com foco total na experiência do usuário final e acessibilidade, seguindo as diretrizes WCAG (Web Content Accessibility Guidelines) para garantir que todos os usuários, independentemente de suas limitações, possam utilizar o sistema com autonomia e segurança.
 
-### 👥 Público-Alvo Híbrido
+### 👥 Tipos de Usuários
 
-- **👴 Interface para Idoso**: Design acessível com botões grandes, alto contraste e suporte a comandos de voz
-- **👩‍⚕️ Interface para Cuidador**: Ferramentas completas de gestão e monitoramento
+- **👴 Idoso**: Usuário final que recebe os lembretes de medicamentos e utiliza a interface simplificada com acessibilidade total
+- **👩‍⚕️ Familiar/Cuidador**: Usuário gerenciador que cadastra medicamentos, agenda compromissos e monitora a saúde do idoso
+- **👤 Individual**: Usuário autônomo que gerencia seus próprios medicamentos e compromissos de saúde
 
 ---
 
