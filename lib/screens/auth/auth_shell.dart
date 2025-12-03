@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/wave_background.dart';
 import '../shared/main_navigator_screen.dart';
+import '../../core/injection/injection.dart';
 
 enum AuthMode { login, register }
 
@@ -136,7 +137,8 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         return;
       }
 
-      final response = await SupabaseService.signUp(
+      final supabaseService = getIt<SupabaseService>();
+      final response = await supabaseService.signUp(
         email: email,
         password: password,
         nome: name,
@@ -147,7 +149,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
 
       if (response.user != null) {
         await Future.delayed(const Duration(milliseconds: 500));
-        final perfil = await SupabaseService.getProfile(response.user!.id);
+        final perfil = await supabaseService.getProfile(response.user!.id);
         if (perfil != null && mounted) {
           Navigator.pushAndRemoveUntil(
             context,
@@ -193,77 +195,83 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
   // ==================== GLASSMORPHISM ====================
 
   Widget _glassContainer({required Widget child}) {
-    final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.height < 680;
-    final screenW = size.width;
-    final screenH = size.height;
-    final pad = 24.0;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: Stack(
-        children: [
-          Positioned.fill(child: Container(color: Colors.white.withAlpha(8))),
-          BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: Container(
-              width: screenW * (isSmallScreen ? 0.9 : 0.85),
-              constraints: BoxConstraints(
-                maxWidth: 400,
-                minHeight: isSmallScreen ? screenH * 0.4 : screenH * 0.5,
-                maxHeight: isSmallScreen ? screenH * 0.85 : screenH * 0.8,
-              ),
-              padding: EdgeInsets.all(isSmallScreen ? pad * 0.8 : pad),
-              decoration: BoxDecoration(
-                color: Colors.white.withAlpha(8),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.white.withAlpha(18), width: 1),
-                boxShadow: const [
-                  BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.15), blurRadius: 8, offset: Offset(0, 2)),
-                ],
-              ),
-              foregroundDecoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Colors.white.withAlpha(25), Colors.white.withAlpha(8), Colors.transparent],
-                  stops: const [0.0, 0.2, 0.6],
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Stack(
+            children: [
+              Positioned.fill(child: Container(color: Colors.white.withAlpha(8))),
+              BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(8),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.white.withAlpha(18), width: 1),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color.fromRGBO(0, 0, 0, 0.15),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  foregroundDecoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white.withAlpha(25),
+                        Colors.white.withAlpha(8),
+                        Colors.transparent
+                      ],
+                      stops: const [0.0, 0.2, 0.6],
+                    ),
+                  ),
+                  child: child,
                 ),
               ),
-              child: child,
-            ),
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 1,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.transparent, Colors.white.withAlpha(50), Colors.transparent],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: IgnorePointer(
-              child: Container(
-                height: 18,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0x0F000000), Colors.transparent],
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        Colors.white.withAlpha(50),
+                        Colors.transparent
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: IgnorePointer(
+                  child: Container(
+                    height: 18,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0x0F000000), Colors.transparent],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -283,18 +291,35 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         style: ButtonStyle(
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) return const Color(0xFF020054);
-            if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) return const Color(0xFF0600E0);
+            if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
+              return const Color(0xFF0600E0);
+            }
             return baseColor;
           }),
           foregroundColor: WidgetStateProperty.all(Colors.white),
           overlayColor: WidgetStateProperty.all(Colors.white.withAlpha(6)),
           elevation: WidgetStateProperty.all(6),
           shadowColor: WidgetStateProperty.all(baseColor.withAlpha(20)),
-          shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-          textStyle: WidgetStateProperty.all(GoogleFonts.leagueSpartan(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+          shape: WidgetStateProperty.all(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          textStyle: WidgetStateProperty.all(
+            GoogleFonts.leagueSpartan(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
         ),
         child: isLoading
-            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
             : Text(label),
       ),
     );
@@ -306,12 +331,24 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: onPressed == null ? Colors.grey[400]! : Colors.white, width: 1.5),
+          side: BorderSide(
+            color: onPressed == null ? Colors.grey[400]! : Colors.white,
+            width: 1.5,
+          ),
           backgroundColor: Colors.white.withAlpha(8),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: GoogleFonts.leagueSpartan(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+          textStyle: GoogleFonts.leagueSpartan(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
         ),
-        child: Text(label, style: GoogleFonts.leagueSpartan(color: onPressed == null ? Colors.grey[400] : Colors.white)),
+        child: Text(
+          label,
+          style: GoogleFonts.leagueSpartan(
+            color: onPressed == null ? Colors.grey[400] : Colors.white,
+          ),
+        ),
       ),
     );
   }
@@ -335,10 +372,16 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         style: GoogleFonts.leagueSpartan(color: Colors.white, fontSize: 15),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: GoogleFonts.leagueSpartan(color: Colors.white.withAlpha(70), fontSize: 15),
+          hintStyle: GoogleFonts.leagueSpartan(
+            color: Colors.white.withAlpha(70),
+            fontSize: 15,
+          ),
           filled: true,
           fillColor: Colors.white.withAlpha(12),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
@@ -368,6 +411,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
           ),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, color: Colors.white, size: 32),
             const SizedBox(height: 8),
@@ -398,6 +442,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
 
   Widget _buildStep1() {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         _glowField(
           controller: _nameController,
@@ -422,6 +467,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
 
   Widget _buildStep2() {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         _glowField(
           controller: _passwordController,
@@ -449,10 +495,15 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
 
   Widget _buildStep3() {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           'Tipo de conta',
-          style: GoogleFonts.leagueSpartan(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+          style: GoogleFonts.leagueSpartan(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 16),
         Row(
@@ -478,6 +529,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         ),
         const SizedBox(height: 20),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Checkbox(
               value: _termsAccepted,
@@ -486,23 +538,31 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
               checkColor: const Color(0xFF0400BA),
             ),
             Expanded(
-              child: RichText(
-                text: TextSpan(
-                  style: GoogleFonts.leagueSpartan(color: Colors.white70, fontSize: 13),
-                  children: [
-                    const TextSpan(text: 'Li e aceito os '),
-                    TextSpan(
-                      text: 'Termos de Uso',
-                      style: const TextStyle(decoration: TextDecoration.underline),
-                      recognizer: TapGestureRecognizer()..onTap = () => _launchURL('https://exemplo.com/termos'),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: RichText(
+                  text: TextSpan(
+                    style: GoogleFonts.leagueSpartan(
+                      color: Colors.white70,
+                      fontSize: 13,
                     ),
-                    const TextSpan(text: ' e '),
-                    TextSpan(
-                      text: 'Política de Privacidade',
-                      style: const TextStyle(decoration: TextDecoration.underline),
-                      recognizer: TapGestureRecognizer()..onTap = () => _launchURL('https://exemplo.com/privacidade'),
-                    ),
-                  ],
+                    children: [
+                      const TextSpan(text: 'Li e aceito os '),
+                      TextSpan(
+                        text: 'Termos de Uso',
+                        style: const TextStyle(decoration: TextDecoration.underline),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => _launchURL('https://exemplo.com/termos'),
+                      ),
+                      const TextSpan(text: ' e '),
+                      TextSpan(
+                        text: 'Política de Privacidade',
+                        style: const TextStyle(decoration: TextDecoration.underline),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => _launchURL('https://exemplo.com/privacidade'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -533,11 +593,16 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
       child: Form(
         key: _formKey,
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               'Entrar na sua conta',
-              style: GoogleFonts.leagueSpartan(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
+              style: GoogleFonts.leagueSpartan(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -574,12 +639,19 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                 },
                 child: RichText(
                   text: TextSpan(
-                    style: GoogleFonts.leagueSpartan(color: Colors.white70, fontSize: 14),
+                    style: GoogleFonts.leagueSpartan(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
                     children: const [
                       TextSpan(text: 'Não tem conta? '),
                       TextSpan(
                         text: 'Cadastre-se',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
                       ),
                     ],
                   ),
@@ -593,42 +665,47 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
   }
 
   Widget _buildRegisterCard() {
-    final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.height < 680;
-    final screenH = size.height;
-    final contentHeight = isSmallScreen ? screenH * 0.45 : screenH * 0.5;
-
     return _glassContainer(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: EdgeInsets.only(top: isSmallScreen ? 12 : 16, bottom: 8),
-            child: Text(
-              'Criar Conta',
-              style: GoogleFonts.leagueSpartan(fontSize: isSmallScreen ? 18 : 20, fontWeight: FontWeight.w700, color: Colors.white),
+          Text(
+            'Criar Conta',
+            style: GoogleFonts.leagueSpartan(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
             ),
           ),
+          const SizedBox(height: 4),
           Text(
             'Passo ${_registerStep + 1} de 3',
-            style: GoogleFonts.leagueSpartan(fontSize: isSmallScreen ? 12 : 14, color: Colors.white.withOpacity(0.8)),
+            style: GoogleFonts.leagueSpartan(
+              fontSize: 14,
+              color: Colors.white.withOpacity(0.8),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           SizedBox(
-            height: contentHeight,
+            height: 300,
             child: PageView(
               controller: _registerPageController,
               physics: const NeverScrollableScrollPhysics(),
               onPageChanged: (i) => setState(() => _registerStep = i),
-              children: [_buildStep1(), _buildStep2(), _buildStep3()],
+              children: [
+                _buildStep1(),
+                _buildStep2(),
+                _buildStep3(),
+              ],
             ),
           ),
+          const SizedBox(height: 16),
           SmoothPageIndicator(
             controller: _registerPageController,
             count: 3,
-            effect: WormEffect(
-              dotHeight: isSmallScreen ? 5 : 6,
-              dotWidth: isSmallScreen ? 5 : 6,
+            effect: const WormEffect(
+              dotHeight: 6,
+              dotWidth: 6,
               activeDotColor: Colors.white,
               dotColor: Colors.white24,
               spacing: 4,
@@ -641,12 +718,19 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
               onPressed: () => setState(() => _mode = AuthMode.login),
               child: RichText(
                 text: TextSpan(
-                  style: GoogleFonts.leagueSpartan(color: Colors.white70, fontSize: 14),
+                  style: GoogleFonts.leagueSpartan(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
                   children: const [
                     TextSpan(text: 'Já tem conta? '),
                     TextSpan(
                       text: 'Faça login',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                      ),
                     ),
                   ],
                 ),
@@ -662,13 +746,10 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final viewPadding = MediaQuery.of(context).viewPadding;
-    final isSmallScreen = size.height < 680;
-    final logoHeight = isSmallScreen ? 80.0 : 100.0;
 
     return Scaffold(
       body: Stack(
         children: [
-          const WaveBackground(),
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -678,30 +759,36 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
               ),
             ),
           ),
-          SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: size.height),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: (size.height * 0.08).clamp(32.0, 100.0),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(height: viewPadding.top > 0 ? viewPadding.top : 16),
-                    Image.asset('assets/images/caremind_deitado.png', height: logoHeight, fit: BoxFit.contain),
-                    const SizedBox(height: 32),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 380),
-                      child: AnimatedSwitcher(
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: WaveBackground(),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: size.height - viewPadding.top - viewPadding.bottom),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/images/caremind_deitado.png',
+                        height: 100,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 32),
+                      AnimatedSwitcher(
                         duration: const Duration(milliseconds: 300),
-                        child: _mode == AuthMode.login ? _buildLoginCard() : _buildRegisterCard(),
+                        child: _mode == AuthMode.login
+                            ? _buildLoginCard()
+                            : _buildRegisterCard(),
                         key: ValueKey(_mode),
                       ),
-                    ),
-                    SizedBox(height: viewPadding.bottom > 0 ? viewPadding.bottom : 16),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -6,7 +6,6 @@
 [![iOS](https://img.shields.io/badge/iOS-000000?style=for-the-badge&logo=ios)](https://www.apple.com/ios/)
 [![Supabase](https://img.shields.io/badge/Supabase-2.5.6-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
 [![Firebase](https://img.shields.io/badge/Firebase-15.1.3-FFCA28?style=for-the-badge&logo=firebase)](https://firebase.google.com/)
-[![Status](https://img.shields.io/badge/Status-Concluído-brightgreen?style=for-the-badge)]()
 
 > **Autonomia e Segurança na Palma da Mão**
 

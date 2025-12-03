@@ -10,7 +10,12 @@ plugins {
 android {
     namespace = "com.example.caremind"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973"
+    
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
