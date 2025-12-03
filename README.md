@@ -178,16 +178,30 @@ lib/
 
 ## 📸 Screenshots
 
-<!-- Espaço reservado para prints das telas -->
-
-### Tela de Login
-[![Login Screen](placeholder)](assets/screenshots/login.png)
-
-### Dashboard Idoso
-[![Elderly Dashboard](placeholder)](assets/screenshots/dashboard_idoso.png)
+### Tela de Início
+<div align="center">
+  <img src="assets/images/prints/print_app_inicio.jpeg" alt="Tela de Início" width="300">
+</div>
 
 ### Dashboard Familiar
-[![Family Dashboard](placeholder)](assets/screenshots/dashboard_familiar.png)
+<div align="center">
+  <img src="assets/images/prints/print_app_familia.jpeg" alt="Dashboard Familiar" width="300">
+</div>
+
+### Gestão de Medicamentos
+<div align="center">
+  <img src="assets/images/prints/print_app_gestao.jpeg" alt="Gestão de Medicamentos" width="300">
+</div>
+
+### Perfil do Usuário
+<div align="center">
+  <img src="assets/images/prints/print_app_perfil.jpeg" alt="Perfil do Usuário" width="300">
+</div>
+
+### Configurações
+<div align="center">
+  <img src="assets/images/prints/print_app_configuracoes.jpeg" alt="Configurações" width="300">
+</div>
 
 ---
 
