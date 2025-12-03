@@ -1,12 +1,12 @@
 # <img src="assets/images/caremind.png" alt="CareMind Logo" width="40" height="40" style="vertical-align: middle;"> CareMind Mobile
 
-[![Flutter](https://img.shields.io/badge/Flutter-3.6.2+-blue?style=flat-square&logo=flutter)](https://flutter.dev/)
-[![Dart](https://img.shields.io/badge/Dart-3.6.2-blue?style=flat-square&logo=dart)](https://dart.dev/)
-[![Android](https://img.shields.io/badge/Android-3DDC84?style=flat-square&logo=android)](https://www.android.com/)
-[![iOS](https://img.shields.io/badge/iOS-000000?style=flat-square&logo=ios)](https://www.apple.com/ios/)
-[![Supabase](https://img.shields.io/badge/Supabase-2.5.6-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com/)
-[![Firebase](https://img.shields.io/badge/Firebase-15.1.3-FFCA28?style=flat-square&logo=firebase)](https://firebase.google.com/)
-[![Status](https://img.shields.io/badge/Status-Concluído-brightgreen?style=flat-square)]()
+[![Flutter](https://img.shields.io/badge/Flutter-3.6.2+-blue?style=for-the-badge&logo=flutter)](https://flutter.dev/)
+[![Dart](https://img.shields.io/badge/Dart-3.6.2-blue?style=for-the-badge&logo=dart)](https://dart.dev/)
+[![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android)](https://www.android.com/)
+[![iOS](https://img.shields.io/badge/iOS-000000?style=for-the-badge&logo=ios)](https://www.apple.com/ios/)
+[![Supabase](https://img.shields.io/badge/Supabase-2.5.6-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
+[![Firebase](https://img.shields.io/badge/Firebase-15.1.3-FFCA28?style=for-the-badge&logo=firebase)](https://firebase.google.com/)
+[![Status](https://img.shields.io/badge/Status-Concluído-brightgreen?style=for-the-badge)]()
 
 > **Autonomia e Segurança na Palma da Mão**
 
