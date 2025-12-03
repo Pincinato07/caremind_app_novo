@@ -1,28 +1,26 @@
 import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/supabase_service.dart';
-import '../../services/account_manager_service.dart';
-import '../../core/injection/injection.dart';
-import '../../core/errors/app_exception.dart';
-import '../../widgets/wave_background.dart'; // Caminho correto
+import '../../widgets/wave_background.dart';
 import '../shared/main_navigator_screen.dart';
 
 enum AuthMode { login, register }
 
-
 class AuthShell extends StatefulWidget {
-  const AuthShell({super.key, this.initialMode = AuthMode.login});
   final AuthMode initialMode;
+
+  const AuthShell({super.key, this.initialMode = AuthMode.login});
 
   @override
   State<AuthShell> createState() => _AuthShellState();
 }
 
-class _AuthShellState extends State<AuthShell> {
+class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   late AuthMode _mode;
   final _loginEmailController = TextEditingController();
@@ -30,38 +28,17 @@ class _AuthShellState extends State<AuthShell> {
   bool _isLoginLoading = false;
 
   // Register
+  final _registerPageController = PageController();
   int _registerStep = 0;
-
-  // Step 1
   final _registerFormKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-
-  // Step 2
   final _passwordFormKey = GlobalKey<FormState>();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-
-  // Step 3
   String _selectedAccountType = 'pessoal';
   bool _termsAccepted = false;
-  bool _consentimentoDadosSaude = false; // Consentimento explícito LGPD
   bool _isRegistering = false;
-
-  // Constants centralized (mobile best practices: consistent sizing/touch targets)
-  static const Color _primaryColor = Color(0xFF0400BA);
-  static const Color _primaryDark = Color(0xFF020054);
-  static const Color _primaryLight = Color(0xFF0600E0);
-  static const double _borderRadius = 8.0;
-  static const double _cardRadius = 18.0;
-  static const double _buttonHeight = 48.0;
-  static const double _fieldMarginBottom = 16.0;
-  static const double _fieldPaddingVertical = 14.0;
-
-  // Password visibility (mobile UX best practice)
-  bool _obscureLoginPassword = true;
-  bool _obscureRegisterPassword = true;
-  bool _obscureConfirmPassword = true;
 
   @override
   void initState() {
@@ -73,6 +50,7 @@ class _AuthShellState extends State<AuthShell> {
   void dispose() {
     _loginEmailController.dispose();
     _loginPasswordController.dispose();
+    _registerPageController.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -82,114 +60,53 @@ class _AuthShellState extends State<AuthShell> {
 
   Future<void> _launchURL(String url) async {
     final uri = Uri.parse(url);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      _showSnack('Não foi possível abrir o link: $url');
-    }
-  }
-
-  Future<void> _completeAuthFlow(String userId, String email) async {
-    final supabaseService = getIt<SupabaseService>();
     try {
-      final perfil = await supabaseService.getProfile(userId);
-      if (!mounted || perfil == null) {
-        if (mounted) _showSnack(perfil == null ? 'Perfil não encontrado.' : 'Erro ao carregar perfil.');
-        return;
-      }
-
-      String? fotoUrl;
-      if (perfil.fotoUsuario?.isNotEmpty == true) {
-        try {
-          fotoUrl = perfil.fotoUsuario!.startsWith('http')
-              ? perfil.fotoUsuario
-              : supabaseService.client.storage.from('avatars').getPublicUrl(perfil.fotoUsuario!);
-        } catch (e) {
-          debugPrint('Foto URL error: $e');
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Não foi possível abrir o link: $url')),
+          );
         }
       }
-
-      final accountManager = AccountManagerService();
-      await accountManager.saveAccount(
-        userId: userId,
-        email: email,
-        nome: perfil.nome,
-        fotoUrl: fotoUrl,
-        tipo: perfil.tipo,
-      );
-
+    } catch (e) {
       if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
-          (_) => false,
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ocorreu um erro ao tentar abrir o link')),
         );
       }
-    } catch (e) {
-      debugPrint('Profile error: $e');
-      if (mounted) _showSnack('Erro ao carregar perfil. Tente novamente.');
     }
   }
 
   // ==================== AUTH HANDLERS ====================
 
   Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoginLoading = true);
-    try {
-      final supabaseService = getIt<SupabaseService>();
-      
-      // Validação adicional de e-mail antes de enviar
-      final email = _loginEmailController.text.trim();
-      final password = _loginPasswordController.text;
-      
-      if (!email.contains('@') || !email.contains('.')) {
-        _showSnack('Digite um e-mail válido.');
-        return;
-      }
-      
-      if (password.length < 1) {
-        _showSnack('Digite sua senha.');
-        return;
-      }
-      
-      final response = await supabaseService.signIn(
-        email: email,
-        password: password,
-      );
-      if (!mounted) return;
+    if (_formKey.currentState?.validate() ?? false) {
+      setState(() {
+        _isLoginLoading = true;
+      });
 
-      if (response.user != null) {
-        await _completeAuthFlow(response.user!.id, response.user!.email ?? email);
-      } else {
-        _showSnack('E-mail ou senha incorretos.');
+      try {
+        await Future.delayed(const Duration(seconds: 2)); // Simulação
+
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed('/home');
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('E-mail ou senha inválidos'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoginLoading = false;
+          });
+        }
       }
-    } catch (e) {
-      String errorMessage = 'Erro ao fazer login. Tente novamente.';
-      
-      // Tratamento específico para diferentes tipos de erro
-      if (e is AppException) {
-        errorMessage = e.message;
-      } else if (e.toString().toLowerCase().contains('invalid login credentials')) {
-        errorMessage = 'E-mail ou senha incorretos.';
-      } else if (e.toString().toLowerCase().contains('invalid credentials')) {
-        errorMessage = 'E-mail ou senha incorretos.';
-      } else if (e.toString().toLowerCase().contains('user not found')) {
-        errorMessage = 'Usuário não encontrado. Verifique o e-mail.';
-      } else if (e.toString().toLowerCase().contains('bad request') || 
-                 e.toString().toLowerCase().contains('400')) {
-        errorMessage = 'Dados inválidos. Verifique seu e-mail e senha.';
-      } else if (e.toString().toLowerCase().contains('network') ||
-                 e.toString().toLowerCase().contains('connection') ||
-                 e.toString().toLowerCase().contains('timeout')) {
-        errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
-      } else if (e.toString().toLowerCase().contains('too many requests')) {
-        errorMessage = 'Muitas tentativas. Aguarde alguns minutos.';
-      } else {
-        errorMessage = 'E-mail ou senha incorretos.';
-      }
-      
-      _showSnack(errorMessage);
-    } finally {
-      if (mounted) setState(() => _isLoginLoading = false);
     }
   }
 
@@ -205,27 +122,21 @@ class _AuthShellState extends State<AuthShell> {
 
       if (name.isEmpty || !email.contains('@')) {
         _showSnack('Preencha corretamente nome e e-mail.');
-        setState(() => _registerStep = 0);
+        _registerPageController.jumpToPage(0);
         return;
       }
       if (password.length < 6 || password != confirm) {
         _showSnack('Verifique as senhas.');
-        setState(() => _registerStep = 1);
+        _registerPageController.jumpToPage(1);
         return;
       }
       if (!_termsAccepted) {
         _showSnack('Aceite os termos para continuar.');
-        setState(() => _registerStep = 2);
-        return;
-      }
-      if (!_consentimentoDadosSaude) {
-        _showSnack('Você precisa consentir o compartilhamento de dados de saúde.');
-        setState(() => _registerStep = 2);
+        _registerPageController.jumpToPage(2);
         return;
       }
 
-      final supabaseService = getIt<SupabaseService>();
-      final response = await supabaseService.signUp(
+      final response = await SupabaseService.signUp(
         email: email,
         password: password,
         nome: name,
@@ -236,80 +147,20 @@ class _AuthShellState extends State<AuthShell> {
 
       if (response.user != null) {
         await Future.delayed(const Duration(milliseconds: 500));
-        try {
-          final perfil = await supabaseService.getProfile(response.user!.id);
-          if (perfil != null && mounted) {
-            // Salvar informações da conta para troca rápida
-            final accountManager = AccountManagerService();
-            String? fotoUrl;
-            if (perfil.fotoUsuario != null && perfil.fotoUsuario!.isNotEmpty) {
-              try {
-                if (perfil.fotoUsuario!.startsWith('http')) {
-                  fotoUrl = perfil.fotoUsuario;
-                } else {
-                  fotoUrl = supabaseService.client.storage
-                      .from('avatars')
-                      .getPublicUrl(perfil.fotoUsuario!);
-                }
-              } catch (e) {
-                // Ignora erro ao obter URL da foto
-              }
-            }
-            
-            await accountManager.saveAccount(
-              userId: response.user!.id,
-              email: response.user!.email ?? email,
-              nome: perfil.nome,
-              fotoUrl: fotoUrl,
-              tipo: perfil.tipo,
-            );
-            
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
-              (_) => false,
-            );
-          } else {
-            _showSnack('Erro ao carregar perfil. Tente fazer login.');
-            setState(() => _mode = AuthMode.login);
-          }
-        } catch (profileError) {
-          debugPrint('Erro ao carregar perfil no cadastro: $profileError');
-          _showSnack('Erro ao carregar perfil. Tente fazer login.');
+        final perfil = await SupabaseService.getProfile(response.user!.id);
+        if (perfil != null && mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
+            (_) => false,
+          );
+        } else {
+          _showSnack('Erro ao carregar perfil. Tente login.');
           setState(() => _mode = AuthMode.login);
         }
       }
     } catch (e) {
-      String errorMessage = 'Erro ao criar conta. Tente novamente.';
-      
-      // Tratamento específico para diferentes tipos de erro no cadastro
-      if (e is AppException) {
-        errorMessage = e.message;
-      } else if (e.toString().toLowerCase().contains('user already registered') ||
-                 e.toString().toLowerCase().contains('email already registered')) {
-        errorMessage = 'Este e-mail já está cadastrado. Tente fazer login.';
-        setState(() => _registerStep = 0);
-      } else if (e.toString().toLowerCase().contains('weak password')) {
-        errorMessage = 'Senha muito fraca. Use pelo menos 6 caracteres.';
-        setState(() => _registerStep = 1);
-      } else if (e.toString().toLowerCase().contains('invalid email') ||
-                 e.toString().toLowerCase().contains('invalid email format')) {
-        errorMessage = 'E-mail inválido. Verifique o formato.';
-        setState(() => _registerStep = 0);
-      } else if (e.toString().toLowerCase().contains('bad request') || 
-                 e.toString().toLowerCase().contains('400')) {
-        errorMessage = 'Dados inválidos. Verifique as informações.';
-      } else if (e.toString().toLowerCase().contains('network') ||
-                 e.toString().toLowerCase().contains('connection') ||
-                 e.toString().toLowerCase().contains('timeout')) {
-        errorMessage = 'Erro de conexão. Verifique sua internet.';
-      } else if (e.toString().toLowerCase().contains('too many requests')) {
-        errorMessage = 'Muitas tentativas. Aguarde alguns minutos.';
-      } else {
-        errorMessage = 'Erro ao criar conta. Verifique os dados e tente novamente.';
-      }
-      
-      _showSnack(errorMessage);
+      _showSnack('Erro ao cadastrar: $e');
     } finally {
       if (mounted) setState(() => _isRegistering = false);
     }
@@ -323,188 +174,97 @@ class _AuthShellState extends State<AuthShell> {
     }
   }
 
-  Future<void> _handleForgotPassword() async {
-    final emailController = TextEditingController();
-    
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: Text(
-          'Recuperar Senha',
-          style: AppTextStyles.leagueSpartan(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Digite seu e-mail para receber instruções de redefinição de senha.',
-              style: AppTextStyles.leagueSpartan(
-                fontSize: 14,
-                height: 1.5,
+  void _nextPage() {
+    if (_registerPageController.page! < 2) {
+      _registerPageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _previousPage() {
+    _registerPageController.previousPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  // ==================== GLASSMORPHISM ====================
+
+  Widget _glassContainer({required Widget child}) {
+    final size = MediaQuery.of(context).size;
+    final isSmallScreen = size.height < 680;
+    final screenW = size.width;
+    final screenH = size.height;
+    final pad = 24.0;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Stack(
+        children: [
+          Positioned.fill(child: Container(color: Colors.white.withAlpha(8))),
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              width: screenW * (isSmallScreen ? 0.9 : 0.85),
+              constraints: BoxConstraints(
+                maxWidth: 400,
+                minHeight: isSmallScreen ? screenH * 0.4 : screenH * 0.5,
+                maxHeight: isSmallScreen ? screenH * 0.85 : screenH * 0.8,
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                labelText: 'E-mail',
-                hintText: 'seu@email.com',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+              padding: EdgeInsets.all(isSmallScreen ? pad * 0.8 : pad),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(8),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.white.withAlpha(18), width: 1),
+                boxShadow: const [
+                  BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.15), blurRadius: 8, offset: Offset(0, 2)),
+                ],
+              ),
+              foregroundDecoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Colors.white.withAlpha(25), Colors.white.withAlpha(8), Colors.transparent],
+                  stops: const [0.0, 0.2, 0.6],
                 ),
-                prefixIcon: const Icon(Icons.email_outlined),
               ),
+              child: child,
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancelar',
-              style: AppTextStyles.leagueSpartan(
-                fontWeight: FontWeight.w600,
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.transparent, Colors.white.withAlpha(50), Colors.transparent],
+                ),
               ),
             ),
           ),
-          TextButton(
-            onPressed: () {
-              if (emailController.text.trim().isNotEmpty && 
-                  emailController.text.contains('@')) {
-                Navigator.pop(context, emailController.text.trim());
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Por favor, digite um e-mail válido'),
-                    backgroundColor: Colors.red,
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: IgnorePointer(
+              child: Container(
+                height: 18,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0x0F000000), Colors.transparent],
                   ),
-                );
-              }
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF0400BA),
-            ),
-            child: Text(
-              'Enviar',
-              style: AppTextStyles.leagueSpartan(
-                fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
         ],
       ),
-    );
-
-    if (result == null || result == false) return;
-
-    final email = result as String;
-    
-    try {
-      final supabaseService = getIt<SupabaseService>();
-      await supabaseService.resetPassword(email);
-      
-      if (mounted) {
-        _showSnack('Verifique seu e-mail para redefinir a senha');
-      }
-    } catch (e) {
-      if (mounted) {
-        final errorMessage = e is AppException
-            ? e.message
-            : 'Erro ao enviar e-mail de recuperação: $e';
-        _showSnack(errorMessage);
-      }
-    }
-  }
-
-  void _nextPage() => setState(() => _registerStep = (_registerStep + 1).clamp(0, 2));
-
-  void _previousPage() => setState(() => _registerStep = (_registerStep - 1).clamp(0, 2));
-
-  // ==================== GLASSMORPHISM ====================
-
-  Widget _glassContainer({required Widget child, bool isRegister = false}) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final screenW = MediaQuery.of(context).size.width;
-        final pad = (screenW * 0.025).clamp(16.0, 28.0);
-
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: Stack(
-            children: [
-              Positioned.fill(child: Container(color: Colors.white.withValues(alpha: 0.08))),
-              BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                child: Container(
-                  width: screenW * 0.85,
-                  constraints: const BoxConstraints(
-                    maxWidth: 380, 
-                    minHeight: 0,
-                  ),
-                  padding: EdgeInsets.all(pad),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.18), width: 1),
-                    boxShadow: const [
-                      BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.15), blurRadius: 8, offset: Offset(0, 2)),
-                    ],
-                  ),
-                  foregroundDecoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Colors.white.withValues(alpha: 0.25), Colors.white.withValues(alpha: 0.08), Colors.transparent],
-                      stops: const [0.0, 0.2, 0.6],
-                    ),
-                  ),
-                  child: child,
-                ),
-              ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  height: 1,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.transparent, Colors.white.withValues(alpha: 0.5), Colors.transparent],
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: IgnorePointer(
-                  child: Container(
-                    height: 8,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.white.withValues(alpha: 0.05),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 
@@ -517,7 +277,7 @@ class _AuthShellState extends State<AuthShell> {
   }) {
     final baseColor = const Color(0xFF0400BA);
     return SizedBox(
-      height: 48,
+      height: 44,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ButtonStyle(
@@ -527,12 +287,11 @@ class _AuthShellState extends State<AuthShell> {
             return baseColor;
           }),
           foregroundColor: WidgetStateProperty.all(Colors.white),
-          overlayColor: WidgetStateProperty.all(Colors.white.withValues(alpha: 0.06)),
+          overlayColor: WidgetStateProperty.all(Colors.white.withAlpha(6)),
           elevation: WidgetStateProperty.all(6),
-          shadowColor: WidgetStateProperty.all(baseColor.withValues(alpha: 0.2)),
+          shadowColor: WidgetStateProperty.all(baseColor.withAlpha(20)),
           shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-          textStyle: WidgetStateProperty.all(AppTextStyles.leagueSpartan(fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-          padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+          textStyle: WidgetStateProperty.all(GoogleFonts.leagueSpartan(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
         ),
         child: isLoading
             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
@@ -548,11 +307,11 @@ class _AuthShellState extends State<AuthShell> {
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: onPressed == null ? Colors.grey[400]! : Colors.white, width: 1.5),
-          backgroundColor: Colors.white.withValues(alpha: 0.08),
+          backgroundColor: Colors.white.withAlpha(8),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: AppTextStyles.leagueSpartan(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+          textStyle: GoogleFonts.leagueSpartan(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.5),
         ),
-        child: Text(label, style: AppTextStyles.leagueSpartan(color: onPressed == null ? Colors.grey[400] : Colors.white)),
+        child: Text(label, style: GoogleFonts.leagueSpartan(color: onPressed == null ? Colors.grey[400] : Colors.white)),
       ),
     );
   }
@@ -563,66 +322,70 @@ class _AuthShellState extends State<AuthShell> {
     required TextEditingController controller,
     required String hint,
     bool obscure = false,
-    bool enableToggle = false,
-    VoidCallback? onToggle,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
   }) {
     return Container(
-      margin: EdgeInsets.only(bottom: _fieldMarginBottom),
+      margin: const EdgeInsets.only(bottom: 16),
       child: TextFormField(
         controller: controller,
         obscureText: obscure,
         keyboardType: keyboardType,
-        autofillHints: keyboardType == TextInputType.emailAddress ? [AutofillHints.email] : null,
         validator: validator,
-        style: AppTextStyles.leagueSpartan(color: Colors.white, fontSize: 15),
+        style: GoogleFonts.leagueSpartan(color: Colors.white, fontSize: 15),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: AppTextStyles.leagueSpartan(color: Colors.white.withValues(alpha: 0.7), fontSize: 15),
+          hintStyle: GoogleFonts.leagueSpartan(color: Colors.white.withAlpha(70), fontSize: 15),
           filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.12),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(_borderRadius), borderSide: BorderSide.none),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: _fieldPaddingVertical),
-          suffixIcon: enableToggle ? IconButton(
-            icon: Icon(obscure ? Icons.visibility : Icons.visibility_off, color: Colors.white70),
-            onPressed: onToggle,
-          ) : null,
+          fillColor: Colors.white.withAlpha(12),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
     );
   }
 
-  // ==================== ACCOUNT OPTION (ANTES DOS STEPS) ====================
+  // ==================== ACCOUNT OPTION ====================
 
-  Widget _accountOption(String title, String subtitle, String value) {
+  Widget _buildAccountTypeOption({
+    required String value,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
     final isSelected = _selectedAccountType == value;
     return GestureDetector(
       onTap: () => setState(() => _selectedAccountType = value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        margin: const EdgeInsets.only(bottom: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: isSelected ? Colors.white.withAlpha(30) : Colors.white.withAlpha(12),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? const Color(0xFF0400BA) : Colors.white.withValues(alpha: 0.3), width: isSelected ? 2 : 1),
+          border: Border.all(
+            color: isSelected ? Colors.white : Colors.white.withAlpha(50),
+            width: isSelected ? 2 : 1,
+          ),
         ),
-        child: Row(
+        child: Column(
           children: [
-            Radio<String>(
-              value: value,
-              groupValue: _selectedAccountType,
-              onChanged: (v) => setState(() => _selectedAccountType = v!),
-              activeColor: const Color(0xFF3B82F6),
+            Icon(icon, color: Colors.white, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: GoogleFonts.leagueSpartan(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
-                  Text(subtitle, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12)),
-                ],
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.leagueSpartan(
+                color: Colors.white.withOpacity(0.7),
+                fontSize: 12,
               ),
             ),
           ],
@@ -631,188 +394,195 @@ class _AuthShellState extends State<AuthShell> {
     );
   }
 
-  TextSpan _linkSpan(String text, VoidCallback onTap) {
-    return TextSpan(
-      text: text,
-      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
-      recognizer: TapGestureRecognizer()..onTap = onTap,
-    );
-  }
-
-  // ==================== STEPS ====================
+  // ==================== REGISTER STEPS ====================
 
   Widget _buildStep1() {
-    return Form(
-      key: _registerFormKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _glowField(controller: _nameController, hint: 'Seu nome completo', validator: (v) => v?.trim().isEmpty ?? true ? 'Informe seu nome' : null),
-          _glowField(controller: _emailController, hint: 'seu@email.com', keyboardType: TextInputType.emailAddress, validator: (v) => v == null || !v.contains('@') ? 'Email inválido' : null),
-          const SizedBox(height: 8),
-          _primaryButton(label: 'Continuar', onPressed: () => _registerFormKey.currentState!.validate() ? _nextPage() : null),
-        ],
-      ),
+    return Column(
+      children: [
+        _glowField(
+          controller: _nameController,
+          hint: 'Seu nome completo',
+          validator: (v) => v?.trim().isEmpty == true ? 'Nome é obrigatório' : null,
+        ),
+        _glowField(
+          controller: _emailController,
+          hint: 'seu@email.com',
+          keyboardType: TextInputType.emailAddress,
+          validator: (v) {
+            if (v?.trim().isEmpty == true) return 'E-mail é obrigatório';
+            if (!v!.contains('@')) return 'E-mail inválido';
+            return null;
+          },
+        ),
+        const SizedBox(height: 20),
+        _primaryButton(label: 'Continuar', onPressed: _nextPage),
+      ],
     );
   }
 
   Widget _buildStep2() {
-    return Form(
-      key: _passwordFormKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('Crie sua senha', style: AppTextStyles.leagueSpartan(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-          _glowField(controller: _passwordController, hint: 'Mínimo 6 caracteres', obscure: true, validator: (v) => v == null || v.length < 6 ? 'Mínimo 6 caracteres' : null),
-          _glowField(controller: _confirmPasswordController, hint: 'Repita a senha', obscure: true, validator: (v) => v != _passwordController.text ? 'Senhas não coincidem' : null),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(child: _outlineButton(label: 'Voltar', onPressed: _previousPage)),
-              const SizedBox(width: 12),
-              Expanded(child: _primaryButton(label: 'Continuar', onPressed: () => _passwordFormKey.currentState!.validate() ? _nextPage() : null)),
-            ],
-          ),
-        ],
-      ),
+    return Column(
+      children: [
+        _glowField(
+          controller: _passwordController,
+          hint: 'Crie uma senha',
+          obscure: true,
+          validator: (v) => v!.length < 6 ? 'Mínimo 6 caracteres' : null,
+        ),
+        _glowField(
+          controller: _confirmPasswordController,
+          hint: 'Confirme a senha',
+          obscure: true,
+          validator: (v) => v != _passwordController.text ? 'Senhas não coincidem' : null,
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(child: _outlineButton(label: 'Voltar', onPressed: _previousPage)),
+            const SizedBox(width: 12),
+            Expanded(child: _primaryButton(label: 'Continuar', onPressed: _nextPage)),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildStep3() {
-    return Form(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('Tipo de Conta', style: AppTextStyles.leagueSpartan(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.center),
-          const SizedBox(height: 12),
-          _accountOption('Uso Pessoal', 'Para cuidar de você mesmo', 'pessoal'),
-          const SizedBox(height: 12),
-          _accountOption('Familiar/Cuidador', 'Para cuidar de um familiar ou pessoa próxima', 'familiar'),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Checkbox(
-                value: _termsAccepted,
-                onChanged: (v) => setState(() => _termsAccepted = v ?? false),
-                activeColor: const Color(0xFF0400BA),
+    return Column(
+      children: [
+        Text(
+          'Tipo de conta',
+          style: GoogleFonts.leagueSpartan(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildAccountTypeOption(
+                value: 'pessoal',
+                icon: Icons.person,
+                title: 'Pessoal',
+                subtitle: 'Uso individual',
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: RichText(
-                  text: TextSpan(
-                    style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
-                    children: [
-                      const TextSpan(text: 'Eu concordo com os '),
-                      _linkSpan('Termos de Uso', () => _launchURL('https://www.caremind.online/termos')),
-                      const TextSpan(text: ' e '),
-                      _linkSpan('Política de Privacidade', () => _launchURL('https://www.caremind.online/politica-privacidade')),
-                      const TextSpan(text: ' do CareMind.'),
-                    ],
-                  ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildAccountTypeOption(
+                value: 'profissional',
+                icon: Icons.work,
+                title: 'Profissional',
+                subtitle: 'Para psicólogos',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Checkbox(
+              value: _termsAccepted,
+              onChanged: (v) => setState(() => _termsAccepted = v ?? false),
+              activeColor: Colors.white,
+              checkColor: const Color(0xFF0400BA),
+            ),
+            Expanded(
+              child: RichText(
+                text: TextSpan(
+                  style: GoogleFonts.leagueSpartan(color: Colors.white70, fontSize: 13),
+                  children: [
+                    const TextSpan(text: 'Li e aceito os '),
+                    TextSpan(
+                      text: 'Termos de Uso',
+                      style: const TextStyle(decoration: TextDecoration.underline),
+                      recognizer: TapGestureRecognizer()..onTap = () => _launchURL('https://exemplo.com/termos'),
+                    ),
+                    const TextSpan(text: ' e '),
+                    TextSpan(
+                      text: 'Política de Privacidade',
+                      style: const TextStyle(decoration: TextDecoration.underline),
+                      recognizer: TapGestureRecognizer()..onTap = () => _launchURL('https://exemplo.com/privacidade'),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Checkbox de consentimento LGPD para compartilhamento de dados de saúde
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Checkbox(
-                value: _consentimentoDadosSaude,
-                onChanged: (v) => setState(() => _consentimentoDadosSaude = v ?? false),
-                activeColor: const Color(0xFF0400BA),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(child: _outlineButton(label: 'Voltar', onPressed: _previousPage)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _primaryButton(
+                label: 'Cadastrar',
+                onPressed: _termsAccepted ? _handleSignUp : null,
+                isLoading: _isRegistering,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: RichText(
-                  text: TextSpan(
-                    style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
-                    children: [
-                      const TextSpan(
-                        text: 'Eu consinto o compartilhamento dos meus dados de saúde (medicamentos e compromissos) com familiares vinculados, conforme a ',
-                      ),
-                      _linkSpan('Política de Privacidade', () => _launchURL('https://www.caremind.online/politica-privacidade')),
-                      const TextSpan(text: ' e a LGPD. Posso revogar este consentimento a qualquer momento nas configurações.'),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: _outlineButton(label: 'Voltar', onPressed: _previousPage)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _primaryButton(
-                  label: _isRegistering ? 'Criando conta...' : 'Finalizar',
-                  onPressed: (!_isRegistering && _termsAccepted && _consentimentoDadosSaude) ? _handleSignUp : null,
-                  isLoading: _isRegistering,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
-  // ==================== CARDS ====================
+  // ==================== BUILD METHODS ====================
 
   Widget _buildLoginCard() {
     return _glassContainer(
       child: Form(
         key: _formKey,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Bem-vindo de volta!', style: AppTextStyles.leagueSpartan(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
-            const SizedBox(height: 8),
-            Text('Faça login para continuar', style: AppTextStyles.leagueSpartan(fontSize: 14, color: Colors.white.withValues(alpha: 0.9)), textAlign: TextAlign.center),
+            Text(
+              'Entrar na sua conta',
+              style: GoogleFonts.leagueSpartan(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 20),
             _glowField(
               controller: _loginEmailController,
-              hint: 'seu@email.com',
+              hint: 'E-mail',
               keyboardType: TextInputType.emailAddress,
-              validator: (v) => v?.contains('@') == true ? null : 'Email inválido',
+              validator: (v) {
+                if (v?.isEmpty ?? true) return 'E-mail obrigatório';
+                if (!v!.contains('@')) return 'E-mail inválido';
+                return null;
+              },
             ),
             _glowField(
               controller: _loginPasswordController,
-              hint: 'Sua senha',
-              obscure: _obscureLoginPassword,
-              enableToggle: true,
-              onToggle: () => setState(() => _obscureLoginPassword = !_obscureLoginPassword),
-              validator: (v) => v?.isNotEmpty == true ? null : 'Informe a senha',
+              hint: 'Senha',
+              obscure: true,
+              validator: (v) => (v?.length ?? 0) < 6 ? 'Mínimo 6 caracteres' : null,
+            ),
+            const SizedBox(height: 24),
+            _primaryButton(
+              label: 'Entrar',
+              onPressed: _isLoginLoading ? null : _handleLogin,
+              isLoading: _isLoginLoading,
             ),
             const SizedBox(height: 12),
-            _primaryButton(label: 'Entrar', onPressed: _isLoginLoading ? null : _handleLogin, isLoading: _isLoginLoading),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: _isLoginLoading ? null : _handleForgotPassword,
-              child: const Text(
-                'Esqueceu a senha?',
-                style: TextStyle(
-                  color: Colors.white70,
-                  decoration: TextDecoration.underline,
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: _isLoginLoading ? null : () => setState(() => _mode = AuthMode.register),
-              child: RichText(
-                text: TextSpan(
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
-                  children: [
-                    const TextSpan(text: 'Não tem conta? '),
-                    TextSpan(text: 'Cadastre-se', style: AppTextStyles.leagueSpartan(fontWeight: FontWeight.bold, color: Colors.white, decoration: TextDecoration.underline)),
-                  ],
+            Center(
+              child: TextButton(
+                onPressed: () {
+                  setState(() {
+                    _mode = AuthMode.register;
+                    _registerPageController.jumpToPage(0);
+                  });
+                },
+                child: RichText(
+                  text: TextSpan(
+                    style: GoogleFonts.leagueSpartan(color: Colors.white70, fontSize: 14),
+                    children: const [
+                      TextSpan(text: 'Não tem conta? '),
+                      TextSpan(
+                        text: 'Cadastre-se',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -823,103 +593,82 @@ class _AuthShellState extends State<AuthShell> {
   }
 
   Widget _buildRegisterCard() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return _glassContainer(
-          isRegister: true,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 8, bottom: 8),
-                child: Text('Criar Conta', style: AppTextStyles.leagueSpartan(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
-              ),
-              Text('Passo ${_registerStep + 1} de 3', style: AppTextStyles.leagueSpartan(fontSize: 14, color: Colors.white.withValues(alpha: 0.8))),
-              const SizedBox(height: 16),
-              
-              // ANIMATED SWITCHER INSTEAD OF PAGEVIEW (Removes "hole" and auto-sizes)
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                transitionBuilder: (Widget child, Animation<double> animation) {
-                  return FadeTransition(opacity: animation, child: child);
-                },
-                child: KeyedSubtree(
-                  key: ValueKey<int>(_registerStep),
-                  child: _getStepWidget(_registerStep),
-                ),
-              ),
+    final size = MediaQuery.of(context).size;
+    final isSmallScreen = size.height < 680;
+    final screenH = size.height;
+    final contentHeight = isSmallScreen ? screenH * 0.45 : screenH * 0.5;
 
-              const SizedBox(height: 16),
-              
-              // CUSTOM DOT INDICATOR
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(3, (index) {
-                  final isActive = index == _registerStep;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    height: 6,
-                    width: isActive ? 16 : 6,
-                    decoration: BoxDecoration(
-                      color: isActive ? Colors.white : Colors.white.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  );
-                }),
-              ),
-
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: TextButton(
-                  onPressed: () => setState(() => _mode = AuthMode.login),
-                  child: RichText(
-                    text: TextSpan(
-                      style: const TextStyle(color: Colors.white70, fontSize: 14),
-                      children: [
-                        const TextSpan(text: 'Já tem conta? '),
-                        TextSpan(
-                          text: 'Faça login',
-                          style: AppTextStyles.leagueSpartan(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+    return _glassContainer(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(top: isSmallScreen ? 12 : 16, bottom: 8),
+            child: Text(
+              'Criar Conta',
+              style: GoogleFonts.leagueSpartan(fontSize: isSmallScreen ? 18 : 20, fontWeight: FontWeight.w700, color: Colors.white),
+            ),
           ),
-        );
-      },
+          Text(
+            'Passo ${_registerStep + 1} de 3',
+            style: GoogleFonts.leagueSpartan(fontSize: isSmallScreen ? 12 : 14, color: Colors.white.withOpacity(0.8)),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: contentHeight,
+            child: PageView(
+              controller: _registerPageController,
+              physics: const NeverScrollableScrollPhysics(),
+              onPageChanged: (i) => setState(() => _registerStep = i),
+              children: [_buildStep1(), _buildStep2(), _buildStep3()],
+            ),
+          ),
+          SmoothPageIndicator(
+            controller: _registerPageController,
+            count: 3,
+            effect: WormEffect(
+              dotHeight: isSmallScreen ? 5 : 6,
+              dotWidth: isSmallScreen ? 5 : 6,
+              activeDotColor: Colors.white,
+              dotColor: Colors.white24,
+              spacing: 4,
+              radius: 4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: TextButton(
+              onPressed: () => setState(() => _mode = AuthMode.login),
+              child: RichText(
+                text: TextSpan(
+                  style: GoogleFonts.leagueSpartan(color: Colors.white70, fontSize: 14),
+                  children: const [
+                    TextSpan(text: 'Já tem conta? '),
+                    TextSpan(
+                      text: 'Faça login',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _getStepWidget(int step) {
-    switch (step) {
-      case 0: return _buildStep1();
-      case 1: return _buildStep2();
-      case 2: return _buildStep3();
-      default: return _buildStep1();
-    }
-  }
-
-  // ==================== BUILD ====================
-
   @override
   Widget build(BuildContext context) {
-    final screenW = MediaQuery.of(context).size.width;
-    final logoHeight = (screenW * 0.18).clamp(70.0, 110.0);
+    final size = MediaQuery.of(context).size;
+    final viewPadding = MediaQuery.of(context).viewPadding;
+    final isSmallScreen = size.height < 680;
+    final logoHeight = isSmallScreen ? 80.0 : 100.0;
 
     return Scaffold(
-      resizeToAvoidBottomInset: false, // Teclado sobrepõe, não empurra
       body: Stack(
         children: [
-          // Fundo gradiente
+          const WaveBackground(),
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -929,49 +678,34 @@ class _AuthShellState extends State<AuthShell> {
               ),
             ),
           ),
-
-          // Ondas animadas (seu código perfeito)
-          const Align(
-            alignment: Alignment.bottomCenter,
-            child: AuthWaveBackground(),
-          ),
-
-          // CONTEÚDO CENTRALIZADO
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight - 48, // Subtract padding
-                  ),
-                  child: Center(
-                    child: ConstrainedBox(
+          SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: size.height),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: (size.height * 0.08).clamp(32.0, 100.0),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(height: viewPadding.top > 0 ? viewPadding.top : 16),
+                    Image.asset('assets/images/caremind_deitado.png', height: logoHeight, fit: BoxFit.contain),
+                    const SizedBox(height: 32),
+                    ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 380),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Logo centralizado
-                          Image.asset(
-                            'assets/images/caremind_deitado.png',
-                            height: logoHeight,
-                            fit: BoxFit.contain,
-                          ),
-                          const SizedBox(height: 32),
-
-                          // Card com scroll interno
-                          _mode == AuthMode.login
-                              ? _buildLoginCard()
-                              : _buildRegisterCard(),
-                        ],
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: _mode == AuthMode.login ? _buildLoginCard() : _buildRegisterCard(),
+                        key: ValueKey(_mode),
                       ),
                     ),
-                  ),
+                    SizedBox(height: viewPadding.bottom > 0 ? viewPadding.bottom : 16),
+                  ],
                 ),
-              );
-            },
-          )
+              ),
+            ),
+          ),
         ],
       ),
     );
