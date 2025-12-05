@@ -80,13 +80,10 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
           // Buscar medicamentos
           final medicamentos = await medicamentoService.getMedicamentos(user.id);
           
-          // Encontrar o próximo medicamento (primeiro não concluído)
+          // Encontrar o próximo medicamento (pegar o primeiro da lista)
           Medicamento? proximo;
-          for (var med in medicamentos) {
-            if (!med.concluido) {
-              proximo = med;
-              break;
-            }
+          if (medicamentos.isNotEmpty) {
+            proximo = medicamentos.first;
           }
 
           setState(() {
@@ -117,6 +114,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
       await medicamentoService.toggleConcluido(
         _proximoMedicamento!.id!,
         true,
+        DateTime.now(), // data prevista
       );
 
       // Registrar evento no histórico
@@ -124,10 +122,12 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
         await HistoricoEventosService.addEvento({
           'perfil_id': user.id,
           'tipo_evento': 'medicamento_tomado',
-          'data_hora': DateTime.now().toIso8601String(),
+          'evento_id': _proximoMedicamento!.id!,
+          'data_prevista': DateTime.now().toIso8601String(),
+          'status': 'concluido',
+          'titulo': _proximoMedicamento!.nome,
           'descricao': 'Medicamento "${_proximoMedicamento!.nome}" marcado como tomado',
-          'referencia_id': _proximoMedicamento!.id.toString(),
-          'tipo_referencia': 'medicamento',
+          'medicamento_id': _proximoMedicamento!.id!,
         });
       } catch (e) {
         // Log erro mas não interrompe o fluxo

@@ -30,7 +30,7 @@ class OcrService {
       final perfilResponse = await _client
           .from('perfis')
           .select('id')
-          .eq('perfil_id', userId)
+          .eq('user_id', userId)
           .maybeSingle();
 
       if (perfilResponse == null) {

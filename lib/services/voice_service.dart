@@ -5,6 +5,7 @@ import 'medicamento_service.dart';
 import 'rotina_service.dart';
 import 'settings_service.dart';
 import '../core/injection/injection.dart';
+import 'accessibility_service.dart';
 
 /// Serviço completo de interface de voz (Voice-First)
 /// Integra Speech-to-Text (STT) e Text-to-Speech (TTS)
@@ -14,8 +15,8 @@ class VoiceService {
   factory VoiceService() => _instance;
   VoiceService._internal();
 
+
   final stt.SpeechToText _speech = stt.SpeechToText();
-  final FlutterTts _tts = FlutterTts();
   
   bool _isListening = false;
   bool _isInitialized = false;
@@ -65,13 +66,8 @@ class VoiceService {
         },
       );
 
-      // Configurar TTS com velocidade das configurações
-      await _tts.setLanguage("pt-BR");
-      final settings = _getSettingsService();
-      final speed = settings?.accessibilityVoiceSpeed ?? 0.5;
-      await _tts.setSpeechRate(speed);
-      await _tts.setVolume(1.0);
-      await _tts.setPitch(1.0);
+      // Inicializar AccessibilityService para TTS
+      await AccessibilityService.initialize();
 
       _isInitialized = true;
       return _isAvailable;
@@ -148,21 +144,13 @@ class VoiceService {
   /// Fala um texto usando TTS (respeita configuração de TTS)
   Future<void> speak(String text) async {
     // Verificar se TTS está habilitado
-    final settings = _getSettingsService();
-    if (settings != null && !settings.accessibilityTtsEnabled) {
-      return; // TTS desabilitado
-    }
-
-    // Atualizar velocidade se necessário
-    final speed = settings?.accessibilityVoiceSpeed ?? 0.5;
-    await _tts.setSpeechRate(speed);
-    
-    await _tts.speak(text);
+    // Delegar para AccessibilityService que já gerencia configurações e instância única
+    await AccessibilityService.speak(text);
   }
 
   /// Para a fala atual
   Future<void> stopSpeaking() async {
-    await _tts.stop();
+    await AccessibilityService.stop();
   }
 
   /// Processa um comando de voz e executa a ação correspondente
@@ -347,16 +335,13 @@ class VoiceService {
     }
 
     try {
-      // Buscar medicamentos pendentes
-      final medicamentos = await medicamentoService.getMedicamentosPorStatus(
-        userId,
-        false, // pendentes
-      );
+      // Buscar todos os medicamentos
+      final medicamentos = await medicamentoService.getMedicamentos(userId);
 
       if (medicamentos.isEmpty) {
         return VoiceCommandResult(
           success: true,
-          message: 'Não encontrei nenhum remédio pendente para confirmar agora.',
+          message: 'Não encontrei nenhum remédio cadastrado.',
           action: VoiceAction.noPendingItems,
         );
       }
@@ -364,7 +349,11 @@ class VoiceService {
       // Se houver apenas um, confirmar automaticamente
       if (medicamentos.length == 1) {
         final medicamento = medicamentos.first;
-        await medicamentoService.toggleConcluido(medicamento.id!, true);
+        await medicamentoService.toggleConcluido(
+          medicamento.id!, 
+          true,
+          DateTime.now(),
+        );
         
         return VoiceCommandResult(
           success: true,
@@ -378,7 +367,7 @@ class VoiceService {
       final nomes = medicamentos.map((m) => m.nome).join(', ');
       return VoiceCommandResult(
         success: true,
-        message: 'Encontrei ${medicamentos.length} remédios pendentes: $nomes. Qual você tomou?',
+        message: 'Encontrei ${medicamentos.length} remédios: $nomes. Qual você tomou?',
         action: VoiceAction.multipleItems,
         data: {'medicamentos': medicamentos.map((m) => {'id': m.id, 'nome': m.nome}).toList()},
       );
@@ -471,24 +460,14 @@ class VoiceService {
         );
       }
 
-      final pendentes = medicamentos.where((m) => !m.concluido).toList();
-      final concluidos = medicamentos.where((m) => m.concluido).toList();
-
-      String message = 'Você tem ${medicamentos.length} remédio(s) cadastrado(s). ';
-      
-      if (pendentes.isNotEmpty) {
-        message += '${pendentes.length} pendente(s): ${pendentes.map((m) => m.nome).join(', ')}. ';
-      }
-      
-      if (concluidos.isNotEmpty) {
-        message += '${concluidos.length} já tomado(s) hoje.';
-      }
+      String message = 'Você tem ${medicamentos.length} remédio(s) cadastrado(s): ';
+      message += medicamentos.map((m) => m.nome).join(', ');
 
       return VoiceCommandResult(
         success: true,
         message: message,
         action: VoiceAction.listMedications,
-        data: {'medicamentos': medicamentos.map((m) => {'id': m.id, 'nome': m.nome, 'concluido': m.concluido}).toList()},
+        data: {'medicamentos': medicamentos.map((m) => {'id': m.id, 'nome': m.nome}).toList()},
       );
     } catch (e) {
       return VoiceCommandResult(
@@ -554,7 +533,7 @@ class VoiceService {
   /// Limpa recursos
   void dispose() {
     _speech.cancel();
-    _tts.stop();
+    AccessibilityService.stop();
     _isListening = false;
   }
 }

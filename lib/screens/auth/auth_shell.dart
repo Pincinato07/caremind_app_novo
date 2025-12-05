@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/supabase_service.dart';
@@ -29,7 +28,6 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
   bool _isLoginLoading = false;
 
   // Register
-  final _registerPageController = PageController();
   int _registerStep = 0;
   final _registerFormKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -51,7 +49,6 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
   void dispose() {
     _loginEmailController.dispose();
     _loginPasswordController.dispose();
-    _registerPageController.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -87,15 +84,36 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
       });
 
       try {
-        await Future.delayed(const Duration(seconds: 2)); // Simulação
+        final email = _loginEmailController.text.trim();
+        final password = _loginPasswordController.text;
 
-        if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/home');
+        final supabaseService = getIt<SupabaseService>();
+        final response = await supabaseService.signIn(
+          email: email,
+          password: password,
+        );
+
+        if (!mounted) return;
+
+        if (response.user != null) {
+          // Get user profile
+          final perfil = await supabaseService.getProfile(response.user!.id);
+          
+          if (perfil != null && mounted) {
+            // Navigate to main screen with profile
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
+              (_) => false,
+            );
+          } else {
+            _showSnack('Erro ao carregar perfil. Tente novamente.');
+          }
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text('E-mail ou senha inválidos'),
               backgroundColor: Colors.red,
             ),
@@ -111,6 +129,156 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
     }
   }
 
+  Future<void> _handleForgotPassword() async {
+    final emailController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isLoading = false;
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 500,
+                minWidth: 300,
+              ),
+              child: SingleChildScrollView(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                    child: Container(
+                      margin: EdgeInsets.symmetric(
+                        horizontal: MediaQuery.of(context).size.width > 600 ? 24 : 16,
+                      ),
+                      padding: EdgeInsets.all(
+                        MediaQuery.of(context).size.width > 600 ? 32 : 24,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Form(
+                        key: formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'Recuperar Senha',
+                              style: GoogleFonts.leagueSpartan(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Digite seu e-mail para receber instruções de recuperação',
+                              style: GoogleFonts.leagueSpartan(
+                                fontSize: 14,
+                                color: Colors.white.withOpacity(0.8),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 28),
+                            _glowField(
+                              controller: emailController,
+                              hint: 'seu@email.com',
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (v) {
+                                if (v?.trim().isEmpty == true) return 'E-mail é obrigatório';
+                                if (!v!.contains('@')) return 'E-mail inválido';
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 24),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _outlineButton(
+                                    label: 'Cancelar',
+                                    onPressed: isLoading ? null : () => Navigator.of(context).pop(false),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _primaryButton(
+                                    label: 'Enviar',
+                                    isLoading: isLoading,
+                                    onPressed: isLoading
+                                        ? null
+                                        : () async {
+                                            if (formKey.currentState?.validate() ?? false) {
+                                              setDialogState(() => isLoading = true);
+                                              try {
+                                                final supabaseService = getIt<SupabaseService>();
+                                                await supabaseService.resetPassword(emailController.text.trim());
+                                                if (context.mounted) {
+                                                  Navigator.of(context).pop(true);
+                                                }
+                                              } catch (e) {
+                                                setDialogState(() => isLoading = false);
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Erro ao enviar e-mail: $e'),
+                                                      backgroundColor: Colors.red,
+                                                    ),
+                                                  );
+                                                }
+                                              }
+                                            }
+                                          },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    emailController.dispose();
+
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'E-mail de recuperação enviado! Verifique sua caixa de entrada.',
+            style: GoogleFonts.leagueSpartan(),
+          ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
   Future<void> _handleSignUp() async {
     if (_isRegistering) return;
     setState(() => _isRegistering = true);
@@ -123,17 +291,17 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
 
       if (name.isEmpty || !email.contains('@')) {
         _showSnack('Preencha corretamente nome e e-mail.');
-        _registerPageController.jumpToPage(0);
+        setState(() => _registerStep = 0);
         return;
       }
       if (password.length < 6 || password != confirm) {
         _showSnack('Verifique as senhas.');
-        _registerPageController.jumpToPage(1);
+        setState(() => _registerStep = 1);
         return;
       }
       if (!_termsAccepted) {
         _showSnack('Aceite os termos para continuar.');
-        _registerPageController.jumpToPage(2);
+        setState(() => _registerStep = 2);
         return;
       }
 
@@ -177,19 +345,29 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
   }
 
   void _nextPage() {
-    if (_registerPageController.page! < 2) {
-      _registerPageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+    // Validate current step before advancing
+    if (_registerStep == 0) {
+      // Step 1: Validate name and email form
+      if (!_registerFormKey.currentState!.validate()) {
+        return;
+      }
+    } else if (_registerStep == 1) {
+      // Step 2: Validate passwords form
+      if (!_passwordFormKey.currentState!.validate()) {
+        return;
+      }
+    }
+    
+    // If validation passes, advance to next step
+    if (_registerStep < 2) {
+      setState(() => _registerStep++);
     }
   }
 
   void _previousPage() {
-    _registerPageController.previousPage(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
+    if (_registerStep > 0) {
+      setState(() => _registerStep--);
+    }
   }
 
   // ==================== GLASSMORPHISM ====================
@@ -200,76 +378,28 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         constraints: const BoxConstraints(maxWidth: 400),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
-          child: Stack(
-            children: [
-              Positioned.fill(child: Container(color: Colors.white.withAlpha(8))),
-              BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(8),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.white.withAlpha(18), width: 1),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color.fromRGBO(0, 0, 0, 0.15),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  foregroundDecoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.white.withAlpha(25),
-                        Colors.white.withAlpha(8),
-                        Colors.transparent
-                      ],
-                      stops: const [0.0, 0.2, 0.6],
-                    ),
-                  ),
-                  child: child,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.3),
+                  width: 1.5,
                 ),
-              ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  height: 1,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.transparent,
-                        Colors.white.withAlpha(50),
-                        Colors.transparent
-                      ],
-                    ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
-                ),
+                ],
               ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: IgnorePointer(
-                  child: Container(
-                    height: 18,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0x0F000000), Colors.transparent],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+              child: child,
+            ),
           ),
         ),
       ),
@@ -369,18 +499,48 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         obscureText: obscure,
         keyboardType: keyboardType,
         validator: validator,
-        style: GoogleFonts.leagueSpartan(color: Colors.white, fontSize: 15),
+        style: GoogleFonts.leagueSpartan(
+          color: Colors.white.withOpacity(0.95),
+          fontSize: 15,
+        ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: GoogleFonts.leagueSpartan(
-            color: Colors.white.withAlpha(70),
+            color: Colors.white.withOpacity(0.5),
             fontSize: 15,
           ),
           filled: true,
           fillColor: Colors.white.withAlpha(12),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
+            borderSide: BorderSide(
+              color: Colors.white.withOpacity(0.2),
+              width: 1,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(
+              color: Colors.white.withOpacity(0.2),
+              width: 1,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.white.withOpacity(0.6), width: 1.5),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+          ),
+          errorStyle: GoogleFonts.leagueSpartan(
+            color: Colors.redAccent,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
@@ -441,55 +601,72 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
   // ==================== REGISTER STEPS ====================
 
   Widget _buildStep1() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _glowField(
-          controller: _nameController,
-          hint: 'Seu nome completo',
-          validator: (v) => v?.trim().isEmpty == true ? 'Nome é obrigatório' : null,
-        ),
-        _glowField(
-          controller: _emailController,
-          hint: 'seu@email.com',
-          keyboardType: TextInputType.emailAddress,
-          validator: (v) {
-            if (v?.trim().isEmpty == true) return 'E-mail é obrigatório';
-            if (!v!.contains('@')) return 'E-mail inválido';
-            return null;
-          },
-        ),
-        const SizedBox(height: 20),
-        _primaryButton(label: 'Continuar', onPressed: _nextPage),
-      ],
+    return Form(
+      key: _registerFormKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _glowField(
+            controller: _nameController,
+            hint: 'Seu nome completo',
+            validator: (v) {
+              if (v?.trim().isEmpty == true) return 'Nome é obrigatório';
+              return null;
+            },
+          ),
+          _glowField(
+            controller: _emailController,
+            hint: 'seu@email.com',
+            keyboardType: TextInputType.emailAddress,
+            validator: (v) {
+              if (v?.trim().isEmpty == true) return 'E-mail é obrigatório';
+              if (!v!.contains('@')) return 'E-mail inválido';
+              return null;
+            },
+          ),
+          const SizedBox(height: 20),
+          _primaryButton(label: 'Continuar', onPressed: _nextPage),
+        ],
+      ),
     );
   }
 
   Widget _buildStep2() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _glowField(
-          controller: _passwordController,
-          hint: 'Crie uma senha',
-          obscure: true,
-          validator: (v) => v!.length < 6 ? 'Mínimo 6 caracteres' : null,
-        ),
-        _glowField(
-          controller: _confirmPasswordController,
-          hint: 'Confirme a senha',
-          obscure: true,
-          validator: (v) => v != _passwordController.text ? 'Senhas não coincidem' : null,
-        ),
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            Expanded(child: _outlineButton(label: 'Voltar', onPressed: _previousPage)),
-            const SizedBox(width: 12),
-            Expanded(child: _primaryButton(label: 'Continuar', onPressed: _nextPage)),
-          ],
-        ),
-      ],
+    return Form(
+      key: _passwordFormKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _glowField(
+            controller: _passwordController,
+            hint: 'Crie uma senha',
+            obscure: true,
+            validator: (v) {
+              if (v?.isEmpty == true) return 'Senha é obrigatória';
+              if (v!.length < 6) return 'Mínimo 6 caracteres';
+              return null;
+            },
+          ),
+          _glowField(
+            controller: _confirmPasswordController,
+            hint: 'Confirme a senha',
+            obscure: true,
+            validator: (v) {
+              if (v?.isEmpty == true) return 'Confirme a senha';
+              if (v != _passwordController.text) return 'Senhas não coincidem';
+              return null;
+            },
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(child: _outlineButton(label: 'Voltar', onPressed: _previousPage)),
+              const SizedBox(width: 12),
+              Expanded(child: _primaryButton(label: 'Continuar', onPressed: _nextPage)),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -631,10 +808,24 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
             const SizedBox(height: 12),
             Center(
               child: TextButton(
+                onPressed: _handleForgotPassword,
+                child: Text(
+                  'Esqueci minha senha',
+                  style: GoogleFonts.leagueSpartan(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 13,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton(
                 onPressed: () {
                   setState(() {
                     _mode = AuthMode.register;
-                    _registerPageController.jumpToPage(0);
+                    _registerStep = 0;
                   });
                 },
                 child: RichText(
@@ -686,30 +877,23 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
             ),
           ),
           const SizedBox(height: 24),
-          SizedBox(
-            height: 300,
-            child: PageView(
-              controller: _registerPageController,
-              physics: const NeverScrollableScrollPhysics(),
-              onPageChanged: (i) => setState(() => _registerStep = i),
-              children: [
-                _buildStep1(),
-                _buildStep2(),
-                _buildStep3(),
-              ],
-            ),
-          ),
+          if (_registerStep == 0) _buildStep1(),
+          if (_registerStep == 1) _buildStep2(),
+          if (_registerStep == 2) _buildStep3(),
           const SizedBox(height: 16),
-          SmoothPageIndicator(
-            controller: _registerPageController,
-            count: 3,
-            effect: const WormEffect(
-              dotHeight: 6,
-              dotWidth: 6,
-              activeDotColor: Colors.white,
-              dotColor: Colors.white24,
-              spacing: 4,
-              radius: 4,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              3,
+              (index) => Container(
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                width: _registerStep == index ? 20 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: _registerStep == index ? Colors.white : Colors.white24,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 16),

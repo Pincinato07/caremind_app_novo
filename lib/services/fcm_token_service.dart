@@ -95,7 +95,7 @@ class FCMTokenService {
       final existingToken = await _client
           .from('fcm_tokens')
           .select()
-          .eq('perfil_id', user.id)
+          .eq('user_id', user.id)
           .eq('token', token)
           .maybeSingle();
 
@@ -112,12 +112,12 @@ class FCMTokenService {
         await _client
             .from('fcm_tokens')
             .delete()
-            .eq('perfil_id', user.id)
+            .eq('user_id', user.id)
             .neq('token', token);
 
         // Inserir novo token
         await _client.from('fcm_tokens').insert({
-          'perfil_id': user.id,
+          'user_id': user.id,
           'token': token,
           'platform': platform,
           'created_at': DateTime.now().toIso8601String(),

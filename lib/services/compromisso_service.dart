@@ -56,7 +56,7 @@ class CompromissoService {
       final perfilResponse = await _client
           .from('perfis')
           .select('id')
-          .eq('perfil_id', userId)
+          .eq('user_id', userId)
           .maybeSingle();
       
       final perfilId = perfilResponse?['id'] as String?;
@@ -88,7 +88,7 @@ class CompromissoService {
           final perfilResponse = await _client
               .from('perfis')
               .select('id')
-              .eq('perfil_id', userId)
+              .eq('user_id', userId)
               .maybeSingle();
           
           if (perfilResponse != null) {

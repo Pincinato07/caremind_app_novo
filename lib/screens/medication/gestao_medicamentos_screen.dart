@@ -156,25 +156,25 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
               ? familiarState.idosoSelecionado!.id 
               : user.id);
       
-      final novoEstado = !medicamento.concluido;
       
       // Atualizar o medicamento
       await medicamentoService.toggleConcluido(
         medicamento.id!,
-        novoEstado,
+        true, // sempre marcando como concluído quando chamado
+        DateTime.now(), // data prevista
       );
       
       // Registrar evento no histórico
       try {
         await HistoricoEventosService.addEvento({
           'perfil_id': targetPerfilId,
-          'tipo_evento': novoEstado ? 'medicamento_tomado' : 'medicamento_desmarcado',
-          'data_hora': DateTime.now().toIso8601String(),
-          'descricao': novoEstado 
-              ? 'Medicamento "${medicamento.nome}" marcado como tomado'
-              : 'Medicamento "${medicamento.nome}" desmarcado',
-          'referencia_id': medicamento.id.toString(),
-          'tipo_referencia': 'medicamento',
+          'tipo_evento': 'medicamento_tomado',
+          'evento_id': medicamento.id!,
+          'data_prevista': DateTime.now().toIso8601String(),
+          'status': 'concluido',
+          'titulo': medicamento.nome,
+          'descricao': 'Medicamento "${medicamento.nome}" marcado como tomado',
+          'medicamento_id': medicamento.id!,
         });
       } catch (e) {
         // Log erro mas não interrompe o fluxo

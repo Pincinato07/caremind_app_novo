@@ -19,6 +19,7 @@ import '../../services/account_manager_service.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/caremind_app_bar.dart';
 import '../../widgets/glass_card.dart';
+import '../../widgets/persistent_bottom_nav_bar.dart';
 import '../lgpd/termos_privacidade_screen.dart';
 import 'trocar_conta_screen.dart';
 
@@ -380,8 +381,14 @@ class _PerfilScreenState extends State<PerfilScreen> {
         showBackButton: true,
         isFamiliar: isFamiliar,
       ),
-      body: SafeArea(
-        child: _isLoading
+      bottomNavigationBar: PersistentBottomNavBar(
+        currentIndex: -1, // No tab selected for profile
+        onTap: (index) {
+          // Navigate back to main screen and select tab
+          Navigator.of(context).pop();
+        },
+      ),
+      body: _isLoading
             ? const Center(
                 child: CircularProgressIndicator(
                   color: Colors.white,
@@ -586,11 +593,11 @@ class _PerfilScreenState extends State<PerfilScreen> {
                       ),
                     ),
 
+
                     const SizedBox(height: 32),
                   ],
                 ),
               ),
-      ),
     );
   }
 

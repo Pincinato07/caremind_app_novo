@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:vibration/vibration.dart';
 import 'settings_service.dart';
@@ -18,18 +19,42 @@ class AccessibilityService {
     }
 
     try {
-      _settingsService = getIt<SettingsService>();
-      // Adicionar listener para mudanças em tempo real
-      _settingsService?.addListener(_updateTtsSettings);
-    } catch (e) {
-      // SettingsService pode não estar disponível ainda
-    }
+      try {
+        _settingsService = getIt<SettingsService>();
+        // Adicionar listener para mudanças em tempo real
+        _settingsService?.addListener(_updateTtsSettings);
+      } catch (e) {
+        // SettingsService pode não estar disponível ainda
+      }
 
-    await _tts.setLanguage("pt-BR");
-    await _updateTtsSettings();
-    await _tts.setVolume(1.0);
-    await _tts.setPitch(1.0);
-    _isInitialized = true;
+      // Configuração importante para iOS
+      await _tts.setSharedInstance(true);
+      await _tts.setIosAudioCategory(
+          IosTextToSpeechAudioCategory.playback,
+          [
+            IosTextToSpeechAudioCategoryOptions.defaultToSpeaker,
+            IosTextToSpeechAudioCategoryOptions.allowBluetooth,
+            IosTextToSpeechAudioCategoryOptions.allowBluetoothA2DP,
+            IosTextToSpeechAudioCategoryOptions.mixWithOthers,
+          ]
+      );
+
+      await _tts.awaitSpeakCompletion(true);
+      await _tts.setLanguage("pt-BR");
+      
+      // Tenta configurar voz específica se disponível (opcional)
+      // await _setBestVoice();
+
+      await _updateTtsSettings();
+      await _tts.setVolume(1.0);
+      await _tts.setPitch(1.0);
+      
+      _isInitialized = true;
+    } catch (e) {
+      debugPrint('Erro ao inicializar TTS: $e');
+      // Continua mesmo com erro, para não quebrar o app
+      _isInitialized = true;
+    }
   }
 
   /// Atualiza configurações do TTS baseado nas preferências
@@ -52,7 +77,12 @@ class AccessibilityService {
       return; // TTS desabilitado, não fala
     }
 
-    await _tts.speak(text);
+    // Parar fala anterior para evitar sobreposição
+    await _tts.stop();
+    
+    if (text.isNotEmpty) {
+      await _tts.speak(text);
+    }
   }
 
   /// Para a fala atual

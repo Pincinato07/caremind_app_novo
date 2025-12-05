@@ -89,7 +89,7 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
       final perfilResponse = await supabaseService.client
           .from('perfis')
           .select('id')
-          .eq('perfil_id', widget.userId)
+          .eq('user_id', widget.userId)
           .single();
 
       final perfilId = perfilResponse['id'] as String;

@@ -166,128 +166,129 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
   Widget build(BuildContext context) {
     final isFamiliar = _familiarState.hasIdosos;
 
-    final content = SafeArea(
-      child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              )
-            : _error != null
-                ? Center(
+    final Widget content;
+    if (_isLoading) {
+      content = const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    } else if (_error != null) {
+      content = Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.white.withValues(alpha: 0.8),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _error!,
+              style: AppTextStyles.leagueSpartan(
+                fontSize: 16,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _loadRelatorios,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF0400BA),
+              ),
+              child: const Text('Tentar novamente'),
+            ),
+          ],
+        ),
+      );
+    } else if (_analyticsData == null) {
+      content = const Center(
+        child: Text(
+          'Nenhum dado disponível',
+          style: TextStyle(color: Colors.white),
+        ),
+      );
+    } else {
+      content = SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Banner de contexto para perfil familiar
+            if (isFamiliar)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 16),
+                child: BannerContextoFamiliar(),
+              ),
+
+            // Seletor de período
+            GlassCard(
+              padding: const EdgeInsets.all(16),
+              blurSigma: 15.0,
+              opacity: 0.3,
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: Colors.white.withValues(alpha: 0.8),
-                        ),
-                        const SizedBox(height: 16),
                         Text(
-                          _error!,
+                          'Período',
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 14,
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${DateFormat('dd/MM/yyyy').format(_dataInicio)} - ${DateFormat('dd/MM/yyyy').format(_dataFim)}',
                           style: AppTextStyles.leagueSpartan(
                             fontSize: 16,
+                            fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: _loadRelatorios,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: const Color(0xFF0400BA),
-                          ),
-                          child: const Text('Tentar novamente'),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ],
                     ),
-                  )
-                : _analyticsData == null
-                    ? const Center(
-                        child: Text(
-                          'Nenhum dado disponível',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Banner de contexto para perfil familiar
-                            if (isFamiliar)
-                              const Padding(
-                                padding: EdgeInsets.only(bottom: 16),
-                                child: BannerContextoFamiliar(),
-                              ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.white),
+                    onPressed: _selectDateRange,
+                  ),
+                ],
+              ),
+            ),
 
-                            // Seletor de período
-                            GlassCard(
-                              padding: const EdgeInsets.all(16),
-                              blurSigma: 15.0,
-                              opacity: 0.3,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.calendar_today,
-                                    color: Colors.white,
-                                    size: 24,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Período',
-                                          style: AppTextStyles.leagueSpartan(
-                                            fontSize: 14,
-                                            color: Colors.white.withValues(alpha: 0.8),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '${DateFormat('dd/MM/yyyy').format(_dataInicio)} - ${DateFormat('dd/MM/yyyy').format(_dataFim)}',
-                                          style: AppTextStyles.leagueSpartan(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 1,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.edit, color: Colors.white),
-                                    onPressed: _selectDateRange,
-                                  ),
-                                ],
-                              ),
-                            ),
+            const SizedBox(height: 24),
 
-                            const SizedBox(height: 24),
+            // KPIs
+            _buildKPISection(_analyticsData!['kpis'] as Map<String, dynamic>? ?? {}),
 
-                            // KPIs
-                            _buildKPISection(_analyticsData!['kpis'] as Map<String, dynamic>? ?? {}),
+            const SizedBox(height: 24),
 
-                            const SizedBox(height: 24),
+            // Gráficos
+            _buildChartsSection(_analyticsData!['graficos'] as Map<String, dynamic>? ?? {}),
 
-                            // Gráficos
-                            _buildChartsSection(_analyticsData!['graficos'] as Map<String, dynamic>? ?? {}),
+            const SizedBox(height: 24),
 
-                            const SizedBox(height: 24),
+            // Tabela de eventos
+            if (_eventosList != null && _eventosList!.isNotEmpty)
+              _buildEventosTable(_eventosList!),
 
-                            // Tabela de eventos
-                            if (_eventosList != null && _eventosList!.isNotEmpty)
-                              _buildEventosTable(_eventosList!),
-
-                            const SizedBox(height: 100),
-                          ],
-                        ),
-                      ),
-    );
+            const SizedBox(height: 100),
+          ],
+        ),
+      );
+    }
 
     if (widget.embedded) {
       // Modo embedded: retorna apenas o conteúdo, sem AppScaffoldWithWaves

@@ -80,43 +80,55 @@ class _HighContrastWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!enabled) return child;
 
-    return Theme(
-      data: Theme.of(context).copyWith(
-        colorScheme: Theme.of(context).colorScheme.copyWith(
-          // Cores de alto contraste (WCAG AAA)
-          primary: Colors.white,
-          onPrimary: Colors.black,
-          secondary: Colors.white,
-          onSecondary: Colors.black,
-          surface: Colors.black,
-          onSurface: Colors.white,
-          background: Colors.black,
-          onBackground: Colors.white,
-          error: Colors.red,
-          onError: Colors.white,
-        ),
-        scaffoldBackgroundColor: Colors.black,
-        cardColor: Colors.black,
-        dividerColor: Colors.white,
-        // Bordas mais grossas para melhor visibilidade
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderSide: const BorderSide(color: Colors.white, width: 3),
+    // Aplicar filtro de alto contraste sobre todo o conteúdo
+    return ColorFiltered(
+      colorFilter: const ColorFilter.matrix(<double>[
+        // Aumentar contraste e saturação
+        1.5, 0, 0, 0, 0,  // Red channel
+        0, 1.5, 0, 0, 0,  // Green channel
+        0, 0, 1.5, 0, 0,  // Blue channel
+        0, 0, 0, 1, 0,    // Alpha channel
+      ]),
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          brightness: Brightness.dark,
+          colorScheme: Theme.of(context).colorScheme.copyWith(
+            // Cores de alto contraste (WCAG AAA)
+            primary: Colors.white,
+            onPrimary: Colors.black,
+            secondary: Colors.white,
+            onSecondary: Colors.black,
+            surface: Colors.black,
+            onSurface: Colors.white,
+            background: Colors.black,
+            onBackground: Colors.white,
+            error: Colors.red.shade900,
+            onError: Colors.white,
           ),
-          enabledBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: Colors.white, width: 3),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: Colors.white, width: 4),
+          scaffoldBackgroundColor: Colors.black,
+          cardColor: const Color(0xFF1A1A1A),
+          dividerColor: Colors.white,
+          // Bordas mais grossas para melhor visibilidade
+          inputDecorationTheme: InputDecorationTheme(
+            border: OutlineInputBorder(
+              borderSide: const BorderSide(color: Colors.white, width: 3),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Colors.white, width: 3),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Colors.white, width: 4),
+            ),
           ),
         ),
-      ),
-      child: DefaultTextStyle(
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 16,
+        child: DefaultTextStyle(
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+          child: child,
         ),
-        child: child,
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:ui';
 import '../theme/app_theme.dart';
 import '../core/navigation/app_navigation.dart';
 import '../core/state/familiar_state.dart';
@@ -30,7 +31,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   /// Constrói o leading (botão esquerdo)
-  /// Mostra back button se pode voltar ou se showBackButton=true
+  /// Mostra back button apenas se showBackButton=true
   /// Caso contrário, mostra botão de configurações
   Widget _buildLeading(BuildContext context) {
     // Se foi fornecido um leading customizado, usa ele
@@ -38,15 +39,8 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
       return leading!;
     }
     
-    // Verificação mais robusta para determinar se pode voltar
-    final route = ModalRoute.of(context);
-    final isFirstRoute = route?.isFirst ?? false;
-    final canPop = Navigator.canPop(context) && !isFirstRoute;
-    final shouldShowBack = showBackButton || (!isFirstRoute && canPop);
-
-    debugPrint('CareMindAppBar - isFirstRoute: $isFirstRoute, canPop: $canPop, shouldShowBack: $shouldShowBack, showBackButton: $showBackButton');
-
-    if (shouldShowBack) {
+    // Mostrar botão de voltar APENAS se explicitamente solicitado
+    if (showBackButton) {
       return Padding(
         padding: const EdgeInsets.only(left: 12),
         child: Semantics(
@@ -65,13 +59,9 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
               minHeight: 40,
             ),
             onPressed: () {
-              debugPrint('CareMindAppBar - Botão voltar pressionado');
-              // Verifica se pode voltar antes de fazer o pop
+              // Apenas fazer pop, nunca logout
               if (Navigator.canPop(context)) {
-                debugPrint('CareMindAppBar - Fazendo Navigator.pop');
                 Navigator.pop(context);
-              } else {
-                debugPrint('CareMindAppBar - Não pode fazer pop');
               }
             },
             tooltip: 'Voltar',
@@ -80,8 +70,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
       );
     }
 
-    // Se não pode voltar, mostra botão de configurações
-    debugPrint('CareMindAppBar - Mostrando botão de configurações');
+    // Se não deve mostrar back button, mostra botão de configurações
     return Padding(
       padding: const EdgeInsets.only(left: 12),
       child: Semantics(
@@ -100,7 +89,6 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
             minHeight: 40,
           ),
           onPressed: () {
-            debugPrint('CareMindAppBar - Botão configurações pressionado');
             Navigator.push(
               context,
               AppNavigation.smoothRoute(
@@ -139,7 +127,23 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       centerTitle: true,
-      flexibleSpace: const SizedBox.shrink(),
+      flexibleSpace: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white.withOpacity(0.1),
+                  Colors.white.withOpacity(0.05),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
       toolbarOpacity: 1.0,
       systemOverlayStyle: SystemUiOverlayStyle.light.copyWith(
         statusBarColor: Colors.transparent,

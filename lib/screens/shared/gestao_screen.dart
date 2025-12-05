@@ -336,7 +336,6 @@ class _GestaoScreenState extends State<GestaoScreen> {
       padding: const EdgeInsets.all(16),
       blurSigma: 15.0,
       opacity: 0.3,
-      useGradient: false, // Sem degrade
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,

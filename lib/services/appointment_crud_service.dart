@@ -33,10 +33,16 @@ class AppointmentCRUDService extends ChangeNotifier {
         throw const AuthenticationException(message: 'Usuário não autenticado');
       }
 
+      // Buscar perfil primeiro
+      final perfil = await _supabaseService.getProfile(user.id);
+      if (perfil == null) {
+        throw Exception('Perfil não encontrado');
+      }
+
       final response = await _supabaseService.client
           .from('compromissos')
           .select()
-          .eq('user_id', user.id)
+          .eq('perfil_id', perfil.id)
           .order('data_hora', ascending: true);
 
       _appointments = (response as List)
@@ -83,8 +89,14 @@ class AppointmentCRUDService extends ChangeNotifier {
       // Anuncia início da criação
       await AccessibilityService.speak('Adicionando compromisso: $titulo...');
 
+      // Buscar perfil primeiro
+      final perfil = await _supabaseService.getProfile(user.id);
+      if (perfil == null) {
+        throw Exception('Perfil não encontrado');
+      }
+
       final appointmentData = {
-        'user_id': user.id,
+        'perfil_id': perfil.id,
         'titulo': titulo.trim(),
         'descricao': descricao.trim(),
         'data_hora': dataHora.toIso8601String(),

@@ -7,7 +7,6 @@ class Medicamento {
   final String dosagem;
   final Map<String, dynamic> frequencia;
   final int quantidade;
-  final bool concluido;
   final String? horarios;
   final String? observacoes;
   final bool? ativo;
@@ -23,7 +22,6 @@ class Medicamento {
     required this.dosagem,
     required this.frequencia,
     required this.quantidade,
-    this.concluido = false,
     this.horarios,
     this.observacoes,
     this.ativo = true,
@@ -41,7 +39,6 @@ class Medicamento {
       dosagem: map['dosagem'] as String,
       frequencia: Map<String, dynamic>.from(map['frequencia'] as Map),
       quantidade: map['quantidade'] as int,
-      concluido: map['concluido'] as bool? ?? false,
       horarios: map['horarios'] as String?,
       observacoes: map['observacoes'] as String?,
       ativo: map['ativo'] as bool?,
@@ -60,7 +57,6 @@ class Medicamento {
       'dosagem': dosagem,
       'frequencia': frequencia,
       'quantidade': quantidade,
-      'concluido': concluido,
       if (horarios != null) 'horarios': horarios,
       if (observacoes != null) 'observacoes': observacoes,
       if (ativo != null) 'ativo': ativo,
@@ -78,7 +74,6 @@ class Medicamento {
     String? dosagem,
     Map<String, dynamic>? frequencia,
     int? quantidade,
-    bool? concluido,
     String? horarios,
     String? observacoes,
     bool? ativo,
@@ -94,7 +89,6 @@ class Medicamento {
       dosagem: dosagem ?? this.dosagem,
       frequencia: frequencia ?? this.frequencia,
       quantidade: quantidade ?? this.quantidade,
-      concluido: concluido ?? this.concluido,
       horarios: horarios ?? this.horarios,
       observacoes: observacoes ?? this.observacoes,
       ativo: ativo ?? this.ativo,
@@ -102,6 +96,10 @@ class Medicamento {
       dataFim: dataFim ?? this.dataFim,
     );
   }
+
+  // Getter temporário para compatibilidade com código existente
+  // TODO: Remover após refatorar UI para usar historico_eventos
+  bool get concluido => false;
 
   // Método auxiliar para obter descrição da frequência
   String get frequenciaDescricao {

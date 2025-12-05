@@ -53,7 +53,7 @@ class MedicamentoService {
           final perfilResponse = await _client
               .from('perfis')
               .select('id')
-              .eq('perfil_id', medicamento.userId!)
+              .eq('user_id', medicamento.userId!)
               .maybeSingle();
           
           if (perfilResponse != null) {
@@ -183,40 +183,84 @@ class MedicamentoService {
     }
   }
 
-  // Marcar medicamento como concluído/não concluído
+  // Marcar medicamento como concluído/não concluído via historico_eventos
   // Se marcar como concluído, decrementa quantidade e verifica estoque baixo
-  Future<Medicamento> toggleConcluido(
+  Future<void> toggleConcluido(
     int medicamentoId,
     bool concluido,
+    DateTime dataPrevista,
   ) async {
     try {
-      // Buscar medicamento atual para verificar quantidade
+      // Buscar medicamento atual para verificar quantidade e perfil_id
       final medicamentoAtual = await getMedicamentoPorId(medicamentoId);
       if (medicamentoAtual == null) {
         throw Exception('Medicamento não encontrado');
       }
 
-      Map<String, dynamic> updates = {'concluido': concluido};
+      final perfilId = medicamentoAtual.perfilId ?? medicamentoAtual.userId;
+      if (perfilId == null) {
+        throw Exception('perfil_id não encontrado para o medicamento');
+      }
+
+      // Buscar ou criar evento no historico_eventos
+      final eventosResponse = await _client
+          .from('historico_eventos')
+          .select()
+          .eq('medicamento_id', medicamentoId)
+          .eq('data_prevista', dataPrevista.toIso8601String())
+          .maybeSingle();
+
+      final novoStatus = concluido ? 'concluido' : 'pendente';
+
+      if (eventosResponse != null) {
+        // Atualizar evento existente
+        await _client
+            .from('historico_eventos')
+            .update({
+              'status': novoStatus,
+              'horario_programado': DateTime.now().toIso8601String(),
+            })
+            .eq('id', eventosResponse['id']);
+      } else {
+        // Criar novo evento
+        await _client
+            .from('historico_eventos')
+            .insert({
+              'perfil_id': perfilId,
+              'tipo_evento': 'medicamento',
+              'evento_id': medicamentoId,
+              'medicamento_id': medicamentoId,
+              'data_prevista': dataPrevista.toIso8601String(),
+              'status': novoStatus,
+              'horario_programado': DateTime.now().toIso8601String(),
+              'titulo': medicamentoAtual.nome,
+              'descricao': 'Dosagem: ${medicamentoAtual.dosagem}',
+            });
+      }
       
       // Se está marcando como tomado, decrementar quantidade
-      if (concluido && !medicamentoAtual.concluido) {
+      if (concluido) {
         final novaQuantidade = medicamentoAtual.quantidade > 0 
             ? medicamentoAtual.quantidade - 1 
             : 0;
-        updates['quantidade'] = novaQuantidade;
+        
+        await _client
+            .from('medicamentos')
+            .update({'quantidade': novaQuantidade})
+            .eq('id', medicamentoId);
 
         // Verificar se estoque está baixo (<= 5 unidades)
         if (novaQuantidade <= 5 && novaQuantidade > 0) {
           try {
-            // Obter perfil_id do medicamento
-            final perfilId = medicamentoAtual.perfilId;
             await HistoricoEventosService.addEvento({
               'perfil_id': perfilId,
               'tipo_evento': 'estoque_baixo',
-              'data_hora': DateTime.now().toIso8601String(),
-              'descricao': 'Estoque de "${medicamentoAtual.nome}" está baixo (${novaQuantidade} unidade(s) restante(s))',
-              'referencia_id': medicamentoId.toString(),
-              'tipo_referencia': 'medicamento',
+              'evento_id': medicamentoId,
+              'data_prevista': DateTime.now().toIso8601String(),
+              'status': 'pendente',
+              'titulo': 'Estoque baixo',
+              'descricao': 'Estoque de "${medicamentoAtual.nome}" está baixo ($novaQuantidade unidade(s) restante(s))',
+              'medicamento_id': medicamentoId,
             });
           } catch (e) {
             // Log erro mas não interrompe o fluxo
@@ -225,20 +269,7 @@ class MedicamentoService {
         }
       }
 
-      // Limpar dados antes de atualizar (remove strings vazias)
-      final cleanedUpdates = DataCleaner.cleanData(updates);
-      
-      debugPrint('📤 MedicamentoService: Marcando medicamento $medicamentoId como concluído: $concluido');
-      debugPrint('📤 MedicamentoService: Dados para atualização: $cleanedUpdates');
-      
-      final response = await _client
-          .from('medicamentos')
-          .update(cleanedUpdates)
-          .eq('id', medicamentoId)
-          .select()
-          .single();
-
-      return Medicamento.fromMap(response);
+      debugPrint('✅ MedicamentoService: Medicamento $medicamentoId marcado como $novoStatus');
     } catch (error) {
       debugPrint('❌ MedicamentoService: Erro ao marcar medicamento como concluído: ${error.toString()}');
       debugPrint('❌ MedicamentoService: Tipo do erro: ${error.runtimeType}');
@@ -252,39 +283,6 @@ class MedicamentoService {
     }
   }
 
-  // Buscar medicamentos por status (concluído/pendente)
-  // Atualizado para usar perfil_id (com fallback para user_id durante transição)
-  Future<List<Medicamento>> getMedicamentosPorStatus(
-    String userId,
-    bool concluido,
-  ) async {
-    try {
-      // Primeiro, obter o perfil_id do usuário
-      final perfilResponse = await _client
-          .from('perfis')
-          .select('id')
-          .eq('perfil_id', userId)
-          .maybeSingle();
-      
-      final perfilId = perfilResponse?['id'] as String?;
-      
-      // Usar perfil_id se disponível, senão usar user_id (compatibilidade durante transição)
-      final response = await _client
-          .from('medicamentos')
-          .select()
-          .or(perfilId != null 
-              ? 'perfil_id.eq.$perfilId'
-              : 'perfil_id.eq.$userId')
-          .eq('concluido', concluido)
-          .order('created_at', ascending: false);
-
-      return (response as List)
-          .map((item) => Medicamento.fromMap(item))
-          .toList();
-    } catch (error) {
-      throw ErrorHandler.toAppException(error);
-    }
-  }
 
   // Buscar medicamento por ID
   Future<Medicamento?> getMedicamentoPorId(int medicamentoId) async {

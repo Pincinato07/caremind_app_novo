@@ -33,10 +33,16 @@ class MedicationCRUDService extends ChangeNotifier {
         throw Exception('Usuário não autenticado');
       }
 
+      // Buscar perfil primeiro
+      final perfil = await _supabaseService.getProfile(user.id);
+      if (perfil == null) {
+        throw Exception('Perfil não encontrado');
+      }
+
       final response = await _supabaseService.client
           .from('medicamentos')
           .select()
-          .eq('user_id', user.id)
+          .eq('perfil_id', perfil.id)
           .order('created_at', ascending: false);
 
       _medications = (response as List)
@@ -84,8 +90,14 @@ class MedicationCRUDService extends ChangeNotifier {
       // Anuncia início da criação
       await AccessibilityService.speak('Adicionando medicamento: $nome...');
 
+      // Buscar perfil primeiro
+      final perfil = await _supabaseService.getProfile(user.id);
+      if (perfil == null) {
+        throw Exception('Perfil não encontrado');
+      }
+
       final medicationData = {
-        'user_id': user.id,
+        'perfil_id': perfil.id,
         'nome': nome.trim(),
         'dosagem': dosagem.trim(),
         'frequencia': frequencia.trim(),

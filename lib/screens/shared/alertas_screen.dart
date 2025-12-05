@@ -26,7 +26,8 @@ class _AlertasScreenState extends State<AlertasScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    // Iniciar na aba de Relatórios (índice 1)
+    _tabController = TabController(length: 2, vsync: this, initialIndex: 1);
   }
 
   @override
@@ -41,22 +42,24 @@ class _AlertasScreenState extends State<AlertasScreen> with SingleTickerProvider
     
     return AppScaffoldWithWaves(
       appBar: CareMindAppBar(
-        title: 'Notificações',
+        title: 'Relatórios',
         isFamiliar: isFamiliar,
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Botão de marcar todas como lidas
-            StreamBuilder<int>(
-              stream: getIt<NotificacoesAppService>().countNaoLidasStream,
-              initialData: getIt<NotificacoesAppService>().countNaoLidas,
-              builder: (context, snapshot) {
-                final count = snapshot.data ?? 0;
-                if (count == 0) return const SizedBox.shrink();
-                
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+      body: Column(
+        children: [
+          const SizedBox(height: 8), // Padding top
+          // Botão de marcar todas como lidas
+          StreamBuilder<int>(
+            stream: getIt<NotificacoesAppService>().countNaoLidasStream,
+            initialData: getIt<NotificacoesAppService>().countNaoLidas,
+            builder: (context, snapshot) {
+              final count = snapshot.data ?? 0;
+              if (count == 0) return const SizedBox.shrink();
+              
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: GlassCard(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: TextButton.icon(
                     onPressed: () async {
                       final service = getIt<NotificacoesAppService>();
@@ -75,73 +78,74 @@ class _AlertasScreenState extends State<AlertasScreen> with SingleTickerProvider
                       'Marcar todas como lidas ($count)',
                       style: AppTextStyles.leagueSpartan(
                         fontSize: 14,
+                        fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
                     ),
                   ),
-                );
-              },
+                ),
+              );
+            },
+          ),
+          // Tab Bar
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
             ),
-            // Tab Bar
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: TabBar(
-                controller: _tabController,
-                indicator: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
-                labelStyle: AppTextStyles.leagueSpartan(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-                unselectedLabelStyle: AppTextStyles.leagueSpartan(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-                tabs: const [
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.notifications),
-                        SizedBox(width: 8),
-                        Text('Notificações'),
-                      ],
-                    ),
-                  ),
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.analytics),
-                        SizedBox(width: 8),
-                        Text('Relatórios'),
-                      ],
-                    ),
-                  ),
-                ],
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
+              labelStyle: AppTextStyles.leagueSpartan(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
               ),
-            ),
-            // Tab Views
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: const [
-                  _NotificacoesTab(),
-                  RelatoriosScreen(embedded: true),
-                ],
+              unselectedLabelStyle: AppTextStyles.leagueSpartan(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
               ),
+              tabs: const [
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.notifications),
+                      SizedBox(width: 8),
+                      Text('Notificações'),
+                    ],
+                  ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.analytics),
+                      SizedBox(width: 8),
+                      Text('Relatórios'),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          // Tab Views
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: const [
+                _NotificacoesTab(),
+                RelatoriosScreen(embedded: true),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

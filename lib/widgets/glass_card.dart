@@ -10,7 +10,6 @@ class GlassCard extends StatelessWidget {
   final Color? borderColor;
   final double? blurSigma;
   final double? opacity;
-  final bool useGradient;
 
   const GlassCard({
     super.key,
@@ -21,7 +20,6 @@ class GlassCard extends StatelessWidget {
     this.borderColor,
     this.blurSigma,
     this.opacity,
-    this.useGradient = true,
   });
 
   @override
@@ -48,40 +46,26 @@ class GlassCard extends StatelessWidget {
                   child: Container(
                     padding: padding ?? const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      // Usa degrade ou cor sólida conforme configurado
-                      color: useGradient 
-                          ? null 
-                          : Colors.white.withValues(alpha: opacity ?? 0.3),
-                      gradient: useGradient 
-                          ? LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Colors.white.withValues(alpha: opacity ?? 0.3),
-                                Colors.white.withValues(alpha: (opacity ?? 0.3) * 0.8),
-                                Colors.white.withValues(alpha: (opacity ?? 0.3) * 0.4),
-                              ],
-                              stops: const [0.0, 0.3, 1.0],
-                            )
-                          : null,
+                      // Cor sólida translúcida para visual limpo e consistente
+                      color: Colors.white.withValues(alpha: opacity ?? 0.2),
                       borderRadius: borderRadius ?? BorderRadius.circular(16),
                       border: Border.all(
-                        color: borderColor ?? Colors.white.withValues(alpha: 0.5),
+                        color: borderColor ?? Colors.white.withValues(alpha: 0.4),
                         width: 1.5,
                       ),
                       boxShadow: [
                         // Sombra mais escura para melhor contraste
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.3),
-                          blurRadius: 25,
-                          offset: const Offset(0, 10),
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
                           spreadRadius: 0,
                         ),
                         // Brilho sutil nas bordas superior
                         BoxShadow(
-                          color: Colors.white.withValues(alpha: 0.3),
-                          blurRadius: 15,
-                          offset: const Offset(0, -5),
+                          color: Colors.white.withValues(alpha: 0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, -3),
                           spreadRadius: 0,
                         ),
                       ],

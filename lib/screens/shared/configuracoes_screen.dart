@@ -3,6 +3,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/caremind_app_bar.dart';
 import '../../widgets/glass_card.dart';
+import '../../widgets/persistent_bottom_nav_bar.dart';
 import '../../services/supabase_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/alexa_auth_service.dart';
@@ -225,20 +226,22 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
       appBar: CareMindAppBar(
         title: 'Configurações',
         showBackButton: true,
-        leading: IconButton(
-          icon: const Icon(Icons.account_circle_outlined),
-          onPressed: () => Navigator.pushNamed(context, '/perfil'),
-          tooltip: 'Meu Perfil',
-        ),
       ),
-      body: SafeArea(
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              )
-            : SingleChildScrollView(
-                child: Column(
-                  children: [
+      bottomNavigationBar: PersistentBottomNavBar(
+        currentIndex: -1, // No tab selected for settings
+        onTap: (index) {
+          // Navigate back to main screen and select tab
+          Navigator.of(context).pop();
+          // The navigation shell will handle the tab selection
+        },
+      ),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            )
+          : SingleChildScrollView(
+              child: Column(
+                children: [
                     // Seção: Emergência (apenas para Idoso e Individual)
                     if (_perfilTipo != 'familiar')
                       _buildSection(
@@ -819,11 +822,11 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                       },
                     ),
 
+
               const SizedBox(height: 24),
             ],
           ),
         ),
-      ),
     );
   }
 

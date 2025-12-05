@@ -418,15 +418,21 @@ class _AjudaScreenState extends State<AjudaScreen> {
                                 )
                               : Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Icon(Icons.warning, size: 36),
-                                    const SizedBox(width: 16),
-                                    Text(
-                                      'ACIONAR EMERGÊNCIA',
-                                      style: AppTextStyles.leagueSpartan(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 1.5,
+                                    const SizedBox(width: 12),
+                                    Flexible(
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          'ACIONAR EMERGÊNCIA',
+                                          style: AppTextStyles.leagueSpartan(
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 1.5,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
