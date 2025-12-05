@@ -1,10 +1,7 @@
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:permission_handler/permission_handler.dart';
 import 'medicamento_service.dart';
 import 'rotina_service.dart';
-import 'settings_service.dart';
-import '../core/injection/injection.dart';
 import 'accessibility_service.dart';
 
 /// Serviço completo de interface de voz (Voice-First)
@@ -21,22 +18,10 @@ class VoiceService {
   bool _isListening = false;
   bool _isInitialized = false;
   bool _isAvailable = false;
-  SettingsService? _settingsService;
   
   Function(String)? _onResult;
   Function(String)? _onError;
 
-  /// Obtém o SettingsService (lazy)
-  SettingsService? _getSettingsService() {
-    if (_settingsService == null) {
-      try {
-        _settingsService = getIt<SettingsService>();
-      } catch (e) {
-        // SettingsService pode não estar disponível ainda
-      }
-    }
-    return _settingsService;
-  }
 
   /// Inicializa o serviço de voz
   Future<bool> initialize() async {

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart';
-import '../core/injection/injection.dart';
 import 'nav_item.dart';
 
 /// Widget que fornece o bottom navigation bar persistente

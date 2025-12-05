@@ -211,7 +211,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                                 onPressed: _loadCompromissos,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
-                                  foregroundColor: const Color(0xFF0400BA),
+                                  foregroundColor: AppColors.primary,
                                 ),
                                 child: Text(
                                   'Tentar Novamente',
@@ -285,7 +285,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                       ),
                     ),
 
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                  SliverToBoxAdapter(child: SizedBox(height: AppSpacing.bottomNavBarPadding)),
                     ],
                   ),
             // Interface de voz para idosos
@@ -436,7 +436,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                 onPressed: () => _marcarComoConcluido(compromisso),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF0400BA),
+                  foregroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),

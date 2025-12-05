@@ -482,7 +482,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                     const SizedBox(height: 24),
                     const Text(
                       'Nenhum compromisso encontrado',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0400B9)),
+                      style: AppTextStyles.leagueSpartan(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primary),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
@@ -515,13 +515,13 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Colors.white, const Color(0xFF0400B9).withValues(alpha: 0.02)],
+                colors: [Colors.white, AppColors.primary.withValues(alpha: 0.02)],
               ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF0400B9).withValues(alpha: 0.1), width: 1),
+              borderRadius: AppBorderRadius.xlargeAll,
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.1), width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF0400B9).withValues(alpha: 0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -532,8 +532,8 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFF0400B9), Color(0xFF0600E0)]),
-                    borderRadius: BorderRadius.circular(12),
+                    gradient: const LinearGradient(colors: [AppColors.primary, AppColors.primaryLight]),
+                    borderRadius: AppBorderRadius.mediumAll,
                   ),
                   child: const Icon(Icons.analytics_outlined, color: Colors.white, size: 24),
                 ),
@@ -581,7 +581,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: _buildCompromissoCard(compromisso),
             ))),
-        const SizedBox(height: 100),
+        SizedBox(height: AppSpacing.bottomNavBarPadding),
       ],
     ),
     );
@@ -601,11 +601,11 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
           decoration: BoxDecoration(
             gradient: isActive
                 ? const LinearGradient(
-                    colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+                    colors: [AppColors.primary, AppColors.primaryLight],
                   )
                 : null,
             color: isActive ? null : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppBorderRadius.smallAll,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -651,7 +651,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 child: _buildCompromissoCard(compromisso),
               ))),
-          const SizedBox(height: 100),
+          SizedBox(height: AppSpacing.bottomNavBarPadding),
         ],
       ),
     );
@@ -685,7 +685,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
               ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0400B9).withValues(alpha: 0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -729,7 +729,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                               ? [Colors.green.shade400, Colors.green.shade600]
                               : isPassado
                                   ? [Colors.red.shade400, Colors.red.shade600]
-                                  : [const Color(0xFF0400B9), const Color(0xFF0600E0)],
+                                  : [AppColors.primary, AppColors.primaryLight],
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -774,7 +774,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: AppBorderRadius.smallAll,
                           ),
                           child: const Icon(Icons.more_vert, color: Colors.grey, size: 20),
                         ),

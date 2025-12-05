@@ -282,7 +282,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: AppBorderRadius.mediumAll,
                         ),
                         child: const Icon(
                           Icons.edit_note,
@@ -333,7 +333,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: AppBorderRadius.mediumAll,
                         ),
                         child: const Icon(
                           Icons.camera_alt,
@@ -450,7 +450,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: AppBorderRadius.mediumAll,
                         ),
                         child: const Icon(
                           Icons.camera_alt,
@@ -501,7 +501,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: AppBorderRadius.mediumAll,
                         ),
                         child: const Icon(
                           Icons.photo_library,
@@ -690,13 +690,13 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
           : FloatingActionButton.extended(
               onPressed: _showAddMedicamentoOptions,
               backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF0400BA),
+              foregroundColor: AppColors.primary,
               elevation: 4,
               icon: const Icon(Icons.add),
               label: Text(
                 'Adicionar',
                 style: AppTextStyles.leagueSpartan(
-                  color: const Color(0xFF0400BA),
+                  color: AppColors.primary,
                   fontWeight: FontWeight.w700,
                   fontSize: 16,
                 ),
@@ -773,9 +773,9 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                       onPressed: _loadMedicamentos,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF0400BA),
+                        foregroundColor: AppColors.primary,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: AppBorderRadius.mediumAll,
                         ),
                       ),
                       child: Text(
@@ -886,17 +886,17 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                 end: Alignment.bottomRight,
                 colors: [
                   Colors.white,
-                  const Color(0xFF0400B9).withValues(alpha: 0.02),
+                  AppColors.primary.withValues(alpha: 0.02),
                 ],
               ),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: AppBorderRadius.xlargeAll,
               border: Border.all(
-                color: const Color(0xFF0400B9).withValues(alpha: 0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF0400B9).withValues(alpha: 0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -911,12 +911,12 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+                          colors: [AppColors.primary, AppColors.primaryLight],
                         ),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: AppBorderRadius.mediumAll,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF0400B9).withValues(alpha: 0.3),
+                            color: AppColors.primary.withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -961,7 +961,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                       child: _buildSummaryItem(
                         'Total',
                         '${_medicamentos.length}',
-                        const Color(0xFF0400B9),
+                        AppColors.primary,
                         Icons.medication_liquid,
                       ),
                     ),
@@ -1007,7 +1007,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                 child: Text(
                   'Atualizar',
                   style: TextStyle(
-                    color: const Color(0xFF0400B9),
+                    color: AppColors.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1024,7 +1024,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
               child: _buildMedicamentoCard(medicamento),
             ))),
 
-        const SizedBox(height: 100), // Espaço para o FAB e navbar
+        SizedBox(height: AppSpacing.bottomNavBarPadding), // Espaço para o FAB e navbar
       ],
     );
   }
@@ -1073,17 +1073,17 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
           end: Alignment.bottomRight,
           colors: [
             Colors.white,
-            const Color(0xFF0400B9).withValues(alpha: 0.02),
+            AppColors.primary.withValues(alpha: 0.02),
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: AppBorderRadius.xlargeAll,
         border: Border.all(
-          color: const Color(0xFF0400B9).withValues(alpha: 0.1),
+          color: AppColors.primary.withValues(alpha: 0.1),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0400B9).withValues(alpha: 0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -1092,7 +1092,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: AppBorderRadius.xlargeAll,
           onTap: _isIdoso
               ? () {
                   // Idoso só pode marcar como concluído
@@ -1132,12 +1132,12 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                         gradient: LinearGradient(
                           colors: medicamento.concluido
                               ? [Colors.green.shade400, Colors.green.shade600]
-                              : [const Color(0xFF0400B9), const Color(0xFF0600E0)],
+                              : [AppColors.primary, const AppColors.primaryLight],
                         ),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: AppBorderRadius.mediumAll,
                         boxShadow: [
                           BoxShadow(
-                            color: (medicamento.concluido ? Colors.green : const Color(0xFF0400B9)).withValues(alpha: 0.3),
+                            color: (medicamento.concluido ? Colors.green : AppColors.primary).withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -1167,14 +1167,14 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0400B9).withValues(alpha: 0.1),
+                              color: AppColors.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               medicamento.dosagem,
                               style: const TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF0400B9),
+                                color: AppColors.primary,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -1245,7 +1245,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppBorderRadius.mediumAll,
                     border: Border.all(color: Colors.grey.shade200),
                   ),
                   child: Column(
@@ -1368,7 +1368,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                       gradient: LinearGradient(
                         colors: [Colors.green.shade400, Colors.green.shade600],
                       ),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppBorderRadius.mediumAll,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.green.withValues(alpha: 0.3),
@@ -1381,7 +1381,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () => _toggleConcluido(medicamento),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: AppBorderRadius.mediumAll,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                           child: Row(
@@ -1412,7 +1412,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     width: double.infinity,
                     decoration: BoxDecoration(
                       color: Colors.orange.shade400,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppBorderRadius.mediumAll,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.orange.withValues(alpha: 0.3),
@@ -1425,7 +1425,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () => _toggleConcluido(medicamento),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: AppBorderRadius.mediumAll,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                           child: Row(

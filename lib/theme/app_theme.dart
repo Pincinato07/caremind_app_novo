@@ -152,6 +152,8 @@ class AppSpacing {
   static const double large = 24.0;
   static const double xlarge = 32.0;
   static const double xxlarge = 48.0;
+  /// Espaço mínimo necessário para não sobrepor a navbar inferior (inclui SafeArea)
+  static const double bottomNavBarPadding = 100.0;
 }
 
 /// Tema principal do aplicativo

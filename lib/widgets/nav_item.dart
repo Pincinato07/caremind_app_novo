@@ -66,7 +66,7 @@ class _NavItemState extends State<NavItem>
 
   @override
   Widget build(BuildContext context) {
-    final selectedColor = widget.selectedColor ?? const Color(0xFF0400BA);
+    final selectedColor = widget.selectedColor ?? AppColors.primary;
     final unselectedColor = widget.unselectedColor ?? Colors.grey[600];
     final iconSize = widget.iconSize ?? 24.0;
     final fontSize = widget.fontSize ?? 12.0;

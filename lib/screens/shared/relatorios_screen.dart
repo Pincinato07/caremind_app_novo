@@ -284,7 +284,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
             if (_eventosList != null && _eventosList!.isNotEmpty)
               _buildEventosTable(_eventosList!),
 
-            const SizedBox(height: 100),
+            SizedBox(height: AppSpacing.bottomNavBarPadding),
           ],
         ),
       );

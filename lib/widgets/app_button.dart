@@ -20,7 +20,7 @@ class AppPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = const Color(0xFF0400BA);
+    final baseColor = AppColors.primary;
   return SizedBox(
     height: height ?? 64,
     width: width,
@@ -38,7 +38,7 @@ class AppPrimaryButton extends StatelessWidget {
               }
               if (states.contains(WidgetState.hovered) ||
                   states.contains(WidgetState.focused)) {
-                return const Color(0xFF0600E0);
+                return AppColors.primaryLight;
               }
               return baseColor;
             }),

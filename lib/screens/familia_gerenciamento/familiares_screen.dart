@@ -223,7 +223,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.edit, color: Color(0xFF0400BA)),
+                leading: const Icon(Icons.edit, color: AppColors.primary),
                 title: const Text('Editar'),
                 onTap: () {
                   Navigator.pop(context);
@@ -472,14 +472,14 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                                 childCount: _idosos.length,
                               ),
                             ),
-                            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                            SliverToBoxAdapter(child: SizedBox(height: AppSpacing.bottomNavBarPadding)),
                           ],
                         ),
                       ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _adicionarIdoso,
-        backgroundColor: const Color(0xFF0400BA),
+        backgroundColor: const AppColors.primary,
         icon: const Icon(Icons.person_add, color: Colors.white),
         label: Text(
           'Adicionar Idoso',
@@ -510,12 +510,12 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF0400BA), Color(0xFF0600E0)],
+                colors: [AppColors.primary, AppColors.primaryLight],
               ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF0400BA).withValues(alpha: 0.3),
+                  color: const AppColors.primary.withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),

@@ -30,6 +30,17 @@ class Medicamento {
   });
 
   factory Medicamento.fromMap(Map<String, dynamic> map) {
+    // Tratar frequencia que pode ser null ou não ser um Map
+    Map<String, dynamic> frequenciaMap;
+    if (map['frequencia'] == null) {
+      frequenciaMap = {};
+    } else if (map['frequencia'] is Map) {
+      frequenciaMap = Map<String, dynamic>.from(map['frequencia'] as Map);
+    } else {
+      // Se não for null nem Map, criar um Map vazio como fallback
+      frequenciaMap = {};
+    }
+    
     return Medicamento(
       id: map['id'] as int?,
       createdAt: DateTime.parse(map['created_at'] as String),
@@ -37,7 +48,7 @@ class Medicamento {
       userId: map['user_id'] as String?,
       perfilId: map['perfil_id'] as String?,
       dosagem: map['dosagem'] as String,
-      frequencia: Map<String, dynamic>.from(map['frequencia'] as Map),
+      frequencia: frequenciaMap,
       quantidade: map['quantidade'] as int,
       horarios: map['horarios'] as String?,
       observacoes: map['observacoes'] as String?,

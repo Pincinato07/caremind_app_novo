@@ -13,7 +13,6 @@ import '../compromissos/gestao_compromissos_screen.dart';
 import '../medication/add_edit_medicamento_form.dart';
 import '../rotinas/add_edit_rotina_form.dart';
 import '../compromissos/add_edit_compromisso_form.dart';
-import '../../core/navigation/app_navigation.dart';
 
 /// Tela central de Gestão
 /// Acesso rápido a Medicamentos, Rotinas e Compromissos
@@ -128,13 +127,13 @@ class _GestaoScreenState extends State<GestaoScreen> {
             }
           },
           backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF0400BA),
+          foregroundColor: AppColors.primary,
           elevation: 4,
           icon: const Icon(Icons.add),
           label: Text(
             'Adicionar',
             style: AppTextStyles.leagueSpartan(
-              color: const Color(0xFF0400BA),
+              color: AppColors.primary,
               fontWeight: FontWeight.w700,
               fontSize: 16,
             ),
@@ -156,7 +155,7 @@ class _GestaoScreenState extends State<GestaoScreen> {
               });
             }
           },
-          backgroundColor: const Color(0xFF0400B9),
+          backgroundColor: AppColors.primary,
           elevation: 4,
           icon: const Icon(Icons.add, color: Colors.white),
           label: const Text(
@@ -181,13 +180,13 @@ class _GestaoScreenState extends State<GestaoScreen> {
             }
           },
           backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF0400BA),
+          foregroundColor: AppColors.primary,
           elevation: 4,
           icon: const Icon(Icons.add),
           label: Text(
             'Adicionar',
             style: AppTextStyles.leagueSpartan(
-              color: const Color(0xFF0400BA),
+              color: AppColors.primary,
               fontWeight: FontWeight.w700,
               fontSize: 16,
             ),
@@ -262,7 +261,7 @@ class _GestaoScreenState extends State<GestaoScreen> {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 100),
+          padding: EdgeInsets.only(left: 24, right: 24, top: 16, bottom: AppSpacing.bottomNavBarPadding),
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,

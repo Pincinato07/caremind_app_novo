@@ -288,7 +288,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                     ),
                   ),
                   SliverToBoxAdapter(
-                    child: SizedBox(height: 100), // Padding inferior para evitar corte pela navbar
+                    child: SizedBox(height: AppSpacing.bottomNavBarPadding), // Padding inferior para evitar corte pela navbar
                   ),
                 ],
               ),

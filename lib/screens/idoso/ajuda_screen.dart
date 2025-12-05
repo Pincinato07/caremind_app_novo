@@ -118,7 +118,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
     setState(() => _isDisparandoEmergencia = true);
 
     // Vibração forte para feedback tátil
-    if (await Vibration.hasVibrator() ?? false) {
+    if (await Vibration.hasVibrator() == true) {
       await Vibration.vibrate(duration: 1000);
     }
 
@@ -188,7 +188,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                   'OK',
                   style: AppTextStyles.leagueSpartan(
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0400BA),
+                    color: AppColors.primary,
                   ),
                 ),
               ),
@@ -250,7 +250,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                   'OK',
                   style: AppTextStyles.leagueSpartan(
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0400BA),
+                    color: AppColors.primary,
                   ),
                 ),
               ),
@@ -297,7 +297,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                     'OK',
                     style: AppTextStyles.leagueSpartan(
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0400BA),
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
@@ -480,7 +480,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
-                            foregroundColor: const Color(0xFF0400BA),
+                            foregroundColor: AppColors.primary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -580,7 +580,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
               ),
             ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            SliverToBoxAdapter(child: SizedBox(height: AppSpacing.bottomNavBarPadding)),
           ],
         ),
       ),

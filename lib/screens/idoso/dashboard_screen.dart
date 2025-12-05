@@ -13,8 +13,6 @@ import '../../widgets/voice_interface_widget.dart';
 import '../../core/navigation/app_navigation.dart';
 import '../../screens/shared/configuracoes_screen.dart';
 import '../../models/medicamento.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import '../ocr/ocr_scan_screen.dart';
 
 /// Dashboard do IDOSO - Foco em Acessibilidade Extrema (WCAG AAA)
 /// Objetivo: Autonomia. O idoso não "gerencia"; ele "executa" e "consulta".
@@ -32,7 +30,6 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
   final VoiceNavigationService _voiceNavigation = VoiceNavigationService();
 
   late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
@@ -41,9 +38,6 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
     _loadUserData();
     // Inicializa o serviço de acessibilidade
     AccessibilityService.initialize();
@@ -253,7 +247,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                     ),
                   ),
 
-                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                      SliverToBoxAdapter(child: SizedBox(height: AppSpacing.bottomNavBarPadding)),
                     ],
                   ),
             // Interface de voz flutuante
@@ -377,7 +371,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                 onPressed: _marcarComoTomado,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF0400BA),
+                  foregroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -412,7 +406,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
             icon: Icons.mic,
             label: 'Falar com CareMind',
             subtitle: 'Toque para ativar o assistente de voz',
-            color: const Color(0xFF0400B9),
+            color: AppColors.primary,
             onTap: () {
               // A interface de voz flutuante já está disponível
               // Este botão serve como atalho visual

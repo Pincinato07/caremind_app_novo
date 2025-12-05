@@ -9,7 +9,6 @@ import '../../services/settings_service.dart';
 import '../../services/alexa_auth_service.dart';
 import '../../services/accessibility_service.dart';
 import '../../core/injection/injection.dart';
-import '../../core/state/familiar_state.dart';
 import '../../core/accessibility/accessibility_helper.dart';
 
 /// Tela de Configurações
@@ -25,7 +24,6 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   final SupabaseService _supabaseService = getIt<SupabaseService>();
   final SettingsService _settingsService = getIt<SettingsService>();
   final AlexaAuthService _alexaAuthService = getIt<AlexaAuthService>();
-  final FamiliarState _familiarState = getIt<FamiliarState>();
   bool _isLoading = true;
   bool _wavesEnabled = true; // Default on
   bool _isSaving = false;
@@ -335,7 +333,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                         onPressed: _isSaving ? null : _saveTelefoneEmergencia,
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: Colors.white,
-                                          foregroundColor: const Color(0xFF0400BA),
+                                          foregroundColor: AppColors.primary,
                                           padding: const EdgeInsets.symmetric(vertical: 16),
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(12),
@@ -536,7 +534,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                           : Colors.white,
                                       foregroundColor: _isAlexaLinked 
                                           ? Colors.white 
-                                          : const Color(0xFF0400BA),
+                                          : AppColors.primary,
                                       padding: const EdgeInsets.symmetric(vertical: 16),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
@@ -824,6 +822,8 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
 
 
               const SizedBox(height: 24),
+              // Espaço para navbar inferior
+              const SizedBox(height: AppSpacing.bottomNavBarPadding),
             ],
           ),
         ),
@@ -905,7 +905,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
         ),
         value: value,
         onChanged: onChanged,
-        activeColor: const Color(0xFF0400BA),
+        activeColor: AppColors.primary,
       ),
     );
   }

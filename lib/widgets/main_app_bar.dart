@@ -20,7 +20,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    const iconColor = Color(0xFF0400BA);
+    const iconColor = AppColors.primary;
     const iconSize = 32.0;
     
     return AppBar(

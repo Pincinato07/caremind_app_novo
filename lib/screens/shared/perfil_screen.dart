@@ -19,7 +19,7 @@ import '../../services/account_manager_service.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/caremind_app_bar.dart';
 import '../../widgets/glass_card.dart';
-import '../../widgets/persistent_bottom_nav_bar.dart';
+import '../../widgets/nav_item.dart';
 import '../lgpd/termos_privacidade_screen.dart';
 import 'trocar_conta_screen.dart';
 
@@ -370,6 +370,12 @@ class _PerfilScreenState extends State<PerfilScreen> {
     );
   }
 
+  void _handleNavigationTap(int index) {
+    // Fazer pop e voltar para a tela principal
+    Navigator.of(context).pop();
+    // A navegação principal já está ativa, então não precisamos fazer nada mais
+  }
+
   @override
   Widget build(BuildContext context) {
     final familiarState = getIt<FamiliarState>();
@@ -381,12 +387,55 @@ class _PerfilScreenState extends State<PerfilScreen> {
         showBackButton: true,
         isFamiliar: isFamiliar,
       ),
-      bottomNavigationBar: PersistentBottomNavBar(
-        currentIndex: -1, // No tab selected for profile
-        onTap: (index) {
-          // Navigate back to main screen and select tab
-          Navigator.of(context).pop();
-        },
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white.withValues(alpha: 0.98),
+              Colors.white,
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              NavItem(
+                icon: Icons.home_rounded,
+                label: 'Início',
+                isSelected: false,
+                onTap: () => _handleNavigationTap(0),
+              ),
+              NavItem(
+                icon: Icons.medication_liquid,
+                label: 'Medicamentos',
+                isSelected: false,
+                onTap: () => _handleNavigationTap(1),
+              ),
+              NavItem(
+                icon: Icons.schedule_rounded,
+                label: 'Rotina',
+                isSelected: false,
+                onTap: () => _handleNavigationTap(2),
+              ),
+              NavItem(
+                icon: Icons.settings_applications_rounded,
+                label: 'Gestão',
+                isSelected: true, // Perfil está dentro de Gestão
+                onTap: () => _handleNavigationTap(3),
+              ),
+            ],
+          ),
+        ),
       ),
       body: _isLoading
             ? const Center(
@@ -595,6 +644,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
 
                     const SizedBox(height: 32),
+                    // Espaço para navbar inferior
+                    const SizedBox(height: AppSpacing.bottomNavBarPadding),
                   ],
                 ),
               ),

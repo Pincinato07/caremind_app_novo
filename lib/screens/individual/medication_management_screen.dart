@@ -8,6 +8,7 @@ import '../../widgets/app_text_field.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/caremind_app_bar.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
+import '../../theme/app_theme.dart';
 
 /// Tela de Gestão de Medicamentos do Usuário Individual
 /// CRUD completo com TTS 100% funcional
@@ -800,7 +801,7 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, AppSpacing.bottomNavBarPadding),
         child: Column(
           children: [
             if (!_showForm) ...[

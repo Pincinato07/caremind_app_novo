@@ -314,7 +314,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                   _loadRotinas();
                 }
               },
-              backgroundColor: const Color(0xFF0400B9),
+              backgroundColor: AppColors.primary,
               elevation: 4,
               icon: const Icon(Icons.add, color: Colors.white),
               label: const Text(
@@ -333,7 +333,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(color: Color(0xFF0400B9)),
+              CircularProgressIndicator(color: AppColors.primary),
               SizedBox(height: 16),
               Text('Carregando rotinas...', style: TextStyle(color: Colors.grey, fontSize: 16)),
             ],
@@ -358,7 +358,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadRotinas,
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0400B9), foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
                 child: const Text('Tentar novamente'),
               ),
             ],
@@ -380,20 +380,20 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      const Color(0xFF0400B9).withValues(alpha: 0.1),
-                      const Color(0xFF0600E0).withValues(alpha: 0.05),
+                      AppColors.primary.withValues(alpha: 0.1),
+                      AppColors.primaryLight.withValues(alpha: 0.05),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFF0400B9).withValues(alpha: 0.2), width: 1),
+                  borderRadius: AppBorderRadius.xlargeAll,
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2), width: 1),
                 ),
                 child: Column(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [Color(0xFF0400B9), Color(0xFF0600E0)]),
-                        borderRadius: BorderRadius.circular(16),
+                        gradient: const LinearGradient(colors: [AppColors.primary, AppColors.primaryLight]),
+                        borderRadius: AppBorderRadius.largeAll,
                       ),
                       child: const Icon(Icons.schedule, size: 48, color: Colors.white),
                     ),
@@ -477,7 +477,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: _buildRotinaCard(rotina),
             ))),
-        const SizedBox(height: 100),
+        SizedBox(height: AppSpacing.bottomNavBarPadding),
       ],
     );
   }

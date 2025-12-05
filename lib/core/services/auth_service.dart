@@ -1,4 +1,3 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/perfil.dart';
 import '../errors/app_exception.dart';
 import '../errors/error_handler.dart';

@@ -620,7 +620,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: 'Perfil',
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, AppSpacing.bottomNavBarPadding),
         child: Column(
           children: [
             _buildProfileHeader(),

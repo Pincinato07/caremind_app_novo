@@ -129,7 +129,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0400B9).withValues(alpha: 0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -189,7 +189,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
           decoration: BoxDecoration(
             gradient: isActive
                 ? const LinearGradient(
-                    colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+                    colors: [AppColors.primary, AppColors.primaryLight],
                   )
                 : null,
             color: isActive ? null : Colors.transparent,
@@ -322,7 +322,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                       ? [Colors.green.shade400, Colors.green.shade600]
                       : isPassado
                           ? [Colors.red.shade400, Colors.red.shade600]
-                          : [const Color(0xFF0400B9), const Color(0xFF0600E0)],
+                          : [AppColors.primary, const AppColors.primaryLight],
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -544,7 +544,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                             Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF0400B9),
+                                color: AppColors.primary,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -650,7 +650,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                 fontWeight: FontWeight.w700,
               ),
               todayTextStyle: AppTextStyles.leagueSpartan(
-                color: const Color(0xFF0400BA),
+                color: AppColors.primary,
                 fontWeight: FontWeight.w700,
               ),
               todayDecoration: BoxDecoration(
@@ -658,7 +658,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                 shape: BoxShape.circle,
               ),
               selectedDecoration: BoxDecoration(
-                color: const Color(0xFF0400BA),
+                color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
               markerDecoration: BoxDecoration(
@@ -772,7 +772,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                                           ? [Colors.green.shade400, Colors.green.shade600]
                                           : isPassado
                                               ? [Colors.red.shade400, Colors.red.shade600]
-                                              : [const Color(0xFF0400B9), const Color(0xFF0600E0)],
+                                              : [AppColors.primary, const AppColors.primaryLight],
                                     ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),

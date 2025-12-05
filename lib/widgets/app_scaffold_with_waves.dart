@@ -69,7 +69,7 @@ class AppScaffoldWithWaves extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.white.withValues(alpha: 0.95),
+                    Colors.white.withValues(alpha: 0.98),
                     Colors.white,
                   ],
                 ),
