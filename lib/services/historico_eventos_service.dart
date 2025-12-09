@@ -107,7 +107,7 @@ class HistoricoEventosService {
           .from('historico_eventos')
           .select('medicamento_id, status')
           .eq('perfil_id', targetPerfilId)
-          .in_('medicamento_id', medicamentoIds)
+          .filter('medicamento_id', 'in', '(${medicamentoIds.join(',')})')
           .gte('data_prevista', inicioDia)
           .lt('data_prevista', fimDia) // lt (less than) o início de amanhã
           .eq('status', 'concluido');

@@ -160,17 +160,12 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
     try {
       final medicamentoService = getIt<MedicamentoService>();
       final supabaseService = getIt<SupabaseService>();
-      final familiarState = getIt<FamiliarState>();
       
       // Determinar o perfil_id do idoso (não do familiar)
       final user = supabaseService.currentUser;
       if (user == null) return;
       
       // Se for familiar gerenciando idoso, usar o id do idoso; senão usar o user.id
-      final targetPerfilId = widget.idosoId ?? 
-          (familiarState.hasIdosos && familiarState.idosoSelecionado != null 
-              ? familiarState.idosoSelecionado!.id 
-              : user.id);
       
       final bool estaConcluido = _isConcluido(medicamento);
       final bool novoEstado = !estaConcluido;
