@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/errors/error_handler.dart';
 import '../core/utils/data_cleaner.dart';
+import 'historico_eventos_service.dart';
 
 class RotinaService {
   final SupabaseClient _client;
@@ -163,6 +164,27 @@ class RotinaService {
           .eq('id', rotinaId)
           .select()
           .single();
+
+      // Registrar no histórico se foi concluída
+      if (concluida) {
+        try {
+          final perfilId = response['perfil_id'];
+          if (perfilId != null) {
+            await HistoricoEventosService.addEvento({
+              'perfil_id': perfilId,
+              'tipo_evento': 'rotina_concluida',
+              'evento_id': rotinaId,
+              'data_prevista': DateTime.now().toIso8601String(),
+              'status': 'concluido',
+              'titulo': response['titulo'] ?? response['nome'] ?? 'Rotina',
+              'descricao': 'Rotina marcada como concluída',
+              'rotina_id': rotinaId, // Campo específico se existir no schema
+            });
+          }
+        } catch (e) {
+          debugPrint('⚠️ Erro ao registrar histórico da rotina: $e');
+        }
+      }
 
       return response;
     } catch (error) {
