@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/medicamento_service.dart';
+import '../../services/historico_eventos_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/state/familiar_state.dart';
 import '../../models/medicamento.dart';
@@ -109,10 +110,19 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
         _ultimaAtividade = perfilIdoso.createdAt; // Usar createdAt como fallback
       }
       
-      // Gerar alertas baseados em medicamentos atrasados
-      _alertas = _gerarAlertas(medicamentos);
+      // Verificar status de medicamentos concluídos hoje
+      Map<int, bool> statusMedicamentos = {};
+      if (medicamentos.isNotEmpty) {
+        final ids = medicamentos.where((m) => m.id != null).map((m) => m.id!).toList();
+        statusMedicamentos = await HistoricoEventosService.checkMedicamentosConcluidosHoje(idosoId, ids);
+      }
       
-      final pendentes = medicamentos.where((m) => !m.concluido).toList();
+      // Gerar alertas baseados em medicamentos atrasados
+      _alertas = _gerarAlertas(medicamentos, statusMedicamentos);
+      
+      final pendentes = medicamentos.where((m) => !(statusMedicamentos[m.id] ?? false)).toList();
+      final tomados = medicamentos.where((m) => statusMedicamentos[m.id] ?? false).toList();
+      
       final temAtraso = pendentes.isNotEmpty;
       final idosoNome = familiarState.idosoSelecionado?.nome ?? 'Idoso';
       final mensagemStatus = pendentes.isEmpty
@@ -126,7 +136,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
             'mensagem': mensagemStatus,
             'totalPendentes': pendentes.length,
             'total': medicamentos.length,
-            'tomados': medicamentos.where((m) => m.concluido).length,
+            'tomados': tomados.length,
           };
         });
       }
@@ -135,12 +145,15 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
     }
   }
 
-  List<Map<String, dynamic>> _gerarAlertas(List<Medicamento> medicamentos) {
+  List<Map<String, dynamic>> _gerarAlertas(
+    List<Medicamento> medicamentos, 
+    Map<int, bool> statusMedicamentos
+  ) {
     final alertas = <Map<String, dynamic>>[];
     final agora = DateTime.now();
     
     for (var med in medicamentos) {
-      if (med.concluido) continue;
+      if (statusMedicamentos[med.id] ?? false) continue;
       
       // Verificar se há horários passados hoje
       final horarios = _extrairHorarios(med);

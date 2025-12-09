@@ -35,6 +35,7 @@ class GestaoMedicamentosScreen extends StatefulWidget {
 
 class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
   List<Medicamento> _medicamentos = [];
+  Map<int, bool> _statusMedicamentos = {}; // Mapa para armazenar status (concluído ou não)
   bool _isLoading = true;
   String? _error;
   String? _perfilTipo; // Tipo do perfil do usuário
@@ -99,6 +100,10 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
     return familiarState.hasIdosos && widget.idosoId == null;
   }
 
+  bool _isConcluido(Medicamento medicamento) {
+    return _statusMedicamentos[medicamento.id] ?? false;
+  }
+
   Future<void> _loadMedicamentos() async {
     setState(() {
       _isLoading = true;
@@ -119,8 +124,19 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                 : user.id);
         
         final medicamentos = await medicamentoService.getMedicamentos(targetId);
+        
+        // Verificar status dos medicamentos para hoje
+        Map<int, bool> status = {};
+        if (medicamentos.isNotEmpty) {
+          final medIds = medicamentos.where((m) => m.id != null).map((m) => m.id!).toList();
+          if (medIds.isNotEmpty) {
+            status = await HistoricoEventosService.checkMedicamentosConcluidosHoje(targetId, medIds);
+          }
+        }
+
         setState(() {
           _medicamentos = medicamentos;
+          _statusMedicamentos = status;
           _isLoading = false;
         });
       } else {
@@ -156,33 +172,30 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
               ? familiarState.idosoSelecionado!.id 
               : user.id);
       
-      
-      // Atualizar o medicamento
+      final bool estaConcluido = _isConcluido(medicamento);
+      final bool novoEstado = !estaConcluido;
+
+      // Atualizar UI otimistamente
+      setState(() {
+        _statusMedicamentos[medicamento.id!] = novoEstado;
+      });
+
+      // Atualizar o medicamento no backend
       await medicamentoService.toggleConcluido(
         medicamento.id!,
-        true, // sempre marcando como concluído quando chamado
+        novoEstado,
         DateTime.now(), // data prevista
       );
       
-      // Registrar evento no histórico
-      try {
-        await HistoricoEventosService.addEvento({
-          'perfil_id': targetPerfilId,
-          'tipo_evento': 'medicamento_tomado',
-          'evento_id': medicamento.id!,
-          'data_prevista': DateTime.now().toIso8601String(),
-          'status': 'concluido',
-          'titulo': medicamento.nome,
-          'descricao': 'Medicamento "${medicamento.nome}" marcado como tomado',
-          'medicamento_id': medicamento.id!,
-        });
-      } catch (e) {
-        // Log erro mas não interrompe o fluxo
-        debugPrint('⚠️ Erro ao registrar evento no histórico: $e');
-      }
-      
-      _loadMedicamentos(); // Recarrega a lista
+      // Não precisamos recarregar tudo, pois já atualizamos o estado local
+      // Apenas se houver erro reverteríamos, mas o catch cuida disso (embora aqui não revertamos explicitamente na UI,
+      // uma recarga futura corrigiria). Para UX perfeita, poderíamos reverter no catch.
     } catch (error) {
+       // Reverter estado em caso de erro
+      setState(() {
+        _statusMedicamentos[medicamento.id!] = !_statusMedicamentos[medicamento.id!]!;
+      });
+
       final errorMessage = error is AppException
           ? error.message
           : 'Erro ao atualizar medicamento: $error';
@@ -968,7 +981,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     Expanded(
                       child: _buildSummaryItem(
                         'Concluídos',
-                        '${_medicamentos.where((m) => m.concluido).length}',
+                        '${_medicamentos.where((m) => _isConcluido(m)).length}',
                         const Color(0xFF4CAF50),
                         Icons.check_circle,
                       ),
@@ -976,7 +989,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     Expanded(
                       child: _buildSummaryItem(
                         'Pendentes',
-                        '${_medicamentos.where((m) => !m.concluido).length}',
+                        '${_medicamentos.where((m) => !_isConcluido(m)).length}',
                         const Color(0xFFFF9800),
                         Icons.schedule,
                       ),
@@ -1066,6 +1079,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
   }
 
   Widget _buildMedicamentoCard(Medicamento medicamento) {
+    final concluido = _isConcluido(medicamento);
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -1130,21 +1144,21 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: medicamento.concluido
+                          colors: concluido
                               ? [Colors.green.shade400, Colors.green.shade600]
-                              : [AppColors.primary, const AppColors.primaryLight],
+                              : [AppColors.primary, AppColors.primaryLight],
                         ),
                         borderRadius: AppBorderRadius.mediumAll,
                         boxShadow: [
                           BoxShadow(
-                            color: (medicamento.concluido ? Colors.green : AppColors.primary).withValues(alpha: 0.3),
+                            color: (concluido ? Colors.green : AppColors.primary).withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
                         ],
                       ),
                       child: Icon(
-                        medicamento.concluido ? Icons.check_circle : Icons.medication,
+                        concluido ? Icons.check_circle : Icons.medication,
                         color: Colors.white,
                         size: 24,
                       ),
@@ -1159,8 +1173,8 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: medicamento.concluido ? Colors.grey.shade600 : Colors.black87,
-                              decoration: medicamento.concluido ? TextDecoration.lineThrough : null,
+                              color: concluido ? Colors.grey.shade600 : Colors.black87,
+                              decoration: concluido ? TextDecoration.lineThrough : null,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -1213,12 +1227,12 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                           child: Row(
                             children: [
                               Icon(
-                                medicamento.concluido ? Icons.undo : Icons.check,
+                                concluido ? Icons.undo : Icons.check,
                                 size: 20,
-                                color: medicamento.concluido ? Colors.orange : Colors.green,
+                                color: concluido ? Colors.orange : Colors.green,
                               ),
                               const SizedBox(width: 12),
-                              Text(medicamento.concluido ? 'Marcar como pendente' : 'Marcar como concluído'),
+                              Text(concluido ? 'Marcar como pendente' : 'Marcar como concluído'),
                             ],
                           ),
                         ),
@@ -1360,7 +1374,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                 ),
                 
                 // Botão de ação rápida para familiares marcarem como concluído
-                if (_isFamiliar && !medicamento.concluido) ...[
+                if (_isFamiliar && !concluido) ...[
                   const SizedBox(height: 16),
                   Container(
                     width: double.infinity,
@@ -1406,7 +1420,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                 ],
                 
                 // Botão para desmarcar (se já estiver concluído e for familiar)
-                if (_isFamiliar && medicamento.concluido) ...[
+                if (_isFamiliar && concluido) ...[
                   const SizedBox(height: 16),
                   Container(
                     width: double.infinity,

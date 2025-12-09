@@ -108,10 +108,6 @@ class Medicamento {
     );
   }
 
-  // Getter temporário para compatibilidade com código existente
-  // TODO: Remover após refatorar UI para usar historico_eventos
-  bool get concluido => false;
-
   // Método auxiliar para obter descrição da frequência
   String get frequenciaDescricao {
     if (frequencia.containsKey('tipo')) {

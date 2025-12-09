@@ -10,6 +10,7 @@ import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/caremind_app_bar.dart';
 import '../../widgets/voice_interface_widget.dart';
+import '../../services/historico_eventos_service.dart';
 import '../../core/accessibility/tts_enhancer.dart';
 
 class IndividualDashboardScreen extends StatefulWidget {
@@ -84,17 +85,25 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
       
       // Carregar medicamentos
       final medicamentos = await medicamentoService.getMedicamentos(userId);
-      _totalMedicamentos = medicamentos.length;
-      _medicamentosTomados = medicamentos.where((m) => m.concluido).length;
       
-      // Calcular próximo medicamento
-      _proximoMedicamento = _calcularProximoMedicamento(medicamentos);
+      // Verificar status (concluído ou não) para hoje
+      Map<int, bool> statusMedicamentos = {};
+      if (medicamentos.isNotEmpty) {
+        final ids = medicamentos.where((m) => m.id != null).map((m) => m.id!).toList();
+        statusMedicamentos = await HistoricoEventosService.checkMedicamentosConcluidosHoje(userId, ids);
+      }
+      
+      _totalMedicamentos = medicamentos.length;
+      _medicamentosTomados = medicamentos.where((m) => statusMedicamentos[m.id] ?? false).length;
+      
+      // Calcular próximo medicamento (passando o mapa de status)
+      _proximoMedicamento = _calcularProximoMedicamento(medicamentos, statusMedicamentos);
       
       // Carregar rotinas
       final rotinas = await rotinaService.getRotinas(userId);
       _rotinas = rotinas;
       
-      final pendentes = medicamentos.where((m) => !m.concluido).toList();
+      final pendentes = medicamentos.where((m) => !(statusMedicamentos[m.id] ?? false)).toList();
       if (pendentes.isEmpty) {
         _temAtraso = false;
         _mensagemStatus = 'Você tomou tudo hoje.';
@@ -112,7 +121,10 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
   }
 
   /// Calcula o próximo medicamento baseado nos horários
-  Medicamento? _calcularProximoMedicamento(List<Medicamento> medicamentos) {
+  Medicamento? _calcularProximoMedicamento(
+    List<Medicamento> medicamentos, 
+    Map<int, bool> statusMedicamentos
+  ) {
     final agora = DateTime.now();
     final hoje = DateTime(agora.year, agora.month, agora.day);
     
@@ -120,7 +132,8 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     DateTime? proximoHorario;
     
     for (var med in medicamentos) {
-      if (med.concluido) continue;
+      // Ignorar se já foi tomado hoje
+      if (statusMedicamentos[med.id] ?? false) continue;
       
       final horarios = _extrairHorarios(med);
       for (var horario in horarios) {

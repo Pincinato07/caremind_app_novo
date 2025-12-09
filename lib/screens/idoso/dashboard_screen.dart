@@ -74,10 +74,21 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
           // Buscar medicamentos
           final medicamentos = await medicamentoService.getMedicamentos(user.id);
           
-          // Encontrar o próximo medicamento (pegar o primeiro da lista)
-          Medicamento? proximo;
+          // Verificar status de hoje
+          Map<int, bool> statusMedicamentos = {};
           if (medicamentos.isNotEmpty) {
-            proximo = medicamentos.first;
+            final ids = medicamentos.where((m) => m.id != null).map((m) => m.id!).toList();
+            statusMedicamentos = await HistoricoEventosService.checkMedicamentosConcluidosHoje(user.id, ids);
+          }
+          
+          // Filtrar apenas medicamentos pendentes
+          final pendentes = medicamentos.where((m) => !(statusMedicamentos[m.id] ?? false)).toList();
+          
+          // Encontrar o próximo medicamento (pegar o primeiro da lista de pendentes)
+          // Idealmente ordenaria por horário, mas assumindo ordem do serviço por enquanto ou refatorar ordenação se necessário
+          Medicamento? proximo;
+          if (pendentes.isNotEmpty) {
+            proximo = pendentes.first;
           }
 
           setState(() {

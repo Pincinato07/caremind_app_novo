@@ -80,4 +80,58 @@ class HistoricoEventosService {
       throw Exception('Erro ao deletar evento: $error');
     }
   }
+
+  // Verificar quais medicamentos foram concluídos hoje
+  static Future<Map<int, bool>> checkMedicamentosConcluidosHoje(
+      String perfilId, List<int> medicamentoIds) async {
+    if (medicamentoIds.isEmpty) return {};
+
+    try {
+      // Baseado no schema, tentar encontrar o perfil usando user_id
+      final perfilResponse = await _client
+          .from('perfis')
+          .select('id')
+          .eq('user_id', perfilId)
+          .maybeSingle();
+      
+      final targetPerfilId = perfilResponse?['id'] as String? ?? perfilId;
+
+      final hoje = DateTime.now();
+      // Ajuste para garantir comparação correta com strings ISO
+      final inicioDia = DateTime(hoje.year, hoje.month, hoje.day).toIso8601String();
+      // Usar data do dia seguinte para garantir cobertura total do dia atual
+      final fimDia = DateTime(hoje.year, hoje.month, hoje.day).add(const Duration(days: 1)).toIso8601String();
+
+      // Buscar eventos de medicamentos concluídos hoje
+      final response = await _client
+          .from('historico_eventos')
+          .select('medicamento_id, status')
+          .eq('perfil_id', targetPerfilId)
+          .in_('medicamento_id', medicamentoIds)
+          .gte('data_prevista', inicioDia)
+          .lt('data_prevista', fimDia) // lt (less than) o início de amanhã
+          .eq('status', 'concluido');
+
+      final Map<int, bool> statusMap = {};
+      
+      // Inicializar tudo como false
+      for (var id in medicamentoIds) {
+        statusMap[id] = false;
+      }
+
+      // Marcar os encontrados como true
+      for (var evento in response as List) {
+        if (evento['medicamento_id'] != null) {
+          final medId = evento['medicamento_id'] as int;
+          statusMap[medId] = true;
+        }
+      }
+
+      return statusMap;
+    } catch (error) {
+      // Em caso de erro, retorna mapa com false (seguro)
+      // debugPrint('Erro ao verificar status: $error');
+      return {for (var id in medicamentoIds) id: false};
+    }
+  }
 }
