@@ -45,12 +45,12 @@ class OcrService {
 
       // 1. Fazer upload da imagem para Supabase Storage
       debugPrint('📤 Fazendo upload da imagem...');
-      
+
       final fileName = '$userId/${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
-      
+
       // Ler bytes do arquivo
       final imageBytes = await imageFile.readAsBytes();
-      
+
       // Fazer upload para Supabase Storage usando uploadBinary
       await _client.storage
           .from('receitas-medicas')
@@ -67,11 +67,11 @@ class OcrService {
 
       // 3. Registrar no banco (ocr_gerenciamento) com status PENDENTE
       debugPrint('📝 Registrando processamento OCR...');
-      
+
       final insertResponse = await _client
           .from('ocr_gerenciamento')
           .insert({
-            'perfil_id': userId,
+            'user_id': userId,
             'image_url': publicUrl,
             'status': 'PENDENTE',
             'created_at': DateTime.now().toIso8601String(),
@@ -131,14 +131,14 @@ class OcrService {
     final startTime = DateTime.now();
     int pollCount = 0;
     final maxPolls = timeout ~/ interval;
-    
+
     while (true) {
       pollCount++;
-      
+
       // Atualizar progresso baseado no tempo decorrido
       final progress = (pollCount / maxPolls).clamp(0.0, 0.95);
       onProgress?.call(progress);
-      
+
       // Verificar timeout
       final elapsed = DateTime.now().difference(startTime).inSeconds;
       if (elapsed >= timeout) {
@@ -187,10 +187,10 @@ class OcrService {
   /// Extrai lista de medicamentos do result_json
   List<OcrMedicamento> parseMedicamentosFromResult(dynamic resultJson) {
     if (resultJson == null) return [];
-    
+
     try {
       List<dynamic> medicamentosList;
-      
+
       if (resultJson is List) {
         medicamentosList = resultJson;
       } else if (resultJson is Map) {
@@ -202,7 +202,7 @@ class OcrService {
       } else {
         return [];
       }
-      
+
       return medicamentosList
           .map((item) => OcrMedicamento.fromJson(item as Map<String, dynamic>))
           .where((med) => med.nome.isNotEmpty)
@@ -220,7 +220,7 @@ class OcrService {
     required String userId,
   }) async {
     final List<Medicamento> salvos = [];
-    
+
     for (final ocrMed in medicamentos) {
       try {
         final data = {
@@ -232,20 +232,20 @@ class OcrService {
           'perfil_id': perfilId,
           'created_at': DateTime.now().toIso8601String(),
         };
-        
+
         final response = await _client
             .from('medicamentos')
             .insert(data)
             .select()
             .single();
-        
+
         salvos.add(Medicamento.fromMap(response));
         debugPrint('✅ Medicamento salvo: ${ocrMed.nome}');
       } catch (e) {
         debugPrint('❌ Erro ao salvar medicamento ${ocrMed.nome}: $e');
       }
     }
-    
+
     return salvos;
   }
 
@@ -261,4 +261,3 @@ class OcrService {
     }
   }
 }
-

@@ -130,7 +130,7 @@ class CompromissoService {
 
   // Atualizar um compromisso existente
   Future<Map<String, dynamic>> updateCompromisso(
-    int compromissoId,
+    String compromissoId,
     Map<String, dynamic> updates,
   ) async {
     try {
@@ -151,28 +151,9 @@ class CompromissoService {
   }
 
   // Deletar um compromisso
-  Future<void> deleteCompromisso(int compromissoId) async {
+  Future<void> deleteCompromisso(String compromissoId) async {
     try {
       await _client.from('compromissos').delete().eq('id', compromissoId);
-    } catch (error) {
-      throw ErrorHandler.toAppException(error);
-    }
-  }
-
-  // Marcar compromisso como concluído
-  Future<Map<String, dynamic>> toggleConcluido(
-    int compromissoId,
-    bool concluido,
-  ) async {
-    try {
-      final response = await _client
-          .from('compromissos')
-          .update({'concluido': concluido})
-          .eq('id', compromissoId)
-          .select()
-          .single();
-
-      return response;
     } catch (error) {
       throw ErrorHandler.toAppException(error);
     }

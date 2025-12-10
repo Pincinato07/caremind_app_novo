@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/compromisso_service.dart';
+import '../../services/offline_cache_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
 import '../../core/state/familiar_state.dart';
-import '../../services/historico_eventos_service.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/banner_contexto_familiar.dart';
 import '../../widgets/compromissos_calendar.dart';
+import '../../widgets/skeleton_loader.dart';
+import '../../widgets/error_widget_with_retry.dart';
+import '../../widgets/feedback_snackbar.dart';
+import '../../widgets/offline_indicator.dart';
 import 'add_edit_compromisso_form.dart';
 
 class GestaoCompromissosScreen extends StatefulWidget {
-  final String? idosoId; // Para familiar gerenciar compromissos do idoso
-  final bool embedded; // Se true, não mostra AppScaffoldWithWaves nem SliverAppBar
+  final String? idosoId;
+  final bool embedded;
 
   const GestaoCompromissosScreen({
     super.key,
@@ -30,7 +35,9 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
   bool _isLoading = true;
   String? _error;
   String? _perfilTipo;
-  String _viewMode = 'list'; // 'list' ou 'calendar'
+  String _viewMode = 'list';
+  bool _isOffline = false;
+  DateTime? _lastSync;
 
   @override
   void initState() {
@@ -38,9 +45,25 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
     _loadUserProfile();
     _loadCompromissos();
     
-    // Escutar mudanças no FamiliarState para recarregar quando o idoso mudar
     final familiarState = getIt<FamiliarState>();
     familiarState.addListener(_onFamiliarStateChanged);
+    _listenToConnectivity();
+  }
+
+  void _listenToConnectivity() {
+    OfflineCacheService.connectivityStream.listen((isOnline) {
+      if (mounted) {
+        final wasOffline = _isOffline;
+        setState(() => _isOffline = !isOnline);
+        
+        if (wasOffline && isOnline) {
+          _loadCompromissos();
+          if (mounted) {
+            FeedbackSnackbar.success(context, 'Conexão restaurada!');
+          }
+        }
+      }
+    });
   }
 
   @override
@@ -86,25 +109,34 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
       _error = null;
     });
 
+    final isOnline = await OfflineCacheService.isOnline();
+    setState(() => _isOffline = !isOnline);
+
     try {
       final supabaseService = getIt<SupabaseService>();
       final compromissoService = getIt<CompromissoService>();
       final user = supabaseService.currentUser;
       
       if (user != null) {
-        // Prioridade: widget.idosoId > FamiliarState.idosoSelecionado > user.id
         final familiarState = getIt<FamiliarState>();
         final targetId = widget.idosoId ?? 
             (familiarState.hasIdosos && familiarState.idosoSelecionado != null 
                 ? familiarState.idosoSelecionado!.id 
                 : user.id);
         
-        final compromissos = await compromissoService.getCompromissos(targetId);
-        
-        setState(() {
-          _compromissos = compromissos;
-          _isLoading = false;
-        });
+        if (isOnline) {
+          final compromissos = await compromissoService.getCompromissos(targetId);
+          
+          await OfflineCacheService.cacheCompromissos(targetId, compromissos);
+          _lastSync = DateTime.now();
+          
+          setState(() {
+            _compromissos = compromissos;
+            _isLoading = false;
+          });
+        } else {
+          await _loadFromCache(targetId);
+        }
       } else {
         setState(() {
           _error = 'Usuário não encontrado';
@@ -112,63 +144,48 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
         });
       }
     } catch (error) {
-      final errorMessage = error is AppException
-          ? error.message
-          : 'Erro ao carregar compromissos: $error';
-      setState(() {
-        _error = errorMessage;
-        _isLoading = false;
-      });
+      final supabaseService = getIt<SupabaseService>();
+      final user = supabaseService.currentUser;
+      if (user != null) {
+        await _loadFromCache(user.id);
+      } else {
+        final errorMessage = error is AppException
+            ? error.message
+            : 'Erro ao carregar compromissos: $error';
+        setState(() {
+          _error = errorMessage;
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  Future<void> _toggleConcluido(Map<String, dynamic> compromisso) async {
+  Future<void> _loadFromCache(String userId) async {
     try {
-      final compromissoService = getIt<CompromissoService>();
-      final supabaseService = getIt<SupabaseService>();
-      final familiarState = getIt<FamiliarState>();
+      final cachedCompromissos = await OfflineCacheService.getCachedCompromissos(userId);
+      _lastSync = await OfflineCacheService.getCacheTimestamp(userId, 'compromissos');
       
-      final compromissoId = compromisso['id'] as int;
-      final concluido = compromisso['concluido'] as bool? ?? false;
-      final titulo = compromisso['titulo'] as String? ?? 'Compromisso';
-      final novoEstado = !concluido;
-      
-      // Determinar o perfil_id do idoso (não do familiar)
-      final user = supabaseService.currentUser;
-      if (user == null) return;
-      
-      // Se for familiar gerenciando idoso, usar o id do idoso; senão usar o user.id
-      final targetPerfilId = widget.idosoId ?? 
-          (familiarState.hasIdosos && familiarState.idosoSelecionado != null 
-              ? familiarState.idosoSelecionado!.id 
-              : user.id);
-      
-      // Atualizar o compromisso
-      await compromissoService.toggleConcluido(compromissoId, novoEstado);
-      
-      // Registrar evento no histórico
-      try {
-        await HistoricoEventosService.addEvento({
-          'perfil_id': targetPerfilId,
-          'tipo_evento': novoEstado ? 'compromisso_realizado' : 'compromisso_desmarcado',
-          'data_hora': DateTime.now().toIso8601String(),
-          'descricao': novoEstado 
-              ? 'Compromisso "$titulo" marcado como realizado'
-              : 'Compromisso "$titulo" desmarcado',
-          'referencia_id': compromissoId.toString(),
-          'tipo_referencia': 'compromisso',
+      if (cachedCompromissos.isNotEmpty) {
+        setState(() {
+          _compromissos = cachedCompromissos;
+          _isLoading = false;
+          _isOffline = true;
         });
-      } catch (e) {
-        // Log erro mas não interrompe o fluxo
-        debugPrint('⚠️ Erro ao registrar evento no histórico: $e');
+        
+        if (mounted) {
+          FeedbackSnackbar.warning(context, 'Usando dados salvos (modo offline)');
+        }
+      } else {
+        setState(() {
+          _isLoading = false;
+          _error = 'Sem conexão e sem dados salvos';
+        });
       }
-      
-      _loadCompromissos();
-    } catch (error) {
-      final errorMessage = error is AppException
-          ? error.message
-          : 'Erro ao atualizar compromisso: $error';
-      _showError(errorMessage);
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _error = 'Erro ao carregar dados offline';
+      });
     }
   }
 
@@ -195,7 +212,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
     if (confirmed == true) {
       try {
         final compromissoService = getIt<CompromissoService>();
-        await compromissoService.deleteCompromisso(compromisso['id'] as int);
+        await compromissoService.deleteCompromisso(compromisso['id'] as String);
         _loadCompromissos();
         _showSuccess('Compromisso excluído com sucesso');
       } catch (error) {
@@ -208,15 +225,11 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
+    FeedbackSnackbar.error(context, message, onRetry: _loadCompromissos);
   }
 
   void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.green),
-    );
+    FeedbackSnackbar.success(context, message);
   }
 
   @override
@@ -224,96 +237,105 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
     final familiarState = getIt<FamiliarState>();
     final isFamiliar = familiarState.hasIdosos && widget.idosoId == null;
     
-    final content = CustomScrollView(
-      slivers: [
-        // Banner de contexto para perfil familiar
-        if (isFamiliar)
-          SliverToBoxAdapter(
-            child: const BannerContextoFamiliar(),
-          ),
-        // Header moderno - apenas se não estiver embedded
-        if (!widget.embedded)
-          SliverAppBar(
-            expandedHeight: 120,
-            floating: false,
-            pinned: true,
-            backgroundColor: Colors.transparent,
-            foregroundColor: Colors.white,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                'Compromissos',
-                style: AppTextStyles.leagueSpartan(
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFFA8B8FF),
-                      Color(0xFF9B7EFF),
+    final content = RefreshIndicator(
+      onRefresh: _loadCompromissos,
+      color: Colors.white,
+      backgroundColor: AppColors.primary,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          if (isFamiliar)
+            SliverToBoxAdapter(
+              child: const BannerContextoFamiliar(),
+            ),
+          if (!widget.embedded)
+            SliverAppBar(
+              expandedHeight: 120,
+              floating: false,
+              pinned: true,
+              backgroundColor: Colors.transparent,
+              foregroundColor: Colors.white,
+              flexibleSpace: FlexibleSpaceBar(
+                title: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Compromissos',
+                      style: AppTextStyles.leagueSpartan(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    if (_isOffline) ...[
+                      const SizedBox(width: 8),
+                      const OfflineBadge(),
                     ],
+                  ],
+                ),
+                background: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFA8B8FF), Color(0xFF9B7EFF)],
+                    ),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.calendar_today, size: 48, color: Colors.white),
                   ),
                 ),
-                child: const Center(
-                  child: Icon(Icons.calendar_today, size: 48, color: Colors.white),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  onPressed: _loadCompromissos,
                 ),
-              ),
+              ],
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.refresh, color: Colors.white),
-                onPressed: _loadCompromissos,
-              ),
-            ],
-          ),
-        SliverToBoxAdapter(child: _buildBody()),
-      ],
+          SliverToBoxAdapter(child: _buildBody()),
+        ],
+      ),
     );
 
     if (widget.embedded) {
-      // Modo embedded: retorna apenas o conteúdo, sem AppScaffoldWithWaves
       return content;
     }
 
-    // Modo standalone: retorna com AppScaffoldWithWaves e FAB
-    return AppScaffoldWithWaves(
-      body: content,
-      floatingActionButton: _isIdoso
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () async {
-                // Obter idosoId do FamiliarState se não foi fornecido via widget
-                final familiarState = getIt<FamiliarState>();
-                final idosoId = widget.idosoId ?? 
-                    (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
-                
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AddEditCompromissoForm(idosoId: idosoId),
+    return OfflineIndicator(
+      child: AppScaffoldWithWaves(
+        body: content,
+        floatingActionButton: _isIdoso
+            ? null
+            : FloatingActionButton.extended(
+                onPressed: () async {
+                  final familiarState = getIt<FamiliarState>();
+                  final idosoId = widget.idosoId ?? 
+                      (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
+                  
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AddEditCompromissoForm(idosoId: idosoId),
+                    ),
+                  );
+                  if (result == true) {
+                    _loadCompromissos();
+                  }
+                },
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF0400BA),
+                elevation: 4,
+                icon: const Icon(Icons.add),
+                label: Text(
+                  'Adicionar',
+                  style: AppTextStyles.leagueSpartan(
+                    color: const Color(0xFF0400BA),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
                   ),
-                );
-                if (result == true) {
-                  _loadCompromissos();
-                }
-              },
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF0400BA),
-              elevation: 4,
-              icon: const Icon(Icons.add),
-              label: Text(
-                'Adicionar',
-                style: AppTextStyles.leagueSpartan(
-                  color: const Color(0xFF0400BA),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
                 ),
               ),
-            ),
+      ),
     );
   }
 
@@ -376,69 +398,18 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
     }
     
     if (_isLoading) {
-      return Container(
-        height: 300,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const CircularProgressIndicator(color: Colors.white),
-              const SizedBox(height: 16),
-              Text(
-                'Carregando compromissos...',
-                style: AppTextStyles.leagueSpartan(
-                  color: Colors.white.withValues(alpha: 0.8),
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-        ),
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: ListSkeletonLoader(itemCount: 4, itemHeight: 140),
       );
     }
 
     if (_error != null) {
-      return Container(
-        height: 300,
+      return Padding(
         padding: const EdgeInsets.all(24),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.red.shade600),
-              const SizedBox(height: 16),
-              Text(
-                'Erro ao carregar compromissos',
-                style: AppTextStyles.leagueSpartan(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: AppTextStyles.leagueSpartan(
-                  color: Colors.red.shade300,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadCompromissos,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF0400BA),
-                ),
-                child: Text(
-                  'Tentar novamente',
-                  style: AppTextStyles.leagueSpartan(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
+        child: ErrorWidgetWithRetry(
+          message: _error!,
+          onRetry: _loadCompromissos,
         ),
       );
     }
@@ -480,7 +451,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                       child: const Icon(Icons.calendar_today, size: 48, color: Colors.white),
                     ),
                     const SizedBox(height: 24),
-                    const Text(
+                    Text(
                       'Nenhum compromisso encontrado',
                       style: AppTextStyles.leagueSpartan(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primary),
                       textAlign: TextAlign.center,
@@ -647,10 +618,26 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          ...(_compromissos.map((compromisso) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: _buildCompromissoCard(compromisso),
-              ))),
+          ...(_compromissos.asMap().entries.map((entry) {
+            final index = entry.key;
+            final compromisso = entry.value;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: _buildCompromissoCard(compromisso)
+                  .animate()
+                  .fadeIn(
+                    duration: 400.ms,
+                    delay: Duration(milliseconds: 50 * index),
+                  )
+                  .slideY(
+                    begin: 0.1,
+                    end: 0,
+                    duration: 400.ms,
+                    delay: Duration(milliseconds: 50 * index),
+                    curve: Curves.easeOutCubic,
+                  ),
+            );
+          })),
           SizedBox(height: AppSpacing.bottomNavBarPadding),
         ],
       ),
@@ -658,7 +645,6 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
   }
 
   Widget _buildCompromissoCard(Map<String, dynamic> compromisso) {
-    final concluido = compromisso['concluido'] as bool? ?? false;
     final dataHora = DateTime.parse(compromisso['data_hora'] as String);
     final titulo = compromisso['titulo'] as String? ?? 'Compromisso';
     final descricao = compromisso['descricao'] as String?;
@@ -676,11 +662,9 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
               ),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: concluido
-                    ? Colors.green.shade300
-                    : isPassado
-                        ? Colors.red.shade300
-                        : Colors.white.withValues(alpha: 0.2),
+                color: isPassado
+                    ? Colors.red.shade300
+                    : Colors.white.withValues(alpha: 0.2),
                 width: 1,
               ),
         boxShadow: [
@@ -695,14 +679,11 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: _isIdoso
-              ? () => _toggleConcluido(compromisso)
-              : () async {
+          onTap: () async {
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) {
-                        // Obter idosoId do FamiliarState se não foi fornecido via widget
                         final familiarState = getIt<FamiliarState>();
                         final idosoId = widget.idosoId ?? 
                             (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
@@ -725,16 +706,14 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: concluido
-                              ? [Colors.green.shade400, Colors.green.shade600]
-                              : isPassado
-                                  ? [Colors.red.shade400, Colors.red.shade600]
-                                  : [AppColors.primary, AppColors.primaryLight],
+                          colors: isPassado
+                              ? [Colors.red.shade400, Colors.red.shade600]
+                              : [AppColors.primary, AppColors.primaryLight],
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
-                        concluido ? Icons.check_circle : Icons.calendar_today,
+                        isPassado ? Icons.event_busy : Icons.calendar_today,
                         color: Colors.white,
                         size: 24,
                       ),
@@ -749,10 +728,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                             style: AppTextStyles.leagueSpartan(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
-                              color: concluido
-                                  ? Colors.white.withValues(alpha: 0.6)
-                                  : Colors.white,
-                              decoration: concluido ? TextDecoration.lineThrough : null,
+                              color: Colors.white,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -760,9 +736,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                             '${dataHora.day}/${dataHora.month}/${dataHora.year} às ${dataHora.hour.toString().padLeft(2, '0')}:${dataHora.minute.toString().padLeft(2, '0')}',
                             style: AppTextStyles.leagueSpartan(
                               fontSize: 14,
-                              color: concluido
-                                  ? Colors.white.withValues(alpha: 0.5)
-                                  : Colors.white.withValues(alpha: 0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                             ),
                           ),
                         ],
@@ -780,29 +754,12 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                         ),
                         onSelected: (value) {
                           switch (value) {
-                            case 'toggle':
-                              _toggleConcluido(compromisso);
-                              break;
                             case 'delete':
                               _deleteCompromisso(compromisso);
                               break;
                           }
                         },
                         itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: 'toggle',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  concluido ? Icons.undo : Icons.check,
-                                  size: 20,
-                                  color: concluido ? Colors.orange : Colors.green,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(concluido ? 'Marcar como pendente' : 'Marcar como concluído'),
-                              ],
-                            ),
-                          ),
                           const PopupMenuItem(
                             value: 'delete',
                             child: Row(
@@ -822,105 +779,14 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
+                      color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
                     ),
                     child: Text(
                       descricao,
                       style: AppTextStyles.leagueSpartan(
                         fontSize: 14,
                         color: Colors.white.withValues(alpha: 0.9),
-                      ),
-                    ),
-                  ),
-                ],
-                
-                // Botão de ação rápida para familiares marcarem como concluído
-                if (_isFamiliar && !concluido) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.green.shade400, Colors.green.shade600],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.green.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () => _toggleConcluido(compromisso),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.check_circle, color: Colors.white, size: 24),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Marcar como Realizado',
-                                style: AppTextStyles.leagueSpartan(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                
-                // Botão para desmarcar (se já estiver concluído e for familiar)
-                if (_isFamiliar && concluido) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade400,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.orange.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () => _toggleConcluido(compromisso),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.undo, color: Colors.white, size: 24),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Marcar como Pendente',
-                                style: AppTextStyles.leagueSpartan(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                     ),
                   ),
@@ -933,4 +799,3 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
     );
   }
 }
-

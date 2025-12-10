@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/rotina_service.dart';
+import '../../services/offline_cache_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
 import '../../core/state/familiar_state.dart';
@@ -9,11 +11,15 @@ import '../../services/historico_eventos_service.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/banner_contexto_familiar.dart';
 import '../../widgets/voice_interface_widget.dart';
+import '../../widgets/skeleton_loader.dart';
+import '../../widgets/error_widget_with_retry.dart';
+import '../../widgets/feedback_snackbar.dart';
+import '../../widgets/offline_indicator.dart';
 import 'add_edit_rotina_form.dart';
 
 class GestaoRotinasScreen extends StatefulWidget {
-  final String? idosoId; // Para familiar gerenciar rotinas do idoso
-  final bool embedded; // Se true, não mostra AppScaffoldWithWaves nem SliverAppBar
+  final String? idosoId;
+  final bool embedded;
 
   const GestaoRotinasScreen({
     super.key,
@@ -30,6 +36,8 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
   bool _isLoading = true;
   String? _error;
   String? _perfilTipo;
+  bool _isOffline = false;
+  DateTime? _lastSync;
 
   @override
   void initState() {
@@ -37,9 +45,25 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
     _loadUserProfile();
     _loadRotinas();
     
-    // Escutar mudanças no FamiliarState para recarregar quando o idoso mudar
     final familiarState = getIt<FamiliarState>();
     familiarState.addListener(_onFamiliarStateChanged);
+    _listenToConnectivity();
+  }
+
+  void _listenToConnectivity() {
+    OfflineCacheService.connectivityStream.listen((isOnline) {
+      if (mounted) {
+        final wasOffline = _isOffline;
+        setState(() => _isOffline = !isOnline);
+        
+        if (wasOffline && isOnline) {
+          _loadRotinas();
+          if (mounted) {
+            FeedbackSnackbar.success(context, 'Conexão restaurada!');
+          }
+        }
+      }
+    });
   }
 
   @override
@@ -85,25 +109,34 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
       _error = null;
     });
 
+    final isOnline = await OfflineCacheService.isOnline();
+    setState(() => _isOffline = !isOnline);
+
     try {
       final supabaseService = getIt<SupabaseService>();
       final rotinaService = getIt<RotinaService>();
       final user = supabaseService.currentUser;
       
       if (user != null) {
-        // Prioridade: widget.idosoId > FamiliarState.idosoSelecionado > user.id
         final familiarState = getIt<FamiliarState>();
         final targetId = widget.idosoId ?? 
             (familiarState.hasIdosos && familiarState.idosoSelecionado != null 
                 ? familiarState.idosoSelecionado!.id 
                 : user.id);
         
-        final rotinas = await rotinaService.getRotinas(targetId);
-        
-        setState(() {
-          _rotinas = rotinas;
-          _isLoading = false;
-        });
+        if (isOnline) {
+          final rotinas = await rotinaService.getRotinas(targetId);
+          
+          await OfflineCacheService.cacheRotinas(targetId, rotinas);
+          _lastSync = DateTime.now();
+          
+          setState(() {
+            _rotinas = rotinas;
+            _isLoading = false;
+          });
+        } else {
+          await _loadFromCache(targetId);
+        }
       } else {
         setState(() {
           _error = 'Usuário não encontrado';
@@ -111,12 +144,47 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
         });
       }
     } catch (error) {
-      final errorMessage = error is AppException
-          ? error.message
-          : 'Erro ao carregar rotinas: $error';
+      final supabaseService = getIt<SupabaseService>();
+      final user = supabaseService.currentUser;
+      if (user != null) {
+        await _loadFromCache(user.id);
+      } else {
+        final errorMessage = error is AppException
+            ? error.message
+            : 'Erro ao carregar rotinas: $error';
+        setState(() {
+          _error = errorMessage;
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadFromCache(String userId) async {
+    try {
+      final cachedRotinas = await OfflineCacheService.getCachedRotinas(userId);
+      _lastSync = await OfflineCacheService.getCacheTimestamp(userId, 'rotinas');
+      
+      if (cachedRotinas.isNotEmpty) {
+        setState(() {
+          _rotinas = cachedRotinas;
+          _isLoading = false;
+          _isOffline = true;
+        });
+        
+        if (mounted) {
+          FeedbackSnackbar.warning(context, 'Usando dados salvos (modo offline)');
+        }
+      } else {
+        setState(() {
+          _isLoading = false;
+          _error = 'Sem conexão e sem dados salvos';
+        });
+      }
+    } catch (e) {
       setState(() {
-        _error = errorMessage;
         _isLoading = false;
+        _error = 'Erro ao carregar dados offline';
       });
     }
   }
@@ -207,15 +275,11 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
+    FeedbackSnackbar.error(context, message, onRetry: _loadRotinas);
   }
 
   void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.green),
-    );
+    FeedbackSnackbar.success(context, message);
   }
 
   @override
@@ -223,146 +287,130 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
     final familiarState = getIt<FamiliarState>();
     final isFamiliar = familiarState.hasIdosos && widget.idosoId == null;
     
-    final content = CustomScrollView(
-      slivers: [
-        // Banner de contexto para perfil familiar
-        if (isFamiliar)
-          SliverToBoxAdapter(
-            child: const BannerContextoFamiliar(),
-          ),
-        // Header moderno - apenas se não estiver embedded
-        if (!widget.embedded)
-          SliverAppBar(
-            expandedHeight: 120,
-            floating: false,
-            pinned: true,
-            backgroundColor: Colors.transparent,
-            foregroundColor: Colors.white,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                'Rotinas',
-                style: AppTextStyles.leagueSpartan(
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFFA8B8FF),
-                      Color(0xFF9B7EFF),
+    final content = RefreshIndicator(
+      onRefresh: _loadRotinas,
+      color: Colors.white,
+      backgroundColor: AppColors.primary,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          if (isFamiliar)
+            SliverToBoxAdapter(
+              child: const BannerContextoFamiliar(),
+            ),
+          if (!widget.embedded)
+            SliverAppBar(
+              expandedHeight: 120,
+              floating: false,
+              pinned: true,
+              backgroundColor: Colors.transparent,
+              foregroundColor: Colors.white,
+              flexibleSpace: FlexibleSpaceBar(
+                title: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Rotinas',
+                      style: AppTextStyles.leagueSpartan(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    if (_isOffline) ...[
+                      const SizedBox(width: 8),
+                      const OfflineBadge(),
                     ],
+                  ],
+                ),
+                background: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFA8B8FF), Color(0xFF9B7EFF)],
+                    ),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.schedule, size: 48, color: Colors.white),
                   ),
                 ),
-                child: const Center(
-                  child: Icon(Icons.schedule, size: 48, color: Colors.white),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _loadRotinas,
                 ),
-              ),
+              ],
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: _loadRotinas,
-              ),
-            ],
-          ),
-        SliverToBoxAdapter(child: _buildBody()),
-      ],
+          SliverToBoxAdapter(child: _buildBody()),
+        ],
+      ),
     );
 
     if (widget.embedded) {
-      // Modo embedded: retorna apenas o conteúdo, sem AppScaffoldWithWaves
       return content;
     }
 
-    // Modo standalone: retorna com AppScaffoldWithWaves e FAB
     final supabaseService = getIt<SupabaseService>();
     final user = supabaseService.currentUser;
     final userId = user?.id ?? '';
 
-    return AppScaffoldWithWaves(
-      body: Stack(
-        children: [
-          content,
-          // Interface de voz para idosos
-          if (_isIdoso && userId.isNotEmpty)
-            VoiceInterfaceWidget(
-              userId: userId,
-              showAsFloatingButton: true,
-            ),
-        ],
-      ),
-      floatingActionButton: _isIdoso
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () async {
-                // Obter idosoId do FamiliarState se não foi fornecido via widget
-                final familiarState = getIt<FamiliarState>();
-                final idosoId = widget.idosoId ?? 
-                    (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
-                
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AddEditRotinaForm(idosoId: idosoId),
-                  ),
-                );
-                if (result == true) {
-                  _loadRotinas();
-                }
-              },
-              backgroundColor: AppColors.primary,
-              elevation: 4,
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text(
-                'Adicionar',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+    return OfflineIndicator(
+      child: AppScaffoldWithWaves(
+        body: Stack(
+          children: [
+            content,
+            if (_isIdoso && userId.isNotEmpty)
+              VoiceInterfaceWidget(
+                userId: userId,
+                showAsFloatingButton: true,
               ),
-            ),
+          ],
+        ),
+        floatingActionButton: _isIdoso
+            ? null
+            : FloatingActionButton.extended(
+                onPressed: () async {
+                  final familiarState = getIt<FamiliarState>();
+                  final idosoId = widget.idosoId ?? 
+                      (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
+                  
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AddEditRotinaForm(idosoId: idosoId),
+                    ),
+                  );
+                  if (result == true) {
+                    _loadRotinas();
+                  }
+                },
+                backgroundColor: AppColors.primary,
+                elevation: 4,
+                icon: const Icon(Icons.add, color: Colors.white),
+                label: const Text(
+                  'Adicionar',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+                ),
+              ),
+      ),
     );
   }
 
   Widget _buildBody() {
     if (_isLoading) {
-      return Container(
-        height: 300,
-        child: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(color: AppColors.primary),
-              SizedBox(height: 16),
-              Text('Carregando rotinas...', style: TextStyle(color: Colors.grey, fontSize: 16)),
-            ],
-          ),
-        ),
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: ListSkeletonLoader(itemCount: 4, itemHeight: 140),
       );
     }
 
     if (_error != null) {
-      return Container(
-        height: 300,
+      return Padding(
         padding: const EdgeInsets.all(24),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.red.shade600),
-              const SizedBox(height: 16),
-              Text('Erro ao carregar rotinas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red.shade700)),
-              const SizedBox(height: 8),
-              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: Colors.red.shade600)),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadRotinas,
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
-                child: const Text('Tentar novamente'),
-              ),
-            ],
-          ),
+        child: ErrorWidgetWithRetry(
+          message: _error!,
+          onRetry: _loadRotinas,
         ),
       );
     }
@@ -473,10 +521,26 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
           child: const Text('Suas Rotinas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
         ),
         const SizedBox(height: 16),
-        ...(_rotinas.map((rotina) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: _buildRotinaCard(rotina),
-            ))),
+        ...(_rotinas.asMap().entries.map((entry) {
+          final index = entry.key;
+          final rotina = entry.value;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: _buildRotinaCard(rotina)
+                .animate()
+                .fadeIn(
+                  duration: 400.ms,
+                  delay: Duration(milliseconds: 50 * index),
+                )
+                .slideY(
+                  begin: 0.1,
+                  end: 0,
+                  duration: 400.ms,
+                  delay: Duration(milliseconds: 50 * index),
+                  curve: Curves.easeOutCubic,
+                ),
+          );
+        })),
         SizedBox(height: AppSpacing.bottomNavBarPadding),
       ],
     );
@@ -748,5 +812,3 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
     );
   }
 }
-
-

@@ -29,12 +29,12 @@ class AuthService {
     }
 
     try {
-      // Default tipo baseado no UI default ('pessoal')
       final response = await supabase.signUp(
         email: email,
         password: password,
         nome: nome,
         tipo: 'pessoal',
+        lgpdConsent: lgpdConsent,
       );
       if (response.user == null) {
         throw const AuthenticationException(message: 'Falha ao criar usuário');

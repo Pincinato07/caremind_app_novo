@@ -386,6 +386,10 @@ class NotificationService {
   static List<TimeOfDay> _extractHorarios(Medicamento medicamento) {
     final frequencia = medicamento.frequencia;
 
+    if (frequencia == null) {
+      return _generateDefaultHorarios(2);
+    }
+
     // Caso 1: Horários explícitos
     if (frequencia.containsKey('horarios')) {
       final horariosList = frequencia['horarios'] as List?;
@@ -450,7 +454,6 @@ class NotificationService {
     required TimeOfDay horario,
   }) async {
     try {
-      // Criar data/hora para hoje no horário especificado
       final agora = DateTime.now();
       var dataHora = DateTime(
         agora.year,
@@ -460,48 +463,45 @@ class NotificationService {
         horario.minute,
       );
 
-      // Se o horário já passou hoje, agendar para amanhã
       if (dataHora.isBefore(agora)) {
         dataHora = dataHora.add(const Duration(days: 1));
       }
 
-      // Converter para TZDateTime
       final tzDateTime = tz.TZDateTime.from(dataHora, tz.local);
 
-      // Detalhes Android - CRÍTICO: importance.max, som e vibração longa
+      final saudacao = _getSaudacao(horario.hour);
+      final titulo = '$saudacao Hora do ${medicamento.nome}!';
+      final corpo = _getCorpoNotificacao(medicamento, horario);
+
       final androidDetails = AndroidNotificationDetails(
-        _medicamentoChannelId, // Canal com importance.max
+        _medicamentoChannelId,
         _medicamentoChannelName,
         channelDescription: _medicamentoChannelDescription,
-        importance: Importance.max, // CRÍTICO: Máxima importância (heads-up)
-        priority: Priority.max, // CRÍTICO: Prioridade máxima
+        importance: Importance.max,
+        priority: Priority.max,
         icon: '@mipmap/ic_launcher',
-        playSound: true, // CRÍTICO: Tocar som
-        // Som padrão do sistema (alto)
-        // Nota: Se quiser som customizado, adicione arquivo .mp3 em android/app/src/main/res/raw/
-        enableVibration: true, // CRÍTICO: Habilitar vibração
-        vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]), // CRÍTICO: Vibração longa
-        // [0ms espera, 1000ms vibra, 500ms pausa, 1000ms vibra]
+        playSound: true,
+        enableVibration: true,
+        vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]),
         styleInformation: BigTextStyleInformation(
-          '${medicamento.nome}\n${medicamento.dosagem}',
-          contentTitle: '💊 Hora do Medicamento!',
-          summaryText: 'Não esqueça de tomar',
+          corpo,
+          contentTitle: titulo,
+          summaryText: 'CareMind cuida de você',
         ),
-        ongoing: false, // Permite deslizar para descartar
-        autoCancel: true, // Cancela quando toca na notificação
-        category: AndroidNotificationCategory.alarm, // Categoria alarme
+        ongoing: false,
+        autoCancel: true,
+        category: AndroidNotificationCategory.alarm,
         visibility: NotificationVisibility.public,
-        fullScreenIntent: true, // Mostra em tela cheia se possível
+        fullScreenIntent: true,
         ticker: 'Hora do medicamento: ${medicamento.nome}',
       );
 
-      // Detalhes iOS
       const iosDetails = DarwinNotificationDetails(
-        presentAlert: true, // Mostrar alerta
-        presentBadge: true, // Mostrar badge
-        presentSound: true, // Tocar som
-        sound: 'default', // Som padrão do iOS
-        interruptionLevel: InterruptionLevel.critical, // CRÍTICO: Máxima interrupção
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        sound: 'default',
+        interruptionLevel: InterruptionLevel.critical,
       );
 
       final notificationDetails = NotificationDetails(
@@ -509,18 +509,15 @@ class NotificationService {
         iOS: iosDetails,
       );
 
-      // Agendar notificação REPETITIVA diária
       await _notifications.zonedSchedule(
         id,
-        '💊 Hora do Medicamento!',
-        '${medicamento.nome} - ${medicamento.dosagem}',
+        titulo,
+        corpo,
         tzDateTime,
         notificationDetails,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // CRÍTICO: Funciona mesmo em modo economia
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.time, // CRÍTICO: Repete diariamente no mesmo horário
-        payload: medicamento.id.toString(), // Payload com ID do medicamento
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+        payload: medicamento.id.toString(),
       );
 
       debugPrint(
@@ -531,6 +528,38 @@ class NotificationService {
         '❌ Erro ao agendar notificação para ${medicamento.nome} no horário ${horario.hour}:${horario.minute} - $e',
       );
     }
+  }
+
+  static String _getSaudacao(int hora) {
+    if (hora >= 5 && hora < 12) {
+      return '🌅 Bom dia!';
+    } else if (hora >= 12 && hora < 18) {
+      return '☀️ Boa tarde!';
+    } else {
+      return '🌙 Boa noite!';
+    }
+  }
+
+  static String _getCorpoNotificacao(Medicamento medicamento, TimeOfDay horario) {
+    final nomeFormatado = medicamento.nome;
+    final dosagem = medicamento.dosagem ?? 'sua dose';
+    final via = medicamento.via ?? 'oral';
+    
+    final mensagens = [
+      'Tome $dosagem de $nomeFormatado agora. Sua saúde agradece! 💪',
+      '$nomeFormatado $dosagem - via $via. Cuide-se bem! 🌟',
+      'Não esqueça: $dosagem de $nomeFormatado. Você está cuidando de você! ❤️',
+      'Hora de tomar $nomeFormatado ($dosagem). Continue firme! 💊',
+    ];
+    
+    final index = horario.hour % mensagens.length;
+    var corpo = mensagens[index];
+    
+    if (medicamento.quantidade != null && medicamento.quantidade! <= 5) {
+      corpo += '\n\n⚠️ Atenção: Restam apenas ${medicamento.quantidade} unidade(s). Reponha seu estoque!';
+    }
+    
+    return corpo;
   }
 
   /// Cancelar todas as notificações de um medicamento

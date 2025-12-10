@@ -151,27 +151,37 @@ class TermosPrivacidadeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         _buildSection(
-          title: '4. Segurança dos Dados',
+          title: '4. Uso de Dados para Inteligência e Pesquisa (Anonimização)',
+          content:
+              'O Caremind poderá utilizar, compartilhar ou comercializar dados agregados e anonimizados com parceiros comerciais, '
+              'instituições de pesquisa e indústria farmacêutica para fins de estatística, melhoria de tratamentos de saúde e análise de mercado.\n\n'
+              'Importante: Esses dados passam por um processo rigoroso de anonimização, o que torna impossível a identificação pessoal do usuário. '
+              'Em nenhuma hipótese venderemos dados que identifiquem você individualmente (como seu nome, CPF ou endereço) sem seu consentimento expresso e específico, '
+              'em conformidade com o Art. 11 da Lei Geral de Proteção de Dados (LGPD).',
+        ),
+        const SizedBox(height: 20),
+        _buildSection(
+          title: '5. Segurança dos Dados',
           content:
               'Implementamos medidas técnicas e organizacionais adequadas para proteger seus dados contra acesso não autorizado, '
               'perda ou destruição.',
         ),
         const SizedBox(height: 20),
         _buildSection(
-          title: '5. Seus Direitos (LGPD)',
+          title: '6. Seus Direitos (LGPD)',
           content:
               'Você tem direito a: acessar seus dados, corrigi-los, solicitar exclusão (direito ao esquecimento), '
               'exportar seus dados e revogar consentimentos.',
         ),
         const SizedBox(height: 20),
         _buildSection(
-          title: '6. Exportação e Exclusão',
+          title: '7. Exportação e Exclusão',
           content:
               'No menu de perfil, você pode exportar todos os seus dados em formato JSON ou solicitar a exclusão completa da conta.',
         ),
         const SizedBox(height: 20),
         _buildSection(
-          title: '7. Contato',
+          title: '8. Contato',
           content:
               'Para exercer seus direitos ou esclarecer dúvidas, entre em contato através do aplicativo ou pelo e-mail: '
               'privacidade@caremind.online',

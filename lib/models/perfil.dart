@@ -9,6 +9,8 @@ class Perfil {
   final String? telefone;
   final String? dataNascimento; // Formato ISO: YYYY-MM-DD
   final String? timezone; // Fuso horário IANA (ex: America/Sao_Paulo)
+  final bool? dataSharingConsent; // Consentimento LGPD
+  final DateTime? termsAcceptedAt; // Data de aceite dos termos
 
   Perfil({
     required this.id,
@@ -21,6 +23,8 @@ class Perfil {
     this.telefone,
     this.dataNascimento,
     this.timezone,
+    this.dataSharingConsent,
+    this.termsAcceptedAt,
   });
 
   factory Perfil.fromMap(Map<String, dynamic> map) {
@@ -40,6 +44,10 @@ class Perfil {
         telefone: map['telefone'] as String?,
         dataNascimento: map['data_nascimento'] as String?,
         timezone: map['timezone'] as String?,
+        dataSharingConsent: map['data_sharing_consent'] as bool?,
+        termsAcceptedAt: map['terms_accepted_at'] != null
+            ? DateTime.parse(map['terms_accepted_at'] as String)
+            : null,
       );
     } catch (e) {
       throw Exception('Erro ao converter Perfil: $e. Map: $map');
@@ -58,6 +66,8 @@ class Perfil {
       'telefone': telefone,
       'data_nascimento': dataNascimento,
       'timezone': timezone,
+      'data_sharing_consent': dataSharingConsent,
+      'terms_accepted_at': termsAcceptedAt?.toIso8601String(),
     };
   }
 
@@ -72,6 +82,8 @@ class Perfil {
     String? telefone,
     String? dataNascimento,
     String? timezone,
+    bool? dataSharingConsent,
+    DateTime? termsAcceptedAt,
   }) {
     return Perfil(
       id: id ?? this.id,
@@ -84,6 +96,8 @@ class Perfil {
       telefone: telefone ?? this.telefone,
       dataNascimento: dataNascimento ?? this.dataNascimento,
       timezone: timezone ?? this.timezone,
+      dataSharingConsent: dataSharingConsent ?? this.dataSharingConsent,
+      termsAcceptedAt: termsAcceptedAt ?? this.termsAcceptedAt,
     );
   }
 }

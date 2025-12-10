@@ -322,7 +322,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                       ? [Colors.green.shade400, Colors.green.shade600]
                       : isPassado
                           ? [Colors.red.shade400, Colors.red.shade600]
-                          : [AppColors.primary, const AppColors.primaryLight],
+                          : [AppColors.primary, AppColors.primaryLight],
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -772,7 +772,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                                           ? [Colors.green.shade400, Colors.green.shade600]
                                           : isPassado
                                               ? [Colors.red.shade400, Colors.red.shade600]
-                                              : [AppColors.primary, const AppColors.primaryLight],
+                                              : [AppColors.primary, AppColors.primaryLight],
                                     ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),

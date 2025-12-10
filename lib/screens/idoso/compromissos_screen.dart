@@ -69,26 +69,24 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
 
   Future<void> _marcarComoConcluido(Map<String, dynamic> compromisso) async {
     try {
-      final compromissoService = getIt<CompromissoService>();
       final supabaseService = getIt<SupabaseService>();
       final user = supabaseService.currentUser;
       
       if (user == null) return;
       
-      final compromissoId = compromisso['id'] as int;
+      final compromissoId = compromisso['id'] as String;
       final titulo = compromisso['titulo'] as String? ?? 'Compromisso';
       
-      await compromissoService.toggleConcluido(compromissoId, true);
-      
-      // Registrar evento no histórico
+      // Registrar evento no histórico (tabela compromissos não tem campo concluido)
       try {
         await HistoricoEventosService.addEvento({
           'perfil_id': user.id,
           'tipo_evento': 'compromisso_realizado',
-          'data_hora': DateTime.now().toIso8601String(),
+          'evento_id': 1,
+          'data_prevista': DateTime.now().toIso8601String(),
+          'status': 'concluido',
           'descricao': 'Compromisso "$titulo" marcado como realizado',
-          'referencia_id': compromissoId.toString(),
-          'tipo_referencia': 'compromisso',
+          'titulo': titulo,
         });
       } catch (e) {
         // Log erro mas não interrompe o fluxo
@@ -304,16 +302,16 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
     final dataHora = DateTime.parse(compromisso['data_hora'] as String);
     final titulo = compromisso['titulo'] as String? ?? 'Compromisso';
     final descricao = compromisso['descricao'] as String?;
-    final concluido = compromisso['concluido'] as bool? ?? false;
     final isHoje = dataHora.year == DateTime.now().year &&
         dataHora.month == DateTime.now().month &&
         dataHora.day == DateTime.now().day;
+    final isPassado = dataHora.isBefore(DateTime.now());
 
     final dateFormat = DateFormat('dd/MM/yyyy');
     final timeFormat = DateFormat('HH:mm');
 
     return GlassCard(
-      onTap: concluido
+      onTap: isPassado
           ? null
           : () {
               AccessibilityService.vibrar();
@@ -330,16 +328,16 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: concluido
-                      ? Colors.green.withValues(alpha: 0.2)
+                  color: isPassado
+                      ? Colors.grey.withValues(alpha: 0.2)
                       : isHoje
                           ? Colors.orange.withValues(alpha: 0.2)
                           : Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
-                  concluido
-                      ? Icons.check_circle
+                  isPassado
+                      ? Icons.event_busy
                       : isHoje
                           ? Icons.today
                           : Icons.calendar_today,
@@ -375,15 +373,15 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
               ),
 
               // Badge de status
-              if (concluido)
+              if (isPassado)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.green,
+                    color: Colors.grey,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'Feito',
+                    'Passado',
                     style: AppTextStyles.leagueSpartan(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -408,7 +406,6 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 letterSpacing: -0.5,
-                decoration: concluido ? TextDecoration.lineThrough : null,
               ),
             ),
           ),
@@ -426,8 +423,8 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
             ),
           ],
 
-          // Botão de ação (se não concluído)
-          if (!concluido) ...[
+          // Botão de ação (se não passou)
+          if (!isPassado) ...[
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
@@ -458,4 +455,3 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
     );
   }
 }
-

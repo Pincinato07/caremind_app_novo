@@ -126,7 +126,7 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
 
       if (_isEditing) {
         await compromissoService.updateCompromisso(
-          widget.compromisso!['id'] as int,
+          widget.compromisso!['id'].toString(),
           data,
         );
         _showSuccess('Compromisso atualizado com sucesso');
@@ -359,4 +359,3 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
     );
   }
 }
-

@@ -479,7 +479,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _adicionarIdoso,
-        backgroundColor: const AppColors.primary,
+        backgroundColor: AppColors.primary,
         icon: const Icon(Icons.person_add, color: Colors.white),
         label: Text(
           'Adicionar Idoso',
@@ -515,7 +515,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: const AppColors.primary.withValues(alpha: 0.3),
+                  color: AppColors.primary.withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),

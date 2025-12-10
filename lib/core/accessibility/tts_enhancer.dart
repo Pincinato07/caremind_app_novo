@@ -168,6 +168,12 @@ class TTSEnhancer {
     await AccessibilityService.vibrar(duration: 300);
   }
 
+  /// Anuncia erro em operações críticas
+  static Future<void> announceCriticalError(String error) async {
+    await AccessibilityService.speak('Erro: $error');
+    await AccessibilityService.vibrar(duration: 500);
+  }
+
   /// Lê conteúdo de listas e cards
   static Future<void> announceContent({
     required String type,

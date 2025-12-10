@@ -20,7 +20,7 @@ class HistoricoEventosService {
           .from('historico_eventos')
           .select()
           .eq('perfil_id', targetPerfilId)
-          .order('data_hora', ascending: false);
+          .order('data_prevista', ascending: false);
 
       return List<Map<String, dynamic>>.from(response);
     } catch (error) {

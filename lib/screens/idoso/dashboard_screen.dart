@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../theme/app_theme.dart';
 import '../../core/injection/injection.dart';
 import '../../services/supabase_service.dart';
@@ -27,6 +28,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
   String _userName = 'Usuário';
   bool _isLoading = true;
   Medicamento? _proximoMedicamento;
+  DateTime? _proximoHorarioAgendado; // Novo campo para armazenar o próximo horário agendado
   final VoiceNavigationService _voiceNavigation = VoiceNavigationService();
 
   late AnimationController _pulseController;
@@ -81,19 +83,43 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
             statusMedicamentos = await HistoricoEventosService.checkMedicamentosConcluidosHoje(user.id, ids);
           }
           
-          // Filtrar apenas medicamentos pendentes
-          final pendentes = medicamentos.where((m) => !(statusMedicamentos[m.id] ?? false)).toList();
-          
-          // Encontrar o próximo medicamento (pegar o primeiro da lista de pendentes)
-          // Idealmente ordenaria por horário, mas assumindo ordem do serviço por enquanto ou refatorar ordenação se necessário
+          // Encontrar o próximo medicamento e seu horário agendado
           Medicamento? proximo;
-          if (pendentes.isNotEmpty) {
-            proximo = pendentes.first;
+          DateTime? proximoHorario;
+          
+          final agora = DateTime.now();
+          final hoje = DateTime(agora.year, agora.month, agora.day);
+
+          for (var med in medicamentos) {
+            // Ignorar se já foi tomado
+            if (statusMedicamentos[med.id] ?? false) continue;
+
+            final horariosTd = _extrairHorarios(med); // Extrai TimeOfDay
+            
+            for (var horarioTd in horariosTd) {
+              final horarioAgendado = DateTime(
+                hoje.year,
+                hoje.month,
+                hoje.day,
+                horarioTd.hour,
+                horarioTd.minute,
+              );
+
+              // Considerar apenas horários no futuro ou que acabaram de passar
+              // Para garantir que o idoso sempre veja o "próximo" item, mesmo que um pouco atrasado.
+              if (horarioAgendado.isAfter(agora.subtract(const Duration(minutes: 10)))) { // Tolerância de 10min de atraso para ainda ser "próximo"
+                if (proximoHorario == null || horarioAgendado.isBefore(proximoHorario)) {
+                  proximo = med;
+                  proximoHorario = horarioAgendado;
+                }
+              }
+            }
           }
 
           setState(() {
             _userName = perfil.nome ?? 'Usuário';
             _proximoMedicamento = proximo;
+            _proximoHorarioAgendado = proximoHorario;
             _isLoading = false;
           });
         }
@@ -105,8 +131,80 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
     }
   }
 
+  /// Extrai horários da frequência do medicamento (como feito no FamiliarDashboard)
+  List<TimeOfDay> _extrairHorarios(Medicamento medicamento) {
+    final frequencia = medicamento.frequencia;
+    
+    if (frequencia != null && frequencia.containsKey('horarios')) {
+      final horariosList = frequencia['horarios'] as List?;
+      if (horariosList != null) {
+        return horariosList
+            .map((h) => _parseTimeOfDay(h.toString()))
+            .where((h) => h != null)
+            .cast<TimeOfDay>()
+            .toList();
+      }
+    }
+    
+    // Se não tem horários explícitos, retornar lista vazia
+    return [];
+  }
+
+  TimeOfDay? _parseTimeOfDay(String timeStr) {
+    try {
+      final parts = timeStr.split(':');
+      if (parts.length == 2) {
+        return TimeOfDay(
+          hour: int.parse(parts[0]),
+          minute: int.parse(parts[1]),
+        );
+      }
+    } catch (e) {
+      // Ignorar erro
+    }
+    return null;
+  }
+
   Future<void> _marcarComoTomado() async {
-    if (_proximoMedicamento == null) return;
+    if (_proximoMedicamento == null || _proximoHorarioAgendado == null) return;
+
+    // Trava de segurança para evitar marcação muito antecipada
+    final agora = DateTime.now();
+    const earlyTakeThresholdMinutes = 120; // 2 horas de antecedência (conforme solicitação)
+
+    if (agora.isBefore(_proximoHorarioAgendado!) && 
+        _proximoHorarioAgendado!.difference(agora).inMinutes > earlyTakeThresholdMinutes) {
+      
+      final horaFormatada = '${_proximoHorarioAgendado!.hour.toString().padLeft(2, '0')}:${_proximoHorarioAgendado!.minute.toString().padLeft(2, '0')}';
+
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Atenção ao Horário'),
+          content: Text(
+            'O horário deste remédio é só às $horaFormatada. A senhora está tomando agora mesmo?',
+            style: AppTextStyles.leagueSpartan(fontSize: 18),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Não', style: TextStyle(color: Colors.red, fontSize: 18)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Sim, estou', style: TextStyle(color: Colors.green, fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true) {
+        // Usuário cancelou a confirmação
+        await AccessibilityService.feedbackNegativo();
+        await TTSEnhancer.announceCriticalError('Confirmação cancelada.');
+        return;
+      }
+    }
 
     try {
       final medicamentoService = getIt<MedicamentoService>();
@@ -119,25 +217,8 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
       await medicamentoService.toggleConcluido(
         _proximoMedicamento!.id!,
         true,
-        DateTime.now(), // data prevista
+        _proximoHorarioAgendado!, // Usar o horário agendado para registro no histórico
       );
-
-      // Registrar evento no histórico
-      try {
-        await HistoricoEventosService.addEvento({
-          'perfil_id': user.id,
-          'tipo_evento': 'medicamento_tomado',
-          'evento_id': _proximoMedicamento!.id!,
-          'data_prevista': DateTime.now().toIso8601String(),
-          'status': 'concluido',
-          'titulo': _proximoMedicamento!.nome,
-          'descricao': 'Medicamento "${_proximoMedicamento!.nome}" marcado como tomado',
-          'medicamento_id': _proximoMedicamento!.id!,
-        });
-      } catch (e) {
-        // Log erro mas não interrompe o fluxo
-        debugPrint('⚠️ Erro ao registrar evento no histórico: $e');
-      }
 
       // Feedback multissensorial: vibração longa + som
       await AccessibilityService.feedbackSucesso();
@@ -307,6 +388,10 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
       );
     }
 
+    final horaPrevista = _proximoHorarioAgendado != null
+        ? '${_proximoHorarioAgendado!.hour.toString().padLeft(2, '0')}:${_proximoHorarioAgendado!.minute.toString().padLeft(2, '0')}'
+        : 'Horário desconhecido';
+
     return GlassCard(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -326,9 +411,11 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
           ),
           const SizedBox(height: 24),
           
-          // Texto "Agora:"
+          // Texto "Agora:" ou "Próximo às:"
           Text(
-            'Agora:',
+            _proximoHorarioAgendado != null && _proximoHorarioAgendado!.isBefore(DateTime.now().add(const Duration(minutes: 10)))
+                ? 'Agora:'
+                : 'Próximo às:',
             style: AppTextStyles.leagueSpartan(
               fontSize: 20,
               color: Colors.white.withValues(alpha: 0.9),
@@ -337,12 +424,23 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
           ),
           const SizedBox(height: 8),
           
+          // Horário Previsto
+          Text(
+            horaPrevista,
+            style: AppTextStyles.leagueSpartan(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+
           // Nome do medicamento (TEXTO GIGANTE)
           GestureDetector(
             onTap: () {
               // Text-to-Speech ao tocar no nome
               AccessibilityService.speak(
-                '${_proximoMedicamento!.nome}, ${_proximoMedicamento!.dosagem}',
+                '${_proximoMedicamento!.nome}, ${_proximoMedicamento!.dosagem ?? 'dosagem não especificada'}',
               );
             },
             child: Text(
@@ -360,7 +458,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
           
           // Dosagem
           Text(
-            _proximoMedicamento!.dosagem,
+            _proximoMedicamento!.dosagem ?? 'Dosagem não especificada',
             textAlign: TextAlign.center,
             style: AppTextStyles.leagueSpartan(
               fontSize: 24,

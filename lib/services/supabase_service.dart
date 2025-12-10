@@ -18,14 +18,16 @@ class SupabaseService {
     required String password,
     required String nome,
     required String tipo,
+    bool lgpdConsent = false,
   }) async {
     try {
       final response = await _client.auth.signUp(
         email: email,
         password: password,
         data: {
-          'nome_completo': nome,
-          'tipo_conta': tipo,
+          'full_name': nome,
+          'account_type': tipo,
+          'data_sharing_consent': lgpdConsent,
         },
       );
 
@@ -254,6 +256,8 @@ class SupabaseService {
     DateTime? codigoVinculacaoExpiraEm,
     String? telefone,
     String? timezone,
+    bool? dataSharingConsent,
+    DateTime? termsAcceptedAt,
   }) async {
     try {
       final Map<String, dynamic> updates = {};
@@ -270,6 +274,8 @@ class SupabaseService {
       }
       if (telefone != null) updates['telefone'] = telefone;
       if (timezone != null) updates['timezone'] = timezone;
+      if (dataSharingConsent != null) updates['data_sharing_consent'] = dataSharingConsent;
+      if (termsAcceptedAt != null) updates['terms_accepted_at'] = termsAcceptedAt.toIso8601String();
 
       if (updates.isNotEmpty) {
         // Limpar dados antes de atualizar (remove strings vazias)

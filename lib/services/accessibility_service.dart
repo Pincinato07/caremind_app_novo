@@ -107,6 +107,23 @@ class AccessibilityService {
     }
   }
 
+  /// Feedback multissensorial: vibração curta + som de erro (compatibilidade)
+  static Future<void> feedbackNegativo() async {
+    // Vibração curta (100ms) - respeita configuração
+    if (_settingsService == null || _settingsService!.accessibilityVibrationEnabled) {
+      final hasVibrator = await Vibration.hasVibrator();
+      if (hasVibrator == true) {
+        await Vibration.vibrate(duration: 100);
+      }
+    }
+
+    // Som de erro (usando TTS) - respeita configuração
+    if (_settingsService == null || _settingsService!.accessibilityTtsEnabled) {
+      await initialize();
+      await _tts.speak("Operação cancelada");
+    }
+  }
+
   /// Vibração curta para feedback tátil (respeita configuração)
   static Future<void> vibrar({int duration = 200}) async {
     // Verificar se vibração está habilitada
@@ -142,4 +159,3 @@ class AccessibilityService {
     }
   }
 }
-

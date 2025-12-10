@@ -17,22 +17,20 @@ import '../../services/alexa_auth_service.dart';
 import '../../services/profile_service.dart';
 import '../../services/medication_crud_service.dart';
 import '../../services/appointment_crud_service.dart';
+import '../../services/vinculo_familiar_service.dart';
+import '../../services/daily_cache_service.dart';
 import '../services/auth_service.dart';
 import '../../core/state/familiar_state.dart';
 
 final getIt = GetIt.instance;
 
-/// Configura a injeção de dependências da aplicação
 Future<void> configureDependencies() async {
-  // Inicializar notificações
   await NotificationService.initialize();
 
-  // Registra o SupabaseClient como singleton
   getIt.registerLazySingleton<SupabaseClient>(
     () => Supabase.instance.client,
   );
 
-  // Registra os services como singletons
   getIt.registerLazySingleton<SupabaseService>(
     () => SupabaseService(getIt<SupabaseClient>()),
   );
@@ -73,12 +71,10 @@ Future<void> configureDependencies() async {
     () => FCMTokenService(getIt<SupabaseClient>()),
   );
 
-  // Registra NotificacoesAppService para notificações do app
   getIt.registerLazySingleton<NotificacoesAppService>(
     () => NotificacoesAppService(getIt<SupabaseClient>()),
   );
 
-  // Registra LgpdService como factory (pode precisar ser recriado)
   getIt.registerFactory<LgpdService>(
     () => LgpdService(
       getIt<SupabaseService>(),
@@ -87,36 +83,39 @@ Future<void> configureDependencies() async {
     ),
   );
 
-  // Registra FamiliarState como singleton (estado global para perfil familiar)
   getIt.registerLazySingleton<FamiliarState>(
     () => FamiliarState(),
   );
 
-  // Registra SettingsService como singleton e inicializa
   final settingsService = SettingsService();
   await settingsService.initialize();
   getIt.registerLazySingleton<SettingsService>(
     () => settingsService,
   );
 
-  // Registra AlexaAuthService para vinculação com Alexa
   getIt.registerLazySingleton<AlexaAuthService>(
     () => AlexaAuthService(getIt<SupabaseService>()),
   );
 
-  // Registra ProfileService para gerenciamento de perfil
   getIt.registerLazySingleton<ProfileService>(
     () => ProfileService(getIt<SupabaseService>()),
   );
 
-  // Registra MedicationCRUDService para gerenciamento completo de medicamentos
   getIt.registerLazySingleton<MedicationCRUDService>(
     () => MedicationCRUDService(getIt<SupabaseService>()),
   );
 
-  // Registra AppointmentCRUDService para gerenciamento completo de compromissos
   getIt.registerLazySingleton<AppointmentCRUDService>(
     () => AppointmentCRUDService(getIt<SupabaseService>()),
   );
-}
 
+  getIt.registerLazySingleton<VinculoFamiliarService>(
+    () => VinculoFamiliarService(getIt<SupabaseClient>()),
+  );
+
+  final dailyCacheService = DailyCacheService();
+  await dailyCacheService.initialize();
+  getIt.registerLazySingleton<DailyCacheService>(
+    () => dailyCacheService,
+  );
+}

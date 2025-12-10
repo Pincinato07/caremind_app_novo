@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/medicamento_service.dart';
 import '../../services/rotina_service.dart';
 import '../../services/accessibility_service.dart';
+import '../../services/offline_cache_service.dart';
 import '../../core/injection/injection.dart';
 import '../../models/medicamento.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
@@ -12,6 +14,11 @@ import '../../widgets/caremind_app_bar.dart';
 import '../../widgets/voice_interface_widget.dart';
 import '../../services/historico_eventos_service.dart';
 import '../../core/accessibility/tts_enhancer.dart';
+import '../../widgets/skeleton_loader.dart';
+import '../../widgets/error_widget_with_retry.dart';
+import '../../widgets/feedback_snackbar.dart';
+import '../../widgets/confirm_medication_button.dart';
+import '../../widgets/offline_indicator.dart';
 
 class IndividualDashboardScreen extends StatefulWidget {
   const IndividualDashboardScreen({super.key});
@@ -23,6 +30,9 @@ class IndividualDashboardScreen extends StatefulWidget {
 class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
   String _userName = 'Usuário';
   bool _isLoading = true;
+  String? _errorMessage;
+  bool _isOffline = false;
+  DateTime? _lastSync;
   
   List<Map<String, dynamic>> _rotinas = [];
   
@@ -34,19 +44,22 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
   
   Medicamento? _proximoMedicamento;
   DateTime? _proximoHorario;
+  
+  List<Medicamento> _medicamentosPendentes = [];
+  Map<int, bool> _statusMedicamentos = {};
+  Map<int, bool> _loadingMedicamentos = {};
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
-    // Inicializa o serviço de acessibilidade
     AccessibilityService.initialize();
+    _listenToConnectivity();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Leitura automática do título da tela se habilitada
     WidgetsBinding.instance.addPostFrameCallback((_) {
       TTSEnhancer.announceScreenChange(
         context, 
@@ -56,24 +69,117 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     });
   }
 
+  void _listenToConnectivity() {
+    OfflineCacheService.connectivityStream.listen((isOnline) {
+      if (mounted) {
+        final wasOffline = _isOffline;
+        setState(() => _isOffline = !isOnline);
+        
+        if (wasOffline && isOnline) {
+          _syncPendingActions();
+          _loadUserData();
+          if (mounted) {
+            FeedbackSnackbar.success(context, 'Conexão restaurada! Sincronizando...');
+          }
+        }
+      }
+    });
+  }
+
+  Future<void> _syncPendingActions() async {
+    final pendingActions = await OfflineCacheService.getPendingActions();
+    if (pendingActions.isEmpty) return;
+    
+    for (final action in pendingActions) {
+      try {
+        if (action['type'] == 'toggle_medicamento') {
+          final medicamentoService = getIt<MedicamentoService>();
+          await medicamentoService.toggleConcluido(
+            action['medicamento_id'] as int,
+            action['concluido'] as bool,
+            DateTime.parse(action['data'] as String),
+          );
+        }
+      } catch (e) {
+        debugPrint('Erro ao sincronizar ação pendente: $e');
+      }
+    }
+    
+    await OfflineCacheService.clearPendingActions();
+  }
+
   Future<void> _loadUserData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    
+    final isOnline = await OfflineCacheService.isOnline();
+    setState(() => _isOffline = !isOnline);
+    
     try {
       final supabaseService = getIt<SupabaseService>();
       final user = supabaseService.currentUser;
       if (user != null) {
-        final perfil = await supabaseService.getProfile(user.id);
-        if (perfil != null && mounted) {
-          await _loadDashboardData(user.id, supabaseService);
-          
-          setState(() {
-            _userName = perfil.nome ?? 'Usuário';
-            _isLoading = false;
-          });
+        if (isOnline) {
+          final perfil = await supabaseService.getProfile(user.id);
+          if (perfil != null && mounted) {
+            await _loadDashboardData(user.id, supabaseService);
+            _lastSync = DateTime.now();
+            
+            setState(() {
+              _userName = perfil.nome ?? 'Usuário';
+              _isLoading = false;
+            });
+          }
+        } else {
+          await _loadFromCache(user.id);
         }
+      }
+    } catch (e) {
+      final supabaseService = getIt<SupabaseService>();
+      final user = supabaseService.currentUser;
+      if (user != null) {
+        await _loadFromCache(user.id);
+      } else {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = e.toString();
+        });
+      }
+    }
+  }
+
+  Future<void> _loadFromCache(String userId) async {
+    try {
+      final cachedMedicamentos = await OfflineCacheService.getCachedMedicamentos(userId);
+      final cachedRotinas = await OfflineCacheService.getCachedRotinas(userId);
+      _lastSync = await OfflineCacheService.getCacheTimestamp(userId, 'medicamentos');
+      
+      if (cachedMedicamentos.isNotEmpty || cachedRotinas.isNotEmpty) {
+        _totalMedicamentos = cachedMedicamentos.length;
+        _medicamentosPendentes = cachedMedicamentos;
+        _rotinas = cachedRotinas;
+        _mensagemStatus = 'Dados offline. Conecte-se para atualizar.';
+        
+        setState(() {
+          _isLoading = false;
+          _isOffline = true;
+        });
+        
+        if (mounted) {
+          FeedbackSnackbar.warning(context, 'Usando dados salvos (modo offline)');
+        }
+      } else {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Sem conexão e sem dados salvos';
+        });
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
+        _errorMessage = 'Erro ao carregar dados offline';
       });
     }
   }
@@ -83,25 +189,29 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
       final medicamentoService = getIt<MedicamentoService>();
       final rotinaService = getIt<RotinaService>();
       
-      // Carregar medicamentos
       final medicamentos = await medicamentoService.getMedicamentos(userId);
       
-      // Verificar status (concluído ou não) para hoje
+      // Salvar no cache offline
+      await OfflineCacheService.cacheMedicamentos(userId, medicamentos);
+      
       Map<int, bool> statusMedicamentos = {};
       if (medicamentos.isNotEmpty) {
         final ids = medicamentos.where((m) => m.id != null).map((m) => m.id!).toList();
         statusMedicamentos = await HistoricoEventosService.checkMedicamentosConcluidosHoje(userId, ids);
       }
       
+      _statusMedicamentos = statusMedicamentos;
       _totalMedicamentos = medicamentos.length;
       _medicamentosTomados = medicamentos.where((m) => statusMedicamentos[m.id] ?? false).length;
       
-      // Calcular próximo medicamento (passando o mapa de status)
       _proximoMedicamento = _calcularProximoMedicamento(medicamentos, statusMedicamentos);
+      _medicamentosPendentes = medicamentos.where((m) => !(statusMedicamentos[m.id] ?? false)).toList();
       
-      // Carregar rotinas
       final rotinas = await rotinaService.getRotinas(userId);
       _rotinas = rotinas;
+      
+      // Salvar rotinas no cache
+      await OfflineCacheService.cacheRotinas(userId, rotinas);
       
       final pendentes = medicamentos.where((m) => !(statusMedicamentos[m.id] ?? false)).toList();
       if (pendentes.isEmpty) {
@@ -116,7 +226,97 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
         setState(() {});
       }
     } catch (e) {
-      // Erro silencioso
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    }
+  }
+
+  Future<void> _confirmarMedicamento(Medicamento medicamento) async {
+    if (medicamento.id == null) return;
+    
+    setState(() {
+      _loadingMedicamentos[medicamento.id!] = true;
+    });
+    
+    final isCurrentlyTaken = _statusMedicamentos[medicamento.id] ?? false;
+    
+    // Atualizar UI imediatamente (optimistic update)
+    setState(() {
+      _statusMedicamentos[medicamento.id!] = !isCurrentlyTaken;
+      _loadingMedicamentos[medicamento.id!] = false;
+      
+      if (!isCurrentlyTaken) {
+        _medicamentosTomados++;
+        _medicamentosPendentes.removeWhere((m) => m.id == medicamento.id);
+      } else {
+        _medicamentosTomados--;
+        _medicamentosPendentes.add(medicamento);
+      }
+      
+      _temAtraso = _medicamentosPendentes.isNotEmpty;
+      _mensagemStatus = _temAtraso 
+          ? 'Você tem ${_medicamentosPendentes.length} medicamento(s) pendente(s).'
+          : 'Você tomou tudo hoje.';
+    });
+    
+    try {
+      if (_isOffline) {
+        // Salvar ação para sincronizar depois
+        await OfflineCacheService.addPendingAction({
+          'type': 'toggle_medicamento',
+          'medicamento_id': medicamento.id,
+          'concluido': !isCurrentlyTaken,
+          'data': DateTime.now().toIso8601String(),
+        });
+        
+        if (mounted) {
+          FeedbackSnackbar.info(context, 'Salvo offline. Será sincronizado quando conectar.');
+        }
+      } else {
+        final medicamentoService = getIt<MedicamentoService>();
+        await medicamentoService.toggleConcluido(
+          medicamento.id!,
+          !isCurrentlyTaken,
+          DateTime.now(),
+        );
+        
+        if (mounted) {
+          if (!isCurrentlyTaken) {
+            FeedbackSnackbar.success(
+              context, 
+              '${medicamento.nome} marcado como tomado!',
+              onUndo: () => _confirmarMedicamento(medicamento),
+            );
+          } else {
+            FeedbackSnackbar.info(context, '${medicamento.nome} desmarcado');
+          }
+        }
+      }
+    } catch (e) {
+      // Reverter mudança se falhou
+      setState(() {
+        _statusMedicamentos[medicamento.id!] = isCurrentlyTaken;
+        if (!isCurrentlyTaken) {
+          _medicamentosTomados--;
+          _medicamentosPendentes.add(medicamento);
+        } else {
+          _medicamentosTomados++;
+          _medicamentosPendentes.removeWhere((m) => m.id == medicamento.id);
+        }
+        _temAtraso = _medicamentosPendentes.isNotEmpty;
+        _mensagemStatus = _temAtraso 
+            ? 'Você tem ${_medicamentosPendentes.length} medicamento(s) pendente(s).'
+            : 'Você tomou tudo hoje.';
+      });
+      
+      if (mounted) {
+        FeedbackSnackbar.error(
+          context, 
+          'Erro ao atualizar medicamento',
+          onRetry: () => _confirmarMedicamento(medicamento),
+        );
+      }
     }
   }
 
@@ -165,7 +365,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
   List<TimeOfDay> _extrairHorarios(Medicamento medicamento) {
     final frequencia = medicamento.frequencia;
     
-    if (frequencia.containsKey('horarios')) {
+    if (frequencia != null && frequencia.containsKey('horarios')) {
       final horariosList = frequencia['horarios'] as List?;
       if (horariosList != null) {
         return horariosList
@@ -245,92 +445,143 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     final user = supabaseService.currentUser;
     final userId = user?.id ?? '';
 
-    return AppScaffoldWithWaves(
-      appBar: const CareMindAppBar(),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                : CustomScrollView(
+    return OfflineIndicator(
+      child: AppScaffoldWithWaves(
+        appBar: const CareMindAppBar(),
+        body: SafeArea(
+          child: Stack(
+            children: [
+              if (_errorMessage != null)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: ErrorWidgetWithRetry(
+                      message: _errorMessage!,
+                      onRetry: _loadUserData,
+                    ),
+                  ),
+                )
+              else if (_isLoading)
+                const SingleChildScrollView(
+                  child: DashboardSkeletonLoader(),
+                )
+              else
+                RefreshIndicator(
+                  onRefresh: _loadUserData,
+                  color: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  displacement: 40,
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Text(
-                                  'Olá, $_userName!',
-                                  style: AppTextStyles.leagueSpartan(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                    letterSpacing: -0.5,
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'Olá, $_userName!',
+                                      style: AppTextStyles.leagueSpartan(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  if (_isOffline) const OfflineBadge(),
+                                  const SizedBox(width: 8),
+                                  Semantics(
+                                    label: 'Botão ouvir resumo',
+                                    hint: 'Lê em voz alta o resumo do seu dia',
+                                    button: true,
+                                    child: IconButton(
+                                      onPressed: _readDashboardSummary,
+                                      icon: Icon(Icons.volume_up, 
+                                               color: Colors.white.withValues(alpha: 0.8)),
+                                      iconSize: 28,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              Semantics(
-                                label: 'Botão ouvir resumo',
-                                hint: 'Lê em voz alta o resumo do seu dia',
-                                button: true,
-                                child: IconButton(
-                                  onPressed: _readDashboardSummary,
-                                  icon: Icon(Icons.volume_up, 
-                                           color: Colors.white.withValues(alpha: 0.8)),
-                                  iconSize: 28,
-                                ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _getGreeting(),
+                                      style: AppTextStyles.leagueSpartan(
+                                        fontSize: 18,
+                                        color: Colors.white.withValues(alpha: 0.95),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
+                              if (_lastSync != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: LastSyncInfo(lastSync: _lastSync),
+                                ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _getGreeting(),
-                            style: AppTextStyles.leagueSpartan(
-                              fontSize: 18,
-                              color: Colors.white.withValues(alpha: 0.95),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                          child: _buildSemaforoStatus()
+                              .animate()
+                              .fadeIn(duration: 400.ms)
+                              .slideY(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOut),
+                        ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                          child: _buildProximoMedicamento()
+                              .animate()
+                              .fadeIn(duration: 400.ms, delay: 100.ms)
+                              .slideY(begin: 0.1, end: 0, duration: 400.ms, delay: 100.ms, curve: Curves.easeOut),
+                        ),
+                      ),
+                      if (_medicamentosPendentes.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                            child: _buildMedicamentosPendentes()
+                                .animate()
+                                .fadeIn(duration: 400.ms, delay: 200.ms)
+                                .slideY(begin: 0.1, end: 0, duration: 400.ms, delay: 200.ms, curve: Curves.easeOut),
+                          ),
+                        ),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                          child: _buildTimelineRotina()
+                              .animate()
+                              .fadeIn(duration: 400.ms, delay: 300.ms)
+                              .slideY(begin: 0.1, end: 0, duration: 400.ms, delay: 300.ms, curve: Curves.easeOut),
+                        ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: SizedBox(height: AppSpacing.bottomNavBarPadding),
+                      ),
+                    ],
                   ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                      child: _buildSemaforoStatus(),
-                    ),
-                  ),
-                  // Widget Próximo Medicamento
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                      child: _buildProximoMedicamento(),
-                    ),
-                  ),
-                  // Widget Timeline de Rotina
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                      child: _buildTimelineRotina(),
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: SizedBox(height: AppSpacing.bottomNavBarPadding), // Padding inferior para evitar corte pela navbar
-                  ),
-                ],
-              ),
-            // Interface de voz flutuante
-            if (userId.isNotEmpty && !_isLoading)
-              VoiceInterfaceWidget(
-                userId: userId,
-                showAsFloatingButton: true,
-              ),
-          ],
+                ),
+              if (userId.isNotEmpty && !_isLoading && _errorMessage == null)
+                VoiceInterfaceWidget(
+                  userId: userId,
+                  showAsFloatingButton: true,
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -458,7 +709,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
       child: GestureDetector(
         onTap: () {
           AccessibilityService.speak(
-            'Próximo medicamento: ${_proximoMedicamento!.nome}, dosagem: ${_proximoMedicamento!.dosagem}, horário: $horarioStr',
+            'Próximo medicamento: ${_proximoMedicamento!.nome}, dosagem: ${_proximoMedicamento!.dosagem ?? 'não especificada'}, horário: $horarioStr',
           );
         },
         child: GlassCard(
@@ -539,7 +790,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      _proximoMedicamento!.dosagem,
+                      _proximoMedicamento!.dosagem ?? 'Dosagem não especificada',
                       style: AppTextStyles.leagueSpartan(
                         fontSize: 14,
                         color: Colors.white.withValues(alpha: 0.9),
@@ -551,6 +802,85 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMedicamentosPendentes() {
+    return GlassCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE91E63).withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.medication_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Medicamentos Pendentes',
+                style: AppTextStyles.leagueSpartan(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...(_medicamentosPendentes.take(3).map((med) {
+            final isLoading = _loadingMedicamentos[med.id] ?? false;
+            final isConfirmed = _statusMedicamentos[med.id] ?? false;
+            
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          med.nome,
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                        if (med.dosagem != null)
+                          Text(
+                            med.dosagem!,
+                            style: AppTextStyles.leagueSpartan(
+                              fontSize: 14,
+                              color: Colors.white.withValues(alpha: 0.7),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  ConfirmMedicationButton(
+                    isConfirmed: isConfirmed,
+                    isLoading: isLoading,
+                    onConfirm: () => _confirmarMedicamento(med),
+                    onUndo: () => _confirmarMedicamento(med),
+                    medicationName: med.nome,
+                  ),
+                ],
+              ),
+            );
+          })).toList(),
+        ],
       ),
     );
   }
@@ -662,6 +992,4 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
       ),
     );
   }
-
 }
-

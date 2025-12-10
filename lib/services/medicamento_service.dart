@@ -234,14 +234,14 @@ class MedicamentoService {
               'status': novoStatus,
               'horario_programado': DateTime.now().toIso8601String(),
               'titulo': medicamentoAtual.nome,
-              'descricao': 'Dosagem: ${medicamentoAtual.dosagem}',
+              'descricao': medicamentoAtual.dosagem != null ? 'Dosagem: ${medicamentoAtual.dosagem}' : 'Medicamento registrado',
             });
       }
       
       // Se está marcando como tomado, decrementar quantidade
       if (concluido) {
-        final novaQuantidade = medicamentoAtual.quantidade > 0 
-            ? medicamentoAtual.quantidade - 1 
+        final novaQuantidade = (medicamentoAtual.quantidade ?? 0) > 0 
+            ? (medicamentoAtual.quantidade ?? 0) - 1 
             : 0;
         
         await _client

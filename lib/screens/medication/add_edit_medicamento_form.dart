@@ -53,12 +53,12 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
   void _loadMedicamentoData() {
     final medicamento = widget.medicamento!;
     _nomeController.text = medicamento.nome;
-    _dosagemController.text = medicamento.dosagem;
-    _quantidadeController.text = medicamento.quantidade.toString();
+    _dosagemController.text = medicamento.dosagem ?? '';
+    _quantidadeController.text = medicamento.quantidade?.toString() ?? '';
     
     // Carrega dados da frequência
     final frequencia = medicamento.frequencia;
-    if (frequencia.containsKey('tipo')) {
+    if (frequencia != null && frequencia.containsKey('tipo')) {
       _tipoFrequencia = frequencia['tipo'];
       
       switch (_tipoFrequencia) {
@@ -161,7 +161,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
         final medicamento = Medicamento(
           createdAt: DateTime.now(),
           nome: _nomeController.text.trim(),
-          userId: targetUserId, // Usa idosoId se fornecido
+          perfilId: targetUserId, // Usa idosoId se fornecido
           dosagem: _dosagemController.text.trim(),
           frequencia: _buildFrequenciaJson(),
           quantidade: int.parse(_quantidadeController.text),
@@ -281,7 +281,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                           const SizedBox(height: 4),
                           Text(
                             widget.idosoId != null
-                                ? 'Adicionando remédio para ${widget.idosoId}' // TODO: Buscar nome do idoso
+                                ? 'Adicionando remédio para o idoso vinculado'
                                 : (_isEditing ? 'Atualize as informações do medicamento' : 'Preencha os dados do medicamento'),
                             style: TextStyle(
                               fontSize: 14,

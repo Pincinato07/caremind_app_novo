@@ -126,9 +126,9 @@ class LgpdService {
       // Deletar compromissos
       final compromissos = await _compromissoService.getCompromissos(userId);
       for (final compromisso in compromissos) {
-        final id = compromisso['id'] as int?;
+        final id = compromisso['id'];
         if (id != null) {
-          await _compromissoService.deleteCompromisso(id);
+          await _compromissoService.deleteCompromisso(id.toString());
         }
       }
 
@@ -139,4 +139,3 @@ class LgpdService {
     }
   }
 }
-

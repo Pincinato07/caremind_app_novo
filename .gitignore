@@ -44,6 +44,11 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Android Keystore (NUNCA commitar!)
+android/key.properties
+*.jks
+*.keystore
+
 # Environment Variables
 .env
 

@@ -37,6 +37,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
   final _confirmPasswordController = TextEditingController();
   String _selectedAccountType = 'pessoal';
   bool _termsAccepted = false;
+  bool _dataSharingAccepted = false;
   bool _isRegistering = false;
 
   @override
@@ -729,14 +730,14 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                         text: 'Termos de Uso',
                         style: const TextStyle(decoration: TextDecoration.underline),
                         recognizer: TapGestureRecognizer()
-                          ..onTap = () => _launchURL('https://exemplo.com/termos'),
+                          ..onTap = () => _launchURL('https://caremind.com.br/termos'),
                       ),
                       const TextSpan(text: ' e '),
                       TextSpan(
                         text: 'Política de Privacidade',
                         style: const TextStyle(decoration: TextDecoration.underline),
                         recognizer: TapGestureRecognizer()
-                          ..onTap = () => _launchURL('https://exemplo.com/privacidade'),
+                          ..onTap = () => _launchURL('https://caremind.com.br/politica-privacidade'),
                       ),
                     ],
                   ),

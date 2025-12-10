@@ -177,7 +177,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
       }
       
       // Verificar estoque baixo
-      if (med.quantidade < 10) {
+      if ((med.quantidade ?? 0) < 10) {
         alertas.add({
           'tipo': 'estoque',
           'mensagem': '${med.nome} - Estoque baixo',
@@ -195,7 +195,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
   List<TimeOfDay> _extrairHorarios(Medicamento medicamento) {
     final frequencia = medicamento.frequencia;
     
-    if (frequencia.containsKey('horarios')) {
+    if (frequencia != null && frequencia.containsKey('horarios')) {
       final horariosList = frequencia['horarios'] as List?;
       if (horariosList != null) {
         return horariosList
