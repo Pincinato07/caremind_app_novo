@@ -4,10 +4,12 @@ import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/caremind_app_bar.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/persistent_bottom_nav_bar.dart';
+import '../../widgets/premium/premium_guard.dart';
 import '../../services/supabase_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/alexa_auth_service.dart';
 import '../../services/accessibility_service.dart';
+import '../../services/subscription_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/accessibility/accessibility_helper.dart';
 
@@ -501,43 +503,53 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                 const SizedBox(height: 16),
                                 SizedBox(
                                   width: double.infinity,
-                                  child: ElevatedButton.icon(
-                                    onPressed: _isLinkingAlexa 
-                                        ? null 
-                                        : (_isAlexaLinked ? _unlinkAlexa : _linkAlexa),
-                                    icon: _isLinkingAlexa
-                                        ? const SizedBox(
-                                            width: 20,
-                                            height: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor: AlwaysStoppedAnimation<Color>(
-                                                Color(0xFF0400BA),
+                                  child: PremiumGuard(
+                                    isEnabled: getIt<SubscriptionService>().canUseAlexa,
+                                    mode: PremiumGuardMode.blockTouch,
+                                    child: ElevatedButton.icon(
+                                      onPressed: _isLinkingAlexa 
+                                          ? null 
+                                          : (_isAlexaLinked ? _unlinkAlexa : () async {
+                                              final subscriptionService = getIt<SubscriptionService>();
+                                              await subscriptionService.getPermissions();
+                                              if (subscriptionService.canUseAlexa && mounted) {
+                                                _linkAlexa();
+                                              }
+                                            }),
+                                      icon: _isLinkingAlexa
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor: AlwaysStoppedAnimation<Color>(
+                                                  Color(0xFF0400BA),
+                                                ),
                                               ),
-                                            ),
-                                          )
-                                        : Icon(_isAlexaLinked 
-                                            ? Icons.link_off 
-                                            : Icons.link),
-                                    label: Text(
-                                      _isAlexaLinked 
-                                          ? 'Desvincular Alexa' 
-                                          : 'Vincular Alexa',
-                                      style: AppTextStyles.leagueSpartan(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
+                                            )
+                                          : Icon(_isAlexaLinked 
+                                              ? Icons.link_off 
+                                              : Icons.link),
+                                      label: Text(
+                                        _isAlexaLinked 
+                                            ? 'Desvincular Alexa' 
+                                            : 'Vincular Alexa',
+                                        style: AppTextStyles.leagueSpartan(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                        ),
                                       ),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: _isAlexaLinked 
-                                          ? Colors.red.shade400 
-                                          : Colors.white,
-                                      foregroundColor: _isAlexaLinked 
-                                          ? Colors.white 
-                                          : AppColors.primary,
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: _isAlexaLinked 
+                                            ? Colors.red.shade400 
+                                            : Colors.white,
+                                        foregroundColor: _isAlexaLinked 
+                                            ? Colors.white 
+                                            : AppColors.primary,
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
                                       ),
                                     ),
                                   ),

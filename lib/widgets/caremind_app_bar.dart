@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:ui';
 import '../theme/app_theme.dart';
 import '../core/navigation/app_navigation.dart';
 import '../core/state/familiar_state.dart';
 import '../core/injection/injection.dart';
 import '../screens/shared/configuracoes_screen.dart';
 import '../screens/shared/perfil_screen.dart';
+import 'profile_switch_dialog.dart';
 
 /// AppBar padronizada do CareMind
 /// Leading: Back button (se pode voltar) ou Configurações (esquerda)
@@ -18,6 +18,10 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool isFamiliar; // Se true, mostra seletor de idoso no título
   final bool showBackButton; // Se true, força mostrar back button mesmo se não puder voltar
   final Widget? leading; // Widget customizado para o leading
+  final bool showSearchButton;
+  final bool showVoiceButton;
+  final VoidCallback? onSearchTap;
+  final VoidCallback? onVoiceTap;
 
   const CareMindAppBar({
     super.key,
@@ -25,6 +29,10 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.isFamiliar = false,
     this.showBackButton = false,
     this.leading,
+    this.showSearchButton = false,
+    this.showVoiceButton = false,
+    this.onSearchTap,
+    this.onVoiceTap,
   });
 
   @override
@@ -50,13 +58,13 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
           child: IconButton(
             icon: const Icon(
               Icons.arrow_back,
-              color: Colors.white,
-              size: 32.0,
+              color: AppColors.textPrimary,
+              size: 28.0,
             ),
-            padding: EdgeInsets.zero,
+            padding: const EdgeInsets.all(12),
             constraints: const BoxConstraints(
-              minWidth: 40,
-              minHeight: 40,
+              minWidth: 48,
+              minHeight: 48,
             ),
             onPressed: () {
               // Apenas fazer pop, nunca logout
@@ -80,13 +88,13 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
         child: IconButton(
           icon: const Icon(
             Icons.settings_outlined,
-            color: Colors.white,
-            size: 32.0,
+            color: AppColors.textPrimary,
+            size: 28.0,
           ),
-          padding: EdgeInsets.zero,
+          padding: const EdgeInsets.all(12),
           constraints: const BoxConstraints(
-            minWidth: 40,
-            minHeight: 40,
+            minWidth: 48,
+            minHeight: 48,
           ),
           onPressed: () {
             Navigator.push(
@@ -104,8 +112,8 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    const iconColor = Colors.white;
-    const iconSize = 32.0;
+    const iconColor = AppColors.textPrimary;
+    const iconSize = 28.0;
     
     return AppBar(
       title: isFamiliar
@@ -115,44 +123,49 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
                   title!,
                   style: AppTextStyles.leagueSpartan(
                     fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 20,
                   ),
                 )
               : null),
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.surface,
       foregroundColor: iconColor,
       elevation: 0,
-      shadowColor: Colors.transparent,
+      shadowColor: Colors.black.withOpacity(0.04),
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       centerTitle: true,
-      flexibleSpace: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.white.withOpacity(0.1),
-                  Colors.white.withOpacity(0.05),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
       toolbarOpacity: 1.0,
-      systemOverlayStyle: SystemUiOverlayStyle.light.copyWith(
+      systemOverlayStyle: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
         systemNavigationBarColor: Colors.transparent,
       ),
       leading: _buildLeading(context),
       actions: [
+        if (showSearchButton)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: IconButton(
+              icon: const Icon(Icons.search_rounded, color: iconColor, size: iconSize),
+              padding: const EdgeInsets.all(12),
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              onPressed: onSearchTap,
+              tooltip: 'Buscar',
+            ),
+          ),
+        if (showVoiceButton)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: IconButton(
+              icon: const Icon(Icons.mic_none_rounded, color: iconColor, size: iconSize),
+              padding: const EdgeInsets.all(12),
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              onPressed: onVoiceTap,
+              tooltip: 'Falar',
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.only(right: 12),
           child: Semantics(
@@ -165,10 +178,10 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
                 color: iconColor,
                 size: iconSize,
               ),
-              padding: EdgeInsets.zero,
+              padding: const EdgeInsets.all(12),
               constraints: const BoxConstraints(
-                minWidth: 40,
-                minHeight: 40,
+                minWidth: 48,
+                minHeight: 48,
               ),
               onPressed: () {
                 Navigator.push(
@@ -201,27 +214,26 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
             title ?? 'Familiar',
             style: AppTextStyles.leagueSpartan(
               fontWeight: FontWeight.w700,
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 20,
             ),
           );
         }
 
         if (idosos.length == 1) {
-          // Se houver apenas um idoso, mostra apenas o nome
           return Text(
             idosoSelecionado?.nome ?? title ?? 'Familiar',
             style: AppTextStyles.leagueSpartan(
               fontWeight: FontWeight.w700,
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 20,
             ),
           );
         }
 
-        // Se houver múltiplos idosos, mostra dropdown
+        // Se houver múltiplos idosos, mostra dropdown com ProfileSwitchDialog
         return GestureDetector(
-          onTap: () => _showIdosoSelectorModal(context, familiarState, idosos, idosoSelecionado),
+          onTap: () => _showProfileSwitchDialog(context, familiarState, idosos, idosoSelecionado),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -230,7 +242,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
                   idosoSelecionado?.nome ?? 'Selecione um idoso',
                   style: AppTextStyles.leagueSpartan(
                     fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 20,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -239,7 +251,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
               const SizedBox(width: 4),
               const Icon(
                 Icons.arrow_drop_down,
-                color: Colors.white,
+                color: AppColors.textSecondary,
                 size: 24,
               ),
             ],
@@ -249,73 +261,27 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  /// Mostra modal para selecionar idoso
-  void _showIdosoSelectorModal(
+  /// Mostra ProfileSwitchDialog para selecionar idoso
+  void _showProfileSwitchDialog(
     BuildContext context,
     FamiliarState familiarState,
     List<dynamic> idosos,
     dynamic idosoSelecionado,
   ) {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFA8B8FF), Color(0xFF9B7EFF)],
-          ),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  'Selecione o idoso',
-                  style: AppTextStyles.leagueSpartan(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              ...idosos.map((idoso) {
-                final isSelected = idoso.id == idosoSelecionado?.id;
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.white.withValues(alpha: 0.3),
-                    child: Icon(
-                      Icons.person,
-                      color: Colors.white,
-                    ),
-                  ),
-                  title: Text(
-                    idoso.nome ?? 'Idoso',
-                    style: AppTextStyles.leagueSpartan(
-                      fontSize: 18,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: Colors.white,
-                    ),
-                  ),
-                  trailing: isSelected
-                      ? const Icon(Icons.check_circle, color: Colors.white)
-                      : null,
-                  onTap: () {
-                    familiarState.selecionarIdoso(idoso);
-                    Navigator.pop(context);
-                  },
-                );
-              }).toList(),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
+      builder: (context) => ProfileSwitchDialog(
+        profiles: idosos.map((idoso) => {
+          'id': idoso.id,
+          'name': idoso.nome ?? 'Idoso',
+          'email': idoso.email,
+        }).toList(),
+        currentProfileId: idosoSelecionado?.id,
+        onProfileSelected: (profileId) {
+          final idoso = idosos.firstWhere((i) => i.id == profileId);
+          familiarState.selecionarIdoso(idoso);
+        },
       ),
     );
   }
 }
-

@@ -19,6 +19,7 @@ import '../../services/medication_crud_service.dart';
 import '../../services/appointment_crud_service.dart';
 import '../../services/vinculo_familiar_service.dart';
 import '../../services/daily_cache_service.dart';
+import '../../services/subscription_service.dart';
 import '../services/auth_service.dart';
 import '../../core/state/familiar_state.dart';
 
@@ -33,6 +34,10 @@ Future<void> configureDependencies() async {
 
   getIt.registerLazySingleton<SupabaseService>(
     () => SupabaseService(getIt<SupabaseClient>()),
+  );
+
+  getIt.registerLazySingleton<SubscriptionService>(
+    () => SubscriptionService(getIt<SupabaseClient>()),
   );
 
   getIt.registerLazySingleton<MedicamentoService>(

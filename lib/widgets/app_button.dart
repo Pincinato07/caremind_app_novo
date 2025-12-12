@@ -20,9 +20,8 @@ class AppPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = AppColors.primary;
   return SizedBox(
-    height: height ?? 64,
+    height: height ?? 56,
     width: width,
       child: Semantics(
         label: label,
@@ -33,33 +32,31 @@ class AppPrimaryButton extends StatelessWidget {
           onPressed: isLoading ? null : onPressed,
           style: ButtonStyle(
             backgroundColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.pressed)) {
-                return const Color(0xFF020054);
+              if (states.contains(WidgetState.disabled)) {
+                return AppColors.disabled;
               }
-              if (states.contains(WidgetState.hovered) ||
-                  states.contains(WidgetState.focused)) {
+              if (states.contains(WidgetState.pressed)) {
+                return AppColors.primaryDark;
+              }
+              if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
                 return AppColors.primaryLight;
               }
-              return baseColor;
+              return AppColors.primary;
             }),
-            foregroundColor: WidgetStateProperty.all(Colors.white),
-            overlayColor: WidgetStateProperty.all(
-              Colors.white.withValues(alpha: 0.06),
-            ),
-            elevation: WidgetStateProperty.all(6),
-            shadowColor: WidgetStateProperty.all(
-              baseColor.withValues(alpha: 0.2),
-            ),
+            foregroundColor: WidgetStateProperty.all(AppColors.textOnPrimary),
+            overlayColor: WidgetStateProperty.all(Colors.white.withOpacity(0.08)),
+            elevation: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.disabled)) return 0;
+              if (states.contains(WidgetState.pressed)) return 2;
+              return 0;
+            }),
+            shadowColor: WidgetStateProperty.all(Colors.black.withOpacity(0.12)),
             shape: WidgetStateProperty.all(
-              RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
+            padding: WidgetStateProperty.all(const EdgeInsets.symmetric(vertical: 16, horizontal: 24)),
             textStyle: WidgetStateProperty.all(
-              AppTextStyles.leagueSpartan(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
+              AppTextStyles.leagueSpartan(fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ),
           child: isLoading
@@ -68,7 +65,7 @@ class AppPrimaryButton extends StatelessWidget {
                   height: 20,
                   child: CircularProgressIndicator(
                     color: Colors.white,
-                    strokeWidth: 2,
+                    strokeWidth: 2.5,
                   ),
                 )
               : Text(label),
@@ -96,7 +93,7 @@ class AppOutlineButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
   return SizedBox(
-    height: height ?? 64,
+    height: height ?? 56,
     width: width,
       child: Semantics(
         label: label,
@@ -107,28 +104,16 @@ class AppOutlineButton extends StatelessWidget {
           onPressed: onPressed,
           style: OutlinedButton.styleFrom(
             side: BorderSide(
-              color: onPressed == null
-                  ? Colors.grey[400]!
-                  : Colors.white.withValues(alpha: 0.8),
-              width: 1.5,
+              color: onPressed == null ? AppColors.disabled : AppColors.primary,
+              width: 2,
             ),
-            backgroundColor: Colors.white.withValues(alpha: 0.15),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            textStyle: AppTextStyles.leagueSpartan(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
+            backgroundColor: Colors.transparent,
+            foregroundColor: onPressed == null ? AppColors.disabledText : AppColors.primary,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+            textStyle: AppTextStyles.leagueSpartan(fontSize: 16, fontWeight: FontWeight.w700),
           ),
-          child: Text(
-            label,
-            style: AppTextStyles.leagueSpartan(
-              color: onPressed == null
-                  ? Colors.grey[400]
-                  : Colors.white.withValues(alpha: 0.9),
-            ),
-          ),
+          child: Text(label),
         ),
       ),
     );

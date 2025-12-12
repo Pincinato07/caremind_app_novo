@@ -9,7 +9,6 @@ import '../../services/offline_cache_service.dart';
 import '../../core/injection/injection.dart';
 import '../../models/medicamento.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
-import '../../widgets/glass_card.dart';
 import '../../widgets/caremind_app_bar.dart';
 import '../../widgets/voice_interface_widget.dart';
 import '../../services/historico_eventos_service.dart';
@@ -448,6 +447,9 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     return OfflineIndicator(
       child: AppScaffoldWithWaves(
         appBar: const CareMindAppBar(),
+        useSolidBackground: true,
+        showWaves: false,
+        backgroundColor: AppColors.background,
         body: SafeArea(
           child: Stack(
             children: [
@@ -468,8 +470,8 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
               else
                 RefreshIndicator(
                   onRefresh: _loadUserData,
-                  color: Colors.white,
-                  backgroundColor: AppColors.primary,
+                  color: AppColors.primary,
+                  backgroundColor: AppColors.surface,
                   displacement: 40,
                   child: CustomScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
@@ -486,9 +488,9 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                     child: Text(
                                       'Olá, $_userName!',
                                       style: AppTextStyles.leagueSpartan(
-                                        fontSize: 32,
+                                        fontSize: 24,
                                         fontWeight: FontWeight.w700,
-                                        color: Colors.white,
+                                        color: AppColors.textPrimary,
                                         letterSpacing: -0.5,
                                       ),
                                     ),
@@ -501,8 +503,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                     button: true,
                                     child: IconButton(
                                       onPressed: _readDashboardSummary,
-                                      icon: Icon(Icons.volume_up, 
-                                               color: Colors.white.withValues(alpha: 0.8)),
+                                      icon: Icon(Icons.volume_up, color: AppColors.textSecondary),
                                       iconSize: 28,
                                     ),
                                   ),
@@ -515,8 +516,8 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                     child: Text(
                                       _getGreeting(),
                                       style: AppTextStyles.leagueSpartan(
-                                        fontSize: 18,
-                                        color: Colors.white.withValues(alpha: 0.95),
+                                        fontSize: 16,
+                                        color: AppColors.textSecondary,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -587,34 +588,37 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     );
   }
 
+  Widget _surfaceCard({required Widget child, EdgeInsets padding = const EdgeInsets.all(20), Color? borderColor, Color? backgroundColor}) {
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: backgroundColor ?? AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor ?? AppColors.border),
+        boxShadow: AppShadows.small,
+      ),
+      child: child,
+    );
+  }
+
   Widget _buildSemaforoStatus() {
     return Semantics(
       label: 'Status dos medicamentos',
       hint: 'Mostra se você está em dia com seus medicamentos',
-      child: GlassCard(
-        padding: const EdgeInsets.all(20),
-        borderColor: _temAtraso 
-            ? Colors.red.withValues(alpha: 0.6) 
-            : Colors.green.withValues(alpha: 0.6),
+      child: _surfaceCard(
+        borderColor: _temAtraso ? AppColors.error.withOpacity(0.5) : AppColors.success.withOpacity(0.4),
         child: Row(
           children: [
             Container(
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: _temAtraso ? Colors.red : Colors.green,
+                color: (_temAtraso ? AppColors.error : AppColors.success).withOpacity(0.12),
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: (_temAtraso ? Colors.red : Colors.green).withValues(alpha: 0.4),
-                    blurRadius: 12,
-                    spreadRadius: 2,
-                  ),
-                ],
               ),
               child: Icon(
                 _temAtraso ? Icons.warning_rounded : Icons.check_circle_rounded,
-                color: Colors.white,
+                color: _temAtraso ? AppColors.error : AppColors.success,
                 size: 28,
               ),
             ),
@@ -628,7 +632,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                     style: AppTextStyles.leagueSpartan(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -636,7 +640,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                     '$_medicamentosTomados de $_totalMedicamentos medicamentos tomados hoje',
                     style: AppTextStyles.leagueSpartan(
                       fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.85),
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],
@@ -653,19 +657,18 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
       return Semantics(
         label: 'Medicamentos em dia',
         hint: 'Todos os medicamentos do dia foram tomados',
-        child: GlassCard(
-          padding: const EdgeInsets.all(20),
+        child: _surfaceCard(
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.25),
+                  color: AppColors.success.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.check_circle,
-                  color: Colors.white,
+                  color: AppColors.success,
                   size: 28,
                 ),
               ),
@@ -679,7 +682,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       style: AppTextStyles.leagueSpartan(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -687,7 +690,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       'Parabéns! Você está em dia com seus medicamentos.',
                       style: AppTextStyles.leagueSpartan(
                         fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.85),
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -712,8 +715,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
             'Próximo medicamento: ${_proximoMedicamento!.nome}, dosagem: ${_proximoMedicamento!.dosagem ?? 'não especificada'}, horário: $horarioStr',
           );
         },
-        child: GlassCard(
-          padding: const EdgeInsets.all(20),
+        child: _surfaceCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -722,12 +724,12 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE91E63).withValues(alpha: 0.25),
+                      color: AppColors.accent.withOpacity(0.14),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.medication_liquid,
-                      color: Colors.white,
+                      color: AppColors.accent,
                       size: 28,
                     ),
                   ),
@@ -741,7 +743,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                           style: AppTextStyles.leagueSpartan(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Colors.white.withValues(alpha: 0.8),
+                            color: AppColors.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -750,7 +752,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                           style: AppTextStyles.leagueSpartan(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                       ],
@@ -764,15 +766,15 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: AppColors.primary.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.access_time,
-                          color: Colors.white,
+                          color: AppColors.primary,
                           size: 18,
                         ),
                         const SizedBox(width: 6),
@@ -781,7 +783,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                           style: AppTextStyles.leagueSpartan(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: AppColors.primary,
                           ),
                         ),
                       ],
@@ -793,7 +795,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       _proximoMedicamento!.dosagem ?? 'Dosagem não especificada',
                       style: AppTextStyles.leagueSpartan(
                         fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.9),
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ),
@@ -807,8 +809,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
   }
 
   Widget _buildMedicamentosPendentes() {
-    return GlassCard(
-      padding: const EdgeInsets.all(20),
+    return _surfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -817,12 +818,12 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE91E63).withValues(alpha: 0.25),
+                  color: AppColors.accent.withOpacity(0.14),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.medication_rounded,
-                  color: Colors.white,
+                  color: AppColors.accent,
                   size: 24,
                 ),
               ),
@@ -832,7 +833,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                 style: AppTextStyles.leagueSpartan(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
@@ -855,7 +856,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                           style: AppTextStyles.leagueSpartan(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                         if (med.dosagem != null)
@@ -863,7 +864,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                             med.dosagem!,
                             style: AppTextStyles.leagueSpartan(
                               fontSize: 14,
-                              color: Colors.white.withValues(alpha: 0.7),
+                              color: AppColors.textSecondary,
                             ),
                           ),
                       ],
@@ -899,8 +900,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     return Semantics(
       label: 'Próximas atividades',
       hint: 'Lista das próximas rotinas e atividades',
-      child: GlassCard(
-        padding: const EdgeInsets.all(20),
+      child: _surfaceCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -909,12 +909,12 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50).withValues(alpha: 0.25),
+                    color: AppColors.success.withOpacity(0.14),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.schedule_rounded,
-                    color: Colors.white,
+                    color: AppColors.success,
                     size: 24,
                   ),
                 ),
@@ -924,7 +924,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   style: AppTextStyles.leagueSpartan(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -953,7 +953,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.6),
+                            color: AppColors.textSecondary.withOpacity(0.6),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -967,7 +967,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                 style: AppTextStyles.leagueSpartan(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.white,
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -975,7 +975,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                 horario,
                                 style: AppTextStyles.leagueSpartan(
                                   fontSize: 14,
-                                  color: Colors.white.withValues(alpha: 0.75),
+                                  color: AppColors.textSecondary,
                                 ),
                               ),
                             ],

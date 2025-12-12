@@ -44,66 +44,54 @@ class AppTextField extends StatelessWidget {
           maxLines: maxLines,
           onChanged: onChanged,
         style: AppTextStyles.leagueSpartan(
-          color: Colors.white,
-          fontSize: 15,
+          color: AppColors.textPrimary,
+          fontSize: 16,
         ),
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
           hintStyle: AppTextStyles.leagueSpartan(
-            color: Colors.white.withValues(alpha: 0.7),
-            fontSize: 15,
+            color: AppColors.textHint,
+            fontSize: 16,
           ),
           labelStyle: AppTextStyles.leagueSpartan(
-            color: Colors.white.withValues(alpha: 0.8),
-            fontSize: 15,
+            color: AppColors.textSecondary,
+            fontSize: 16,
           ),
-          prefixIcon: prefixIcon,
-          suffixIcon: suffixIcon,
+          prefixIcon: prefixIcon != null ? IconTheme(
+            data: const IconThemeData(color: AppColors.textSecondary),
+            child: prefixIcon!,
+          ) : null,
+          suffixIcon: suffixIcon != null ? IconTheme(
+            data: const IconThemeData(color: AppColors.textSecondary),
+            child: suffixIcon!,
+          ) : null,
           filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.2),
+          fillColor: const Color(0xFFF8FAFC),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.border, width: 1),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(
-              color: Colors.white.withValues(alpha: 0.3),
-              width: 1,
-            ),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.border, width: 1),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(
-              color: Colors.white.withValues(alpha: 0.5),
-              width: 2,
-            ),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.primary, width: 2),
           ),
           errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(
-              color: Colors.red,
-              width: 2,
-            ),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.error, width: 2),
           ),
           focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(
-              color: Colors.red,
-              width: 2,
-            ),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.error, width: 2),
           ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
       ),
     );
   }
 }
-
-
-

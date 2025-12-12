@@ -7,9 +7,10 @@ import '../../core/injection/injection.dart';
 import '../../core/state/familiar_state.dart';
 import '../../models/medicamento.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
-import '../../widgets/glass_card.dart';
 import '../../widgets/caremind_app_bar.dart';
 import '../../core/accessibility/accessibility_helper.dart';
+import '../../widgets/charts/adherence_bar_chart.dart';
+import '../../widgets/charts/adherence_line_chart.dart';
 
 /// Dashboard do FAMILIAR/CUIDADOR
 /// Objetivo: Tranquilidade. O familiar quer saber: "Está tudo bem?"
@@ -228,10 +229,13 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
   Widget build(BuildContext context) {
     return AppScaffoldWithWaves(
       appBar: const CareMindAppBar(isFamiliar: true),
+      useSolidBackground: true,
+      showWaves: false,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: _isLoading
             ? const Center(
-                child: CircularProgressIndicator(color: Colors.white),
+                child: CircularProgressIndicator(color: AppColors.primary),
               )
             : CustomScrollView(
                 slivers: [
@@ -244,9 +248,9 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                           Text(
                             'Olá, $_userName!',
                             style: AppTextStyles.leagueSpartan(
-                              fontSize: 32,
+                              fontSize: 24,
                               fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                              color: AppColors.textPrimary,
                               letterSpacing: -0.5,
                             ),
                           ),
@@ -254,8 +258,8 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                           Text(
                             'Acompanhe o cuidado da sua família',
                             style: AppTextStyles.leagueSpartan(
-                              fontSize: 18,
-                              color: Colors.white.withValues(alpha: 0.95),
+                              fontSize: 16,
+                              color: AppColors.textSecondary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -301,11 +305,24 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                     ),
                   ),
                   SliverToBoxAdapter(
-                    child: SizedBox(height: AppSpacing.bottomNavBarPadding), // Padding inferior para evitar corte pela navbar
+                    child: SizedBox(height: AppSpacing.bottomNavBarPadding),
                   ),
                 ],
               ),
       ),
+    );
+  }
+
+  Widget _surfaceCard({required Widget child, EdgeInsets padding = const EdgeInsets.all(20), Color? borderColor}) {
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor ?? AppColors.border),
+        boxShadow: AppShadows.small,
+      ),
+      child: child,
     );
   }
 
@@ -319,30 +336,20 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
     final temAtraso = status?['temAtraso'] ?? false;
     final mensagem = status?['mensagem'] ?? 'Carregando status...';
 
-    return GlassCard(
-      padding: const EdgeInsets.all(20),
-      borderColor: temAtraso ? Colors.red.withValues(alpha: 0.6) : Colors.green.withValues(alpha: 0.6),
-      blurSigma: 15.0,
-      opacity: 0.3,
+    return _surfaceCard(
+      borderColor: (temAtraso ? AppColors.error : AppColors.success).withOpacity(0.4),
       child: Row(
         children: [
           Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: temAtraso ? Colors.red : Colors.green,
+              color: (temAtraso ? AppColors.error : AppColors.success).withOpacity(0.12),
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: (temAtraso ? Colors.red : Colors.green).withValues(alpha: 0.4),
-                  blurRadius: 12,
-                  spreadRadius: 2,
-                ),
-              ],
             ),
             child: Icon(
               temAtraso ? Icons.warning_rounded : Icons.check_circle_rounded,
-              color: Colors.white,
+              color: temAtraso ? AppColors.error : AppColors.success,
               size: 28,
             ),
           ),
@@ -356,8 +363,8 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                   temAtraso ? 'Atenção necessária' : 'Tudo em dia!',
                   style: AppTextStyles.leagueSpartan(
                     fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white.withValues(alpha: 0.95),
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -366,7 +373,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                   style: AppTextStyles.leagueSpartan(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -393,110 +400,154 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
         final tomados = status?['tomados'] as int? ?? 0;
         final percentual = total > 0 ? (tomados / total * 100).round() : 0;
 
-        return GlassCard(
-          padding: const EdgeInsets.all(20),
-          blurSigma: 15.0,
-          opacity: 0.3,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        return Column(
+          children: [
+            _surfaceCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2196F3).withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.analytics_outlined,
-                      color: Colors.white,
-                      size: 28,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.info.withOpacity(0.14),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.analytics_outlined,
+                          color: AppColors.info,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Status de Adesão',
+                              style: AppTextStyles.leagueSpartan(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              idosoSelecionado.nome ?? 'Idoso',
+                              style: AppTextStyles.leagueSpartan(
+                                fontSize: 14,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Status de Adesão',
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 80,
+                        height: 80,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            CircularProgressIndicator(
+                              value: total > 0 ? tomados / total : 0,
+                              strokeWidth: 8,
+                              backgroundColor: AppColors.border,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                percentual >= 80 ? AppColors.success : percentual >= 50 ? AppColors.warning : AppColors.error,
+                              ),
+                            ),
+                            Text(
+                              '$percentual%',
+                              style: AppTextStyles.leagueSpartan(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          idosoSelecionado.nome ?? 'Idoso',
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 14,
-                            color: Colors.white.withValues(alpha: 0.9),
-                          ),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$tomados de $total medicamentos',
+                              style: AppTextStyles.leagueSpartan(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'tomados hoje',
+                              style: AppTextStyles.leagueSpartan(
+                                fontSize: 14,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              Row(
+            ),
+            const SizedBox(height: 16),
+            _surfaceCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Gráfico circular
-                  SizedBox(
-                    width: 80,
-                    height: 80,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          value: total > 0 ? tomados / total : 0,
-                          strokeWidth: 8,
-                          backgroundColor: Colors.white.withValues(alpha: 0.3),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            percentual >= 80 ? Colors.green : percentual >= 50 ? Colors.orange : Colors.red,
-                          ),
-                        ),
-                        Text(
-                          '$percentual%',
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
+                  Text(
+                    'Adesão Últimos 7 Dias',
+                    style: AppTextStyles.leagueSpartan(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '$tomados de $total medicamentos',
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'tomados hoje',
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 14,
-                            color: Colors.white.withValues(alpha: 0.9),
-                          ),
-                        ),
-                      ],
-                    ),
+                  const SizedBox(height: 16),
+                  AdherenceBarChart(
+                    userId: idosoSelecionado.id,
+                    height: 180,
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+            _surfaceCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Tendência Semanal',
+                    style: AppTextStyles.leagueSpartan(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  AdherenceLineChart(
+                    userId: idosoSelecionado.id,
+                    height: 150,
+                  ),
+                ],
+              ),
+            ),
+          ],
         );
       },
     );
@@ -514,21 +565,18 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
         }
 
         if (_alertas.isEmpty) {
-          return GlassCard(
-            padding: const EdgeInsets.all(20),
-            blurSigma: 15.0,
-            opacity: 0.3,
+          return _surfaceCard(
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.25),
+                    color: AppColors.success.withOpacity(0.14),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.check_circle,
-                    color: Colors.white,
+                    color: AppColors.success,
                     size: 28,
                   ),
                 ),
@@ -542,7 +590,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                         style: AppTextStyles.leagueSpartan(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -550,7 +598,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                         'Tudo está em ordem!',
                         style: AppTextStyles.leagueSpartan(
                           fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -561,10 +609,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
           );
         }
 
-        return GlassCard(
-          padding: const EdgeInsets.all(20),
-          blurSigma: 15.0,
-          opacity: 0.3,
+        return _surfaceCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -573,12 +618,12 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.25),
+                      color: AppColors.error.withOpacity(0.14),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.warning_rounded,
-                      color: Colors.white,
+                      color: AppColors.error,
                       size: 28,
                     ),
                   ),
@@ -588,7 +633,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                     style: AppTextStyles.leagueSpartan(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ],
@@ -603,7 +648,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                         width: 4,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: alerta['tipo'] == 'atraso' ? Colors.red : Colors.orange,
+                          color: alerta['tipo'] == 'atraso' ? AppColors.error : AppColors.warning,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -617,7 +662,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                               style: AppTextStyles.leagueSpartan(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.white.withValues(alpha: 0.95),
+                                color: AppColors.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -625,8 +670,8 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                               alerta['mensagem'] as String,
                               style: AppTextStyles.leagueSpartan(
                                 fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
                               ),
                             ),
                           ],
@@ -668,19 +713,18 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
           textoAtividade = 'Visto agora';
         }
 
-        return GlassCard(
-          padding: const EdgeInsets.all(20),
+        return _surfaceCard(
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF9C27B0).withValues(alpha: 0.25),
+                  color: AppColors.accent.withOpacity(0.14),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.access_time,
-                  color: Colors.white,
+                  color: AppColors.accent,
                   size: 28,
                 ),
               ),
@@ -694,7 +738,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                       style: AppTextStyles.leagueSpartan(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -702,7 +746,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                       textoAtividade,
                       style: AppTextStyles.leagueSpartan(
                         fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.85),
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],

@@ -50,10 +50,18 @@ android/key.properties
 *.keystore
 
 # Environment Variables
-.env
+.env*
 
 # Firebase Service Account Credentials (NUNCA commitar!)
 **/caremind-*-*.json
 **/*service-account*.json
 **/*ServiceAccount*.json
 ios/Runner/*-*.json
+
+.windsurf
+
+.orchids
+
+*.md
+
+!README.md

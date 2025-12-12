@@ -55,8 +55,7 @@ dependencies:
   get_it: ^9.2.0
   flutter_dotenv: ^5.1.0
   share_plus: ^10.0.0
-  qr_flutter: ^4.1.0
-  vibration: ^3.1.4
+  vibration: ^2.0.1
   
   # Image & Camera
   image_picker: ^1.0.7
@@ -95,7 +94,17 @@ flutter:
   uses-material-design: true
   
   assets:
-    - .env
     - assets/images/
     - assets/images/prints/
     - assets/notes/
+  
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700

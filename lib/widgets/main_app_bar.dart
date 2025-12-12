@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../core/navigation/app_navigation.dart';
 import '../screens/shared/configuracoes_screen.dart';
@@ -20,8 +21,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    const iconColor = AppColors.primary;
-    const iconSize = 32.0;
+    const iconColor = AppColors.textPrimary;
+    const iconSize = 28.0;
     
     return AppBar(
       title: title != null
@@ -29,19 +30,25 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
               title!,
               style: AppTextStyles.leagueSpartan(
                 fontWeight: FontWeight.w700,
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 fontSize: 20,
               ),
             )
           : null,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.surface,
       foregroundColor: iconColor,
       elevation: 0,
-      shadowColor: Colors.transparent,
+      shadowColor: Colors.black.withOpacity(0.04),
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       centerTitle: true,
       flexibleSpace: const SizedBox.shrink(),
+      systemOverlayStyle: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+      ),
       leading: Padding(
         padding: const EdgeInsets.only(left: 12),
         child: IconButton(
@@ -50,10 +57,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             color: iconColor,
             size: iconSize,
           ),
-          padding: EdgeInsets.zero,
+          padding: const EdgeInsets.all(12),
           constraints: const BoxConstraints(
-            minWidth: 40,
-            minHeight: 40,
+            minWidth: 48,
+            minHeight: 48,
           ),
           onPressed: () {
             Navigator.push(
@@ -75,10 +82,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
               color: iconColor,
               size: iconSize,
             ),
-            padding: EdgeInsets.zero,
+            padding: const EdgeInsets.all(12),
             constraints: const BoxConstraints(
-              minWidth: 40,
-              minHeight: 40,
+              minWidth: 48,
+              minHeight: 48,
             ),
             onPressed: () {
               Navigator.push(
@@ -95,4 +102,3 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 }
-

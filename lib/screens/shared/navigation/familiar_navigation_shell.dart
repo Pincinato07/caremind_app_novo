@@ -7,6 +7,7 @@ import '../../../widgets/nav_item.dart';
 import '../../../core/state/familiar_state.dart';
 import '../../../core/injection/injection.dart';
 import '../../../services/supabase_service.dart';
+import '../../../theme/app_theme.dart';
 
 /// Shell de navegação para o perfil FAMILIAR/CUIDADOR
 /// BottomBar com 4 itens: Início, Família, Notificações, Gestão
@@ -68,58 +69,58 @@ class _FamiliarNavigationShellState extends State<FamiliarNavigationShell> {
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.background,
         body: IndexedStack(
           index: _selectedIndex,
           children: _pages,
         ),
         bottomNavigationBar: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.white.withValues(alpha: 0.98),
-                Colors.white,
-              ],
+            color: AppColors.surface,
+            border: const Border(
+              top: BorderSide(color: AppColors.border),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 20,
-                offset: const Offset(0, -5),
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 12,
+                offset: const Offset(0, -4),
               ),
             ],
           ),
           child: SafeArea(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                NavItem(
-                  icon: Icons.dashboard_rounded,
-                  label: 'Início',
-                  isSelected: _selectedIndex == 0,
-                  onTap: () => _onItemTapped(0),
-                ),
-                NavItem(
-                  icon: Icons.groups_rounded,
-                  label: 'Família',
-                  isSelected: _selectedIndex == 1,
-                  onTap: () => _onItemTapped(1),
-                ),
-                NavItem(
-                  icon: Icons.notifications_rounded,
-                  label: 'Notificações',
-                  isSelected: _selectedIndex == 2,
-                  onTap: () => _onItemTapped(2),
-                ),
-                NavItem(
-                  icon: Icons.settings_rounded,
-                  label: 'Gestão',
-                  isSelected: _selectedIndex == 3,
-                  onTap: () => _onItemTapped(3),
-                ),
-              ],
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  NavItem(
+                    icon: Icons.dashboard_rounded,
+                    label: 'Início',
+                    isSelected: _selectedIndex == 0,
+                    onTap: () => _onItemTapped(0),
+                  ),
+                  NavItem(
+                    icon: Icons.groups_rounded,
+                    label: 'Família',
+                    isSelected: _selectedIndex == 1,
+                    onTap: () => _onItemTapped(1),
+                  ),
+                  NavItem(
+                    icon: Icons.notifications_rounded,
+                    label: 'Notificações',
+                    isSelected: _selectedIndex == 2,
+                    onTap: () => _onItemTapped(2),
+                  ),
+                  NavItem(
+                    icon: Icons.settings_rounded,
+                    label: 'Gestão',
+                    isSelected: _selectedIndex == 3,
+                    onTap: () => _onItemTapped(3),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -127,4 +128,3 @@ class _FamiliarNavigationShellState extends State<FamiliarNavigationShell> {
     );
   }
 }
-

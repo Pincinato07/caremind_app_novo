@@ -67,7 +67,7 @@ class _NavItemState extends State<NavItem>
   @override
   Widget build(BuildContext context) {
     final selectedColor = widget.selectedColor ?? AppColors.primary;
-    final unselectedColor = widget.unselectedColor ?? Colors.grey[600];
+    final unselectedColor = widget.unselectedColor ?? AppColors.textSecondary;
     final iconSize = widget.iconSize ?? 24.0;
     final fontSize = widget.fontSize ?? 12.0;
 
@@ -81,55 +81,53 @@ class _NavItemState extends State<NavItem>
           onTapDown: _handleTapDown,
           onTapUp: _handleTapUp,
           onTapCancel: _handleTapCancel,
-        child: ScaleTransition(
-          scale: _scaleAnimation,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: widget.isSelected
-                  ? selectedColor.withValues(alpha: 0.1)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  transitionBuilder: (child, animation) {
-                    return ScaleTransition(
-                      scale: animation,
-                      child: child,
-                    );
-                  },
-                  child: Icon(
-                    widget.icon,
-                    key: ValueKey(widget.isSelected),
-                    size: iconSize,
-                    color: widget.isSelected ? selectedColor : unselectedColor,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+              constraints: const BoxConstraints(minHeight: 64),
+              decoration: BoxDecoration(
+                color: widget.isSelected
+                    ? selectedColor.withOpacity(0.12)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    transitionBuilder: (child, animation) {
+                      return ScaleTransition(
+                        scale: animation,
+                        child: child,
+                      );
+                    },
+                    child: Icon(
+                      widget.icon,
+                      key: ValueKey(widget.isSelected),
+                      size: iconSize,
+                      color: widget.isSelected ? selectedColor : unselectedColor,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 200),
-                  style: AppTextStyles.leagueSpartan(
-                    fontSize: fontSize,
-                    fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w400,
-                    color: widget.isSelected ? selectedColor : unselectedColor,
+                  const SizedBox(height: 4),
+                  AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 200),
+                    style: AppTextStyles.leagueSpartan(
+                      fontSize: fontSize,
+                      fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w400,
+                      color: widget.isSelected ? selectedColor : unselectedColor,
+                    ),
+                    child: Text(widget.label),
                   ),
-                  child: Text(widget.label),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
-      ),
     );
   }
 }
-
-
-

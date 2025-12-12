@@ -1,0 +1,67 @@
+name: Deploy Release Tunnel
+
+on:
+  push:
+    tags:
+      - 'v*' # Dispara apenas quando você criar uma tag ex: v1.0.0
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. Baixa o código
+      - uses: actions/checkout@v3
+
+      # 2. Configura Java
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # 3. Configura Flutter
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0' # Use a versão do seu projeto
+          channel: 'stable'
+
+      # 4. Instala dependências e Builda o APK
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build APK Release
+        run: flutter build apk --release
+
+      # --- AQUI COMEÇA A MÁGICA DOS REPOS ---
+
+      # 5. Salva no Repo PRIVADO (Histórico Completo)
+      - name: Release no Privado (Histórico)
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/app/outputs/flutter-apk/app-release.apk
+          name: Release ${{ github.ref_name }} # Ex: Release v1.0.0
+          body: "Release gerada automaticamente."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token padrão do repo
+
+      # 6. Limpa e Atualiza o Repo PÚBLICO (Apenas Última Versão)
+      - name: Deploy para Público (Única Versão)
+        env:
+          GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }} # Aquele token que criamos
+          PUBLIC_REPO: "Pincinato07/caremind-downloads" # <--- TROQUE PELO SEU REPO
+        run: |
+          # Instala GitHub CLI (já vem na máquina, só pra garantir)
+          
+          # 1. Tenta apagar a release 'latest' antiga no repo público
+          gh release delete latest --repo $PUBLIC_REPO --yes || true
+          
+          # 2. Tenta apagar a tag 'latest' antiga no repo público
+          gh api -X DELETE "repos/$PUBLIC_REPO/git/refs/tags/latest" || true
+          
+          # 3. Cria a nova release 'latest' com o APK novo
+          gh release create latest \
+            ./build/app/outputs/flutter-apk/app-release.apk \
+            --repo $PUBLIC_REPO \
+            --title "Download Oficial CareMind" \
+            --notes "Versão mais recente: ${{ github.ref_name }}" \
+            --target main

@@ -8,6 +8,7 @@ import '../../services/medicamento_service.dart';
 import '../../services/supabase_service.dart';
 import '../../services/accessibility_service.dart';
 import '../../services/offline_cache_service.dart';
+import '../../services/subscription_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
 import '../../core/navigation/app_navigation.dart';
@@ -22,6 +23,8 @@ import '../../widgets/skeleton_loader.dart';
 import '../../widgets/error_widget_with_retry.dart';
 import '../../widgets/feedback_snackbar.dart';
 import '../../widgets/offline_indicator.dart';
+import '../../widgets/premium/premium_guard.dart';
+import '../../widgets/premium/premium_sales_modal.dart';
 import '../integracoes/integracoes_screen.dart';
 import 'add_edit_medicamento_form.dart';
 
@@ -310,6 +313,21 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
 
   /// Mostra diálogo com opções: Formulário ou OCR
   Future<void> _showAddMedicamentoOptions() async {
+    final subscriptionService = getIt<SubscriptionService>();
+    await subscriptionService.getPermissions();
+    
+    final quantidadeAtual = _medicamentos.length;
+    final podeAdicionar = await subscriptionService.canAddMedicine(quantidadeAtual);
+    
+    if (!podeAdicionar && mounted) {
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (_) => const PremiumSalesModal(),
+      );
+      return;
+    }
+
     final option = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -389,53 +407,63 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                 ),
                 const SizedBox(height: 12),
                 // Opção: OCR
-                GlassCard(
-                  onTap: () => Navigator.pop(context, 'ocr'),
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.25),
-                          borderRadius: AppBorderRadius.mediumAll,
+                PremiumGuard(
+                  isEnabled: getIt<SubscriptionService>().canUseOCR,
+                  mode: PremiumGuardMode.blockTouch,
+                  child: GlassCard(
+                    onTap: () async {
+                      final subscriptionService = getIt<SubscriptionService>();
+                      await subscriptionService.getPermissions();
+                      if (subscriptionService.canUseOCR && mounted) {
+                        Navigator.pop(context, 'ocr');
+                      }
+                    },
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.25),
+                            borderRadius: AppBorderRadius.mediumAll,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 28,
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.camera_alt,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Por Foto',
+                                style: AppTextStyles.leagueSpartan(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Ler receita com inteligência artificial',
+                                style: AppTextStyles.leagueSpartan(
+                                  fontSize: 14,
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
                           color: Colors.white,
-                          size: 28,
+                          size: 18,
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Por Foto',
-                              style: AppTextStyles.leagueSpartan(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Ler receita com inteligência artificial',
-                              style: AppTextStyles.leagueSpartan(
-                                fontSize: 14,
-                                color: Colors.white.withValues(alpha: 0.9),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
