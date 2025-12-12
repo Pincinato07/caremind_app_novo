@@ -55,7 +55,7 @@ dependencies:
   get_it: ^9.2.0
   flutter_dotenv: ^5.1.0
   share_plus: ^10.0.0
-  vibration: ^2.0.1
+  vibration: ^3.1.4
   
   # Image & Camera
   image_picker: ^1.0.7
