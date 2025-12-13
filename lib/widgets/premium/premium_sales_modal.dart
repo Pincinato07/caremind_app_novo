@@ -93,7 +93,7 @@ class _PremiumSalesModalState extends State<PremiumSalesModal> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.primary.withOpacity(0.05),
+            AppColors.primary.withValues(alpha: 0.05),
             Colors.white,
           ],
         ),
@@ -116,7 +116,7 @@ class _PremiumSalesModalState extends State<PremiumSalesModal> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.textTertiary.withOpacity(0.3),
+                      color: AppColors.textHint.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -135,7 +135,7 @@ class _PremiumSalesModalState extends State<PremiumSalesModal> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.amber.withOpacity(0.3),
+                          color: Colors.amber.withValues(alpha: 0.3),
                           blurRadius: 20,
                           spreadRadius: 2,
                         ),
@@ -165,7 +165,7 @@ class _PremiumSalesModalState extends State<PremiumSalesModal> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: AppSpacing.extraLarge),
+                const SizedBox(height: AppSpacing.xlarge),
                 _buildBenefitItem(
                   icon: Icons.document_scanner_rounded,
                   title: 'OCR Ilimitado',
@@ -207,7 +207,7 @@ class _PremiumSalesModalState extends State<PremiumSalesModal> {
                   description: 'Acesso a todo histórico de medicamentos',
                   color: Colors.orange,
                 ),
-                const SizedBox(height: AppSpacing.extraLarge),
+                const SizedBox(height: AppSpacing.xlarge),
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -330,7 +330,7 @@ class _PremiumSalesModalState extends State<PremiumSalesModal> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(

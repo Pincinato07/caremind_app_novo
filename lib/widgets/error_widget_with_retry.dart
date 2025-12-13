@@ -242,6 +242,7 @@ class InlineErrorWidget extends StatelessWidget {
                 fontSize: 14,
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
+              ).copyWith(
                 decoration: TextDecoration.underline,
               ),
             ),
@@ -251,3 +252,4 @@ class InlineErrorWidget extends StatelessWidget {
     );
   }
 }
+

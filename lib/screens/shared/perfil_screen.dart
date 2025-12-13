@@ -1,6 +1,7 @@
 // lib/screens/perfil_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
@@ -1154,4 +1155,5 @@ class _PerfilScreenState extends State<PerfilScreen> {
     );
   }
 }
+
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 
 /// Botão primário padronizado seguindo o design das telas de auth
@@ -44,13 +45,13 @@ class AppPrimaryButton extends StatelessWidget {
               return AppColors.primary;
             }),
             foregroundColor: WidgetStateProperty.all(AppColors.textOnPrimary),
-            overlayColor: WidgetStateProperty.all(Colors.white.withOpacity(0.08)),
+            overlayColor: WidgetStateProperty.all(Colors.white.withValues(alpha: 0.08)),
             elevation: WidgetStateProperty.resolveWith((states) {
               if (states.contains(WidgetState.disabled)) return 0;
               if (states.contains(WidgetState.pressed)) return 2;
               return 0;
             }),
-            shadowColor: WidgetStateProperty.all(Colors.black.withOpacity(0.12)),
+            shadowColor: WidgetStateProperty.all(Colors.black.withValues(alpha: 0.12)),
             shape: WidgetStateProperty.all(
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -119,3 +120,4 @@ class AppOutlineButton extends StatelessWidget {
     );
   }
 }
+

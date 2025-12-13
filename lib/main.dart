@@ -22,7 +22,6 @@ import 'screens/shared/alertas_screen.dart';
 import 'widgets/global_wave_background.dart';
 import 'widgets/accessibility_wrapper.dart';
 import 'widgets/in_app_notification.dart';
-import 'widgets/offline_indicator.dart';
 import 'core/injection/injection.dart';
 import 'services/notification_service.dart';
 import 'services/fcm_token_service.dart';

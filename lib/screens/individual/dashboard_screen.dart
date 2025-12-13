@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
@@ -606,14 +607,14 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
       label: 'Status dos medicamentos',
       hint: 'Mostra se você está em dia com seus medicamentos',
       child: _surfaceCard(
-        borderColor: _temAtraso ? AppColors.error.withOpacity(0.5) : AppColors.success.withOpacity(0.4),
+        borderColor: _temAtraso ? AppColors.error.withValues(alpha: 0.5) : AppColors.success.withValues(alpha: 0.4),
         child: Row(
           children: [
             Container(
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: (_temAtraso ? AppColors.error : AppColors.success).withOpacity(0.12),
+                color: (_temAtraso ? AppColors.error : AppColors.success).withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -663,7 +664,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.15),
+                  color: AppColors.success.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -724,7 +725,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.accent.withOpacity(0.14),
+                      color: AppColors.accent.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -766,7 +767,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.08),
+                      color: AppColors.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -818,7 +819,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(0.14),
+                  color: AppColors.accent.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -909,7 +910,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.14),
+                    color: AppColors.success.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
@@ -953,7 +954,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color: AppColors.textSecondary.withOpacity(0.6),
+                            color: AppColors.textSecondary.withValues(alpha: 0.6),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -993,3 +994,4 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     );
   }
 }
+

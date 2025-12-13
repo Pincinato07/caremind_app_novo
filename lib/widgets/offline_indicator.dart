@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/offline_cache_service.dart';
 import '../theme/app_theme.dart';
 
@@ -88,7 +89,7 @@ class _OfflineIndicatorState extends State<OfflineIndicator> with SingleTickerPr
                 color: Colors.orange.shade700,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -188,3 +189,4 @@ class LastSyncInfo extends StatelessWidget {
     );
   }
 }
+

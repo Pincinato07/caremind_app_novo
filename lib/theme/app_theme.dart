@@ -54,6 +54,25 @@ class AppTextStyles {
   static const TextStyle labelSmall = TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textPrimary, fontFamily: fontFamily);
 
   static const TextStyle link = TextStyle(fontSize: 14, color: AppColors.primary, fontWeight: FontWeight.w700, decoration: TextDecoration.underline, fontFamily: fontFamily);
+
+  // Método para League Spartan
+  static TextStyle leagueSpartan({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? height,
+    double? letterSpacing,
+    FontStyle? fontStyle,
+  }) {
+    return GoogleFonts.leagueSpartan(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: height,
+      letterSpacing: letterSpacing,
+      fontStyle: fontStyle,
+    );
+  }
 }
 
 /// Bordas e raios padronizados
@@ -302,7 +321,7 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surface,
         disabledColor: AppColors.disabled,
-        selectedColor: AppColors.primary.withOpacity(0.08),
+        selectedColor: AppColors.primary.withValues(alpha: 0.08),
         checkmarkColor: AppColors.primary,
         padding: EdgeInsets.symmetric(
           horizontal: AppSpacing.small,

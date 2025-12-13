@@ -346,6 +346,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
+                          ).copyWith(
                             decoration: concluido ? TextDecoration.lineThrough : null,
                           ),
                         ),
@@ -793,6 +794,7 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
                                           color: Colors.white,
+                                        ).copyWith(
                                           decoration: concluido ? TextDecoration.lineThrough : null,
                                         ),
                                       ),
@@ -837,5 +839,6 @@ class _CompromissosCalendarState extends State<CompromissosCalendar> {
     );
   }
 }
+
 
 

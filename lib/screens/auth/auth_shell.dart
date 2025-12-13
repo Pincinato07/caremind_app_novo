@@ -160,15 +160,15 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                         MediaQuery.of(context).size.width > 600 ? 32 : 24,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
+                          color: Colors.white.withValues(alpha: 0.3),
                           width: 1.5,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -194,7 +194,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                               'Digite seu e-mail para receber instruções de recuperação',
                               style: GoogleFonts.leagueSpartan(
                                 fontSize: 14,
-                                color: Colors.white.withOpacity(0.8),
+                                color: Colors.white.withValues(alpha: 0.8),
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -385,15 +385,15 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
               margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -501,13 +501,13 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         keyboardType: keyboardType,
         validator: validator,
         style: GoogleFonts.leagueSpartan(
-          color: Colors.white.withOpacity(0.95),
+          color: Colors.white.withValues(alpha: 0.95),
           fontSize: 15,
         ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: GoogleFonts.leagueSpartan(
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withValues(alpha: 0.5),
             fontSize: 15,
           ),
           filled: true,
@@ -515,20 +515,20 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.white.withOpacity(0.6), width: 1.5),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.6), width: 1.5),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
@@ -589,7 +589,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
               subtitle,
               textAlign: TextAlign.center,
               style: GoogleFonts.leagueSpartan(
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 fontSize: 12,
               ),
             ),
@@ -813,7 +813,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                 child: Text(
                   'Esqueci minha senha',
                   style: GoogleFonts.leagueSpartan(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 13,
                     decoration: TextDecoration.underline,
                   ),
@@ -874,7 +874,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
             'Passo ${_registerStep + 1} de 3',
             style: GoogleFonts.leagueSpartan(
               fontSize: 14,
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
             ),
           ),
           const SizedBox(height: 24),

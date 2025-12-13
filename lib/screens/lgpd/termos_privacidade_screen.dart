@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/glass_card.dart';
@@ -215,4 +216,5 @@ class TermosPrivacidadeScreen extends StatelessWidget {
     );
   }
 }
+
 

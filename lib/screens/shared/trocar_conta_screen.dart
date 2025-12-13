@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
 import '../../services/account_manager_service.dart';
 import '../../services/supabase_service.dart';
@@ -427,4 +428,5 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
     );
   }
 }
+
 

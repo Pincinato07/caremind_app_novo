@@ -49,7 +49,7 @@ class ProfileSwitchDialog extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(AppSpacing.small),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
@@ -121,7 +121,7 @@ class ProfileSwitchDialog extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.medium),
             decoration: BoxDecoration(
               color: isCurrentProfile
-                  ? config.color.withOpacity(0.1)
+                  ? config.color.withValues(alpha: 0.1)
                   : AppColors.surface,
               borderRadius: BorderRadius.circular(AppBorderRadius.small),
               border: Border.all(
@@ -136,7 +136,7 @@ class ProfileSwitchDialog extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(AppSpacing.small),
                   decoration: BoxDecoration(
-                    color: config.color.withOpacity(0.15),
+                    color: config.color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -308,3 +308,4 @@ class _ProfileConfig {
     required this.color,
   });
 }
+

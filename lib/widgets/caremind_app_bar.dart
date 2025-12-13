@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import '../core/navigation/app_navigation.dart';
 import '../core/state/familiar_state.dart';
 import '../core/injection/injection.dart';
+import '../models/perfil.dart';
 import '../screens/shared/configuracoes_screen.dart';
 import '../screens/shared/perfil_screen.dart';
 import 'profile_switch_dialog.dart';
@@ -131,7 +132,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: AppColors.surface,
       foregroundColor: iconColor,
       elevation: 0,
-      shadowColor: Colors.black.withOpacity(0.04),
+      shadowColor: Colors.black.withValues(alpha: 0.04),
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       centerTitle: true,
@@ -265,23 +266,16 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
   void _showProfileSwitchDialog(
     BuildContext context,
     FamiliarState familiarState,
-    List<dynamic> idosos,
-    dynamic idosoSelecionado,
+    List<Perfil> idosos,
+    Perfil? idosoSelecionado,
   ) {
     showDialog(
       context: context,
       builder: (context) => ProfileSwitchDialog(
-        profiles: idosos.map((idoso) => {
-          'id': idoso.id,
-          'name': idoso.nome ?? 'Idoso',
-          'email': idoso.email,
-        }).toList(),
-        currentProfileId: idosoSelecionado?.id,
-        onProfileSelected: (profileId) {
-          final idoso = idosos.firstWhere((i) => i.id == profileId);
-          familiarState.selecionarIdoso(idoso);
-        },
+        profiles: idosos,
+        currentProfile: idosoSelecionado,
       ),
     );
   }
 }
+

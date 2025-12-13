@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 
 /// Item de navegação padronizado com animação suave
@@ -90,7 +91,7 @@ class _NavItemState extends State<NavItem>
               constraints: const BoxConstraints(minHeight: 64),
               decoration: BoxDecoration(
                 color: widget.isSelected
-                    ? selectedColor.withOpacity(0.12)
+                    ? selectedColor.withValues(alpha: 0.12)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -131,3 +132,4 @@ class _NavItemState extends State<NavItem>
     );
   }
 }
+

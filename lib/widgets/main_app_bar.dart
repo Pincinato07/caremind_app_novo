@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../core/navigation/app_navigation.dart';
@@ -38,7 +39,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: AppColors.surface,
       foregroundColor: iconColor,
       elevation: 0,
-      shadowColor: Colors.black.withOpacity(0.04),
+      shadowColor: Colors.black.withValues(alpha: 0.04),
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       centerTitle: true,
@@ -102,3 +103,4 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 }
+

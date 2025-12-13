@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 
 enum SnackbarType { success, error, warning, info }
@@ -125,3 +126,4 @@ class _SnackbarConfig {
 
   _SnackbarConfig({required this.color, required this.icon});
 }
+

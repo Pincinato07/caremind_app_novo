@@ -337,14 +337,14 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
     final mensagem = status?['mensagem'] ?? 'Carregando status...';
 
     return _surfaceCard(
-      borderColor: (temAtraso ? AppColors.error : AppColors.success).withOpacity(0.4),
+      borderColor: (temAtraso ? AppColors.error : AppColors.success).withValues(alpha: 0.4),
       child: Row(
         children: [
           Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: (temAtraso ? AppColors.error : AppColors.success).withOpacity(0.12),
+              color: (temAtraso ? AppColors.error : AppColors.success).withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -411,7 +411,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.info.withOpacity(0.14),
+                          color: AppColors.info.withValues(alpha: 0.14),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
@@ -519,8 +519,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                   ),
                   const SizedBox(height: 16),
                   AdherenceBarChart(
-                    userId: idosoSelecionado.id,
-                    height: 180,
+                    data: [], // TODO: Implementar busca de dados de adesão
                   ),
                 ],
               ),
@@ -541,8 +540,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                   ),
                   const SizedBox(height: 16),
                   AdherenceLineChart(
-                    userId: idosoSelecionado.id,
-                    height: 150,
+                    data: [], // TODO: Implementar busca de dados de adesão
                   ),
                 ],
               ),
@@ -571,7 +569,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.14),
+                    color: AppColors.success.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -618,7 +616,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.error.withOpacity(0.14),
+                      color: AppColors.error.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -719,7 +717,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(0.14),
+                  color: AppColors.accent.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -759,3 +757,4 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
     );
   }
 }
+

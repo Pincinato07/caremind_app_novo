@@ -58,7 +58,7 @@ class AdherenceLineChart extends StatelessWidget {
           Icon(
             Icons.show_chart_rounded,
             size: 48,
-            color: AppColors.textHint.withOpacity(0.5),
+            color: AppColors.textHint.withValues(alpha: 0.5),
           ),
           const SizedBox(height: AppSpacing.small),
           Text(
@@ -98,10 +98,10 @@ class AdherenceLineChart extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.small),
       decoration: BoxDecoration(
-        color: averageColor.withOpacity(0.1),
+        color: averageColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppBorderRadius.small),
         border: Border.all(
-          color: averageColor.withOpacity(0.3),
+          color: averageColor.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -218,14 +218,14 @@ class AdherenceLineChart extends StatelessWidget {
           ),
           belowBarData: BarAreaData(
             show: true,
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
           ),
         ),
       ],
       lineTouchData: LineTouchData(
         enabled: true,
         touchTooltipData: LineTouchTooltipData(
-          getTooltipColor: (touchedSpot) => AppColors.primary.withOpacity(0.9),
+          getTooltipColor: (touchedSpot) => AppColors.primary.withValues(alpha: 0.9),
           tooltipPadding: const EdgeInsets.all(8),
           tooltipMargin: 8,
           getTooltipItems: (touchedSpots) {
@@ -256,3 +256,4 @@ class AdherenceLineChart extends StatelessWidget {
     );
   }
 }
+

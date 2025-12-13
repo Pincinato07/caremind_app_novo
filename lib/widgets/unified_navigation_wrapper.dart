@@ -46,7 +46,7 @@ class UnifiedNavigationWrapper extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 12,
             offset: const Offset(0, -4),
           ),
@@ -106,10 +106,10 @@ class ProfileTypeBadge extends StatelessWidget {
         vertical: 4,
       ),
       decoration: BoxDecoration(
-        color: config.color.withOpacity(0.1),
+        color: config.color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: config.color.withOpacity(0.3),
+          color: config.color.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -176,3 +176,4 @@ class _BadgeConfig {
     required this.color,
   });
 }
+

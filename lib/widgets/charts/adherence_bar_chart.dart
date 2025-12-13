@@ -57,7 +57,7 @@ class AdherenceBarChart extends StatelessWidget {
           Icon(
             Icons.bar_chart_rounded,
             size: 48,
-            color: AppColors.textHint.withOpacity(0.5),
+            color: AppColors.textHint.withValues(alpha: 0.5),
           ),
           const SizedBox(height: AppSpacing.small),
           Text(
@@ -124,7 +124,7 @@ class AdherenceBarChart extends StatelessWidget {
       barTouchData: BarTouchData(
         enabled: true,
         touchTooltipData: BarTouchTooltipData(
-          getTooltipColor: (group) => AppColors.primary.withOpacity(0.9),
+          getTooltipColor: (group) => AppColors.primary.withValues(alpha: 0.9),
           tooltipPadding: const EdgeInsets.all(8),
           tooltipMargin: 8,
           getTooltipItem: (group, groupIndex, rod, rodIndex) {
@@ -262,3 +262,4 @@ class DailyAdherence {
     return (taken / total) * 100;
   }
 }
+

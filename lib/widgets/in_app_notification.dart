@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../models/notificacao_app.dart';
 
@@ -326,4 +327,5 @@ class NotificationBadge extends StatelessWidget {
     );
   }
 }
+
 
