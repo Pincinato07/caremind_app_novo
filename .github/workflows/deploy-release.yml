@@ -69,10 +69,14 @@ jobs:
           # Instala GitHub CLI (já vem na máquina, só pra garantir)
           
           # 1. Tenta apagar a release 'latest' antiga no repo público
-          gh release delete latest --repo $PUBLIC_REPO --yes || true
+          if gh release view latest --repo $PUBLIC_REPO >/dev/null 2>&1; then
+            gh release delete latest --repo $PUBLIC_REPO --yes
+          fi
           
           # 2. Tenta apagar a tag 'latest' antiga no repo público
-          gh api -X DELETE "repos/$PUBLIC_REPO/git/refs/tags/latest" || true
+          if gh api --silent "repos/$PUBLIC_REPO/git/refs/tags/latest" >/dev/null 2>&1; then
+            gh api -X DELETE "repos/$PUBLIC_REPO/git/refs/tags/latest"
+          fi
           
           # 3. Cria a nova release 'latest' com o APK novo
           gh release create latest \
