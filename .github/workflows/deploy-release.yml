@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*' # Dispara apenas quando você criar uma tag ex: v1.0.0
 
+permissions:
+  contents: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
