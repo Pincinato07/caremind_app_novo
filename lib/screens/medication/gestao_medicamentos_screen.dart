@@ -50,6 +50,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
   String? _error;
   String? _perfilTipo;
   bool _isOffline = false;
+  DateTime? _lastSync;
 
   @override
   void initState() {

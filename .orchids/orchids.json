@@ -1,7 +1,0 @@
-{
-  "projectId": "86393caa-5917-40a6-8a86-0b7b3360859a",
-  "createdAt": 1765308666329,
-  "startupCommands": [
-    "flutter pub get; flutter run -d chrome"
-  ]
-}
