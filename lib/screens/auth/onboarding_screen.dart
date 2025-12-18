@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../theme/app_theme.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -261,7 +260,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -381,7 +380,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           children: [
                             // Page content
                             SizedBox(
-                              height: screenHeight * 0.5, // Taller height to display all text
+                              height: screenHeight * 0.42, // Taller height to display all text
                               child: PageView.builder(
                                 controller: _pageController,
                                 itemCount: _pages.length,
@@ -395,7 +394,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 },
                               ),
                             ),
-
                             // Page indicator
                             SmoothPageIndicator(
                               controller: _pageController,

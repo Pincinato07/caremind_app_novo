@@ -166,13 +166,6 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                           color: Colors.white.withValues(alpha: 0.3),
                           width: 1.5,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
                       ),
                       child: Form(
                         key: formKey,
@@ -312,7 +305,16 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         password: password,
         nome: name,
         tipo: _selectedAccountType,
+        lgpdConsent: _dataSharingAccepted,
       );
+
+      // Salvar terms_accepted_at após criar perfil
+      if (response.user != null) {
+        await supabaseService.updateProfile(
+          userId: response.user!.id,
+          termsAcceptedAt: DateTime.now(),
+        );
+      }
 
       if (!mounted) return;
 
@@ -391,13 +393,6 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                   color: Colors.white.withValues(alpha: 0.3),
                   width: 1.5,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
               ),
               child: child,
             ),
@@ -725,7 +720,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                       fontSize: 13,
                     ),
                     children: [
-                      const TextSpan(text: 'Li e aceito os '),
+                      const TextSpan(text: '(Obrigatório) Li e aceito os '),
                       TextSpan(
                         text: 'Termos de Uso',
                         style: const TextStyle(decoration: TextDecoration.underline),
@@ -740,6 +735,31 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                           ..onTap = () => _launchURL('https://caremind.com.br/politica-privacidade'),
                       ),
                     ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        // Checkbox de compartilhamento de dados (opcional)
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(
+              value: _dataSharingAccepted,
+              onChanged: (v) => setState(() => _dataSharingAccepted = v ?? false),
+              activeColor: Colors.white,
+              checkColor: const Color(0xFF0400BA),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  '(Opcional) Aceito compartilhar meus dados de uso e saúde de forma anônima com parceiros da indústria farmacêutica para auxiliar em pesquisas e receber ofertas personalizadas.',
+                  style: GoogleFonts.leagueSpartan(
+                    color: Colors.white70,
+                    fontSize: 13,
                   ),
                 ),
               ),

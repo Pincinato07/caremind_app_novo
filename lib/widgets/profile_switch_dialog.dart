@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/perfil.dart';
-import '../core/injection/injection.dart';
-import '../services/supabase_service.dart';
 
 /// Dialog de troca de perfil com limpeza de pilha de navegação
 /// Previne bugs de "botão voltar misturando perfis"

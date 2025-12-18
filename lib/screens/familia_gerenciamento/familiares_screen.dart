@@ -6,7 +6,8 @@ import '../../core/errors/app_exception.dart';
 import '../../core/state/familiar_state.dart';
 import '../../models/perfil.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../widgets/animated_card.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/caremind_app_bar.dart';
 import 'adicionar_idoso_form.dart';
@@ -276,9 +277,12 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
-                      child: GlassCard(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
+                      child: AnimatedCard(
+                        index: 0,
+                        child: CareMindCard(
+                          variant: CardVariant.glass,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.error_outline,
@@ -311,48 +315,56 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                         ),
                       ),
                     ),
-                  )
+                  ),
+                )
                 : _idosos.isEmpty
                     ? SingleChildScrollView(
                         padding: const EdgeInsets.all(24.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            GlassCard(
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.family_restroom,
-                                    size: 64,
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Gerencie sua Família',
-                                    style: AppTextStyles.leagueSpartan(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Visualize os idosos vinculados à sua conta e adicione novos membros diretamente',
-                                    style: AppTextStyles.leagueSpartan(
-                                      fontSize: 16,
+                            AnimatedCard(
+                              index: 0,
+                              child: CareMindCard(
+                                variant: CardVariant.glass,
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.family_restroom,
+                                      size: 64,
                                       color: Colors.white.withValues(alpha: 0.9),
-                                      height: 1.4,
                                     ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Gerencie sua Família',
+                                      style: AppTextStyles.leagueSpartan(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Visualize os idosos vinculados à sua conta e adicione novos membros diretamente',
+                                      style: AppTextStyles.leagueSpartan(
+                                        fontSize: 16,
+                                        color: Colors.white.withValues(alpha: 0.9),
+                                        height: 1.4,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                             const SizedBox(height: 24),
-                            GlassCard(
-                              child: Column(
-                                children: [
+                            AnimatedCard(
+                              index: 1,
+                              child: CareMindCard(
+                                variant: CardVariant.glass,
+                                child: Column(
+                                  children: [
                                   Row(
                                     children: [
                                       Icon(
@@ -418,6 +430,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                                 ],
                               ),
                             ),
+                            ),
                             const SizedBox(height: 24),
                             AppPrimaryButton(
                               label: 'Adicionar Idoso',
@@ -476,7 +489,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                           ],
                         ),
                       ),
-      ),
+                    ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _adicionarIdoso,
         backgroundColor: AppColors.primary,
@@ -495,16 +508,19 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
   Widget _buildIdosoCard(Perfil idoso, FamiliarState familiarState) {
     final isSelected = familiarState.idosoSelecionado?.id == idoso.id;
     
-    return GlassCard(
-      onTap: () {
-        // Selecionar o idoso ao tocar no card
-        familiarState.selecionarIdoso(idoso);
-        // Mostrar menu de opções
-        _showOptionsMenu(idoso);
-      },
-      borderColor: isSelected ? Colors.green.withValues(alpha: 0.6) : null,
-      padding: const EdgeInsets.all(20),
-      child: Row(
+    return AnimatedCard(
+      index: 2,
+      child: CareMindCard(
+        variant: CardVariant.glass,
+        onTap: () {
+          // Selecionar o idoso ao tocar no card
+          familiarState.selecionarIdoso(idoso);
+          // Mostrar menu de opções
+          _showOptionsMenu(idoso);
+        },
+        borderColor: isSelected ? Colors.green.withValues(alpha: 0.6) : null,
+        padding: AppSpacing.paddingLarge,
+        child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
@@ -568,6 +584,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
             tooltip: 'Opções',
           ),
         ],
+      ),
       ),
     );
   }

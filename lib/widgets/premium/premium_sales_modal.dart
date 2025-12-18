@@ -38,21 +38,56 @@ class _PremiumSalesModalState extends State<PremiumSalesModal> {
       final user = supabase.auth.currentUser;
 
       if (user == null) {
-        throw Exception('Usuário não autenticado');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Usuário não autenticado. Faça login para continuar.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
       }
 
-      // Chama a Edge Function
+      // Buscar ID do plano Premium do banco
+      final planoResponse = await supabase
+          .from('planos')
+          .select('id')
+          .eq('nome', 'Premium')
+          .maybeSingle();
+
+      String? planoId;
+      if (planoResponse != null && planoResponse['id'] != null) {
+        planoId = planoResponse['id'] as String;
+      } else {
+        // Fallback: ID do plano Premium (ed8ea704-3720-4670-9e63-1b75c3251307)
+        planoId = 'ed8ea704-3720-4670-9e63-1b75c3251307';
+      }
+
+      // Chama a Edge Function correta
       final response = await supabase.functions.invoke(
-        'create-checkout',
+        'asaas-create-subscription',
         body: {
-          'price_id': 'price_premium_mensal', // ID que você definiu na tabela planos
           'user_id': user.id,
+          'plano_id': planoId,
+          'tipo': 'individual',
         },
       );
 
-      final url = response.data['url'];
+      // Verificar se houve erro (status != 200)
+      if (response.status != 200) {
+        final errorData = response.data as Map<String, dynamic>?;
+        throw Exception(errorData?['error'] ?? 'Erro ao criar checkout');
+      }
+
+      final responseData = response.data as Map<String, dynamic>?;
+      final url = responseData?['url'] as String?;
       
-      if (url != null && mounted) {
+      if (url == null || url.isEmpty) {
+        throw Exception('URL de checkout não retornada. Tente novamente.');
+      }
+
+      if (mounted) {
         // Fecha o modal
         Navigator.pop(context);
         
@@ -68,13 +103,40 @@ class _PremiumSalesModalState extends State<PremiumSalesModal> {
         if (widget.onSubscribeTapped != null) {
           widget.onSubscribeTapped!();
         }
+
+        // Mostra mensagem informativa
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Redirecionando para pagamento...'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Erro ao criar checkout';
+        
+        if (e.toString().contains('network') || e.toString().contains('connection')) {
+          errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+        } else if (e.toString().contains('autenticado') || e.toString().contains('auth')) {
+          errorMessage = 'Sessão expirada. Faça login novamente.';
+        } else if (e.toString().contains('checkout') || e.toString().contains('pagamento')) {
+          errorMessage = 'Erro ao processar pagamento. Tente novamente em alguns instantes.';
+        } else {
+          errorMessage = 'Erro: ${e.toString().replaceAll('Exception: ', '')}';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao criar checkout: $e'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Fechar',
+              textColor: Colors.white,
+              onPressed: () {},
+            ),
           ),
         );
       }

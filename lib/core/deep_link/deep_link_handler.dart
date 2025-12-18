@@ -67,9 +67,27 @@ class DeepLinkHandler {
         return DeepLinkRoute.success;
       case 'error':
         return DeepLinkRoute.error;
+      case 'convite':
+        return DeepLinkRoute.conviteIdoso;
       default:
         return null;
     }
+  }
+
+  /// Extrai o token do convite de um URI
+  static String? extractConviteToken(Uri uri) {
+    if (uri.scheme != 'caremind' || uri.host != 'convite') {
+      return null;
+    }
+    return uri.queryParameters['token'];
+  }
+
+  /// Extrai o código do convite de um URI
+  static String? extractConviteCodigo(Uri uri) {
+    if (uri.scheme != 'caremind' || uri.host != 'convite') {
+      return null;
+    }
+    return uri.queryParameters['codigo'];
   }
 
   void dispose() {
@@ -82,5 +100,6 @@ enum DeepLinkRoute {
   alexaCallback,
   success,
   error,
+  conviteIdoso,
 }
 

@@ -8,6 +8,7 @@ import '../models/perfil.dart';
 import '../screens/shared/configuracoes_screen.dart';
 import '../screens/shared/perfil_screen.dart';
 import 'profile_switch_dialog.dart';
+import 'secondary_menu.dart';
 
 /// AppBar padronizada do CareMind
 /// Leading: Back button (se pode voltar) ou Configurações (esquerda)
@@ -21,6 +22,8 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? leading; // Widget customizado para o leading
   final bool showSearchButton;
   final bool showVoiceButton;
+  final bool showSecondaryMenu; // Se true, mostra menu hamburger
+  final bool isIdoso; // Se true, oculta algumas opções do menu
   final VoidCallback? onSearchTap;
   final VoidCallback? onVoiceTap;
 
@@ -32,6 +35,8 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.leading,
     this.showSearchButton = false,
     this.showVoiceButton = false,
+    this.showSecondaryMenu = true, // Por padrão, mostra o menu
+    this.isIdoso = false,
     this.onSearchTap,
     this.onVoiceTap,
   });
@@ -167,6 +172,17 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
               tooltip: 'Falar',
             ),
           ),
+        // Menu secundário (hamburger) - substitui o botão de perfil quando ativo
+        if (showSecondaryMenu)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: SecondaryMenu(
+              isFamiliar: isFamiliar,
+              isIdoso: isIdoso,
+            ),
+          )
+        else
+          // Botão de perfil apenas se menu secundário estiver desabilitado
         Padding(
           padding: const EdgeInsets.only(right: 12),
           child: Semantics(

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/caremind_app_bar.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../widgets/animated_card.dart';
 import '../../widgets/persistent_bottom_nav_bar.dart';
 import '../../widgets/premium/premium_guard.dart';
 import '../../services/supabase_service.dart';
@@ -13,6 +13,8 @@ import '../../services/accessibility_service.dart';
 import '../../services/subscription_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/accessibility/accessibility_helper.dart';
+import '../organizacao/organizacao_lista_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Tela de Configurações
 /// Centraliza configurações do app
@@ -251,8 +253,11 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                         children: [
                           Container(
                             margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-                            child: GlassCard(
-                              padding: const EdgeInsets.all(20),
+                            child: AnimatedCard(
+                              index: 0,
+                              child: CareMindCard(
+                                variant: CardVariant.glass,
+                                padding: AppSpacing.paddingLarge,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -365,6 +370,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                   ),
                                 ],
                               ),
+                              ),
                             ),
                           ),
                         ],
@@ -429,6 +435,78 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                       },
                     ),
 
+                    // Seção: Organizações
+                    _buildSection(
+                      context,
+                      title: '🏢 Organizações',
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+                          child: AnimatedCard(
+                            index: 1,
+                            child: CareMindCard(
+                              variant: CardVariant.glass,
+                              padding: AppSpacing.paddingLarge,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ProviderScope(
+                                      child: const OrganizacaoListaScreen(),
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(AppSpacing.small + 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade100.withValues(alpha: 0.3),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.business,
+                                      color: Colors.white,
+                                      size: 32,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Gerenciar Organizações',
+                                          style: AppTextStyles.leagueSpartan(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Criar e gerenciar organizações (casas de repouso, clínicas)',
+                                          style: AppTextStyles.leagueSpartan(
+                                            fontSize: 14,
+                                            color: Colors.white.withValues(alpha: 0.8),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.chevron_right,
+                                    color: Colors.white,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
                     // Seção: Integrações
                     _buildSection(
                       context,
@@ -436,8 +514,11 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                       children: [
                         Container(
                           margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-                          child: GlassCard(
-                            padding: const EdgeInsets.all(20),
+                          child: AnimatedCard(
+                            index: 1,
+                            child: CareMindCard(
+                              variant: CardVariant.glass,
+                              padding: AppSpacing.paddingLarge,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -556,6 +637,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                   ),
                                 ),
                               ],
+                            ),
                             ),
                           ),
                         ),

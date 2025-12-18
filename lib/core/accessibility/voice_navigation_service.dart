@@ -7,7 +7,6 @@ import '../../screens/idoso/compromissos_screen.dart';
 import '../../screens/shared/configuracoes_screen.dart';
 import '../../screens/shared/perfil_screen.dart';
 import '../../screens/idoso/ajuda_screen.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// Serviço especializado em navegação por voz
 /// Fornece navegação completa entre telas usando comandos de voz
@@ -56,7 +55,7 @@ class VoiceNavigationService {
         await _navigateToHelp(context);
         break;
       case VoiceScreen.emergency:
-        await _makeEmergencyCall(context);
+        await _navigateToEmergency(context);
         break;
     }
   }
@@ -110,19 +109,15 @@ class VoiceNavigationService {
     await _voiceService.speak('Tela de ajuda. Aqui você encontra informações sobre como usar o aplicativo.');
   }
 
-  Future<void> _makeEmergencyCall(BuildContext context) async {
-    await _voiceService.speak('Chamando emergência...');
+  Future<void> _navigateToEmergency(BuildContext context) async {
+    await _voiceService.speak('Abrindo tela de emergência...');
     
-    try {
-      final uri = Uri.parse('tel:192'); // SAMU
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-      } else {
-        await _voiceService.speak('Não foi possível fazer a chamada. Verifique se seu dispositivo permite chamadas.');
-      }
-    } catch (e) {
-      await _voiceService.speak('Erro ao tentar chamar emergência. Tente novamente.');
-    }
+    // Navegar para a tela de emergência completa
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AjudaScreen()),
+    );
+    await _voiceService.speak('Tela de emergência. Use o botão de pânico para alertar todos os seus familiares.');
   }
 
   /// Anuncia o conteúdo da tela atual

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import '../../theme/app_theme.dart';
 import '../../core/injection/injection.dart';
@@ -10,10 +9,12 @@ import '../../services/accessibility_service.dart';
 import '../../core/accessibility/voice_navigation_service.dart';
 import '../../core/accessibility/tts_enhancer.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../widgets/animated_card.dart';
 import '../../widgets/voice_interface_widget.dart';
 import '../../core/navigation/app_navigation.dart';
 import '../../screens/shared/configuracoes_screen.dart';
+import '../../screens/idoso/ajuda_screen.dart';
 import '../../models/medicamento.dart';
 
 /// Dashboard do IDOSO - Foco em Acessibilidade Extrema (WCAG AAA)
@@ -267,8 +268,26 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                       color: Colors.white,
                     ),
                   )
-                : CustomScrollView(
-                    slivers: [
+                : RefreshIndicator(
+                    onRefresh: () async {
+                      // Recarregar dados do dashboard
+                      setState(() {
+                        _isLoading = true;
+                      });
+                      // Simular recarregamento (ajustar conforme necessário)
+                      await Future.delayed(const Duration(milliseconds: 500));
+                      if (mounted) {
+                        setState(() {
+                          _isLoading = false;
+                        });
+                      }
+                    },
+                    color: Colors.white,
+                    backgroundColor: AppColors.primary,
+                    strokeWidth: 2.5,
+                    displacement: 40,
+                    child: CustomScrollView(
+                      slivers: [
                   // Header simplificado com botão de configurações
                   SliverToBoxAdapter(
                     child: Padding(
@@ -325,17 +344,27 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                   // Card Principal (Hero) - Próximo Medicamento
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
                       child: _buildHeroCard(),
                     ),
                   ),
 
-                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+                  // Botão SOS Destacado
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
+                      child: _buildSOSButton(),
+                    ),
+                  ),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
                   // Grid de Ação
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
                       child: _buildActionGrid(),
                     ),
                   ),
@@ -343,6 +372,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                       SliverToBoxAdapter(child: SizedBox(height: AppSpacing.bottomNavBarPadding)),
                     ],
                   ),
+                    ),
             // Interface de voz flutuante
             if (userId.isNotEmpty && !_isLoading)
               VoiceInterfaceWidget(
@@ -357,34 +387,38 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
 
   Widget _buildHeroCard() {
     if (_proximoMedicamento == null) {
-      return GlassCard(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          children: [
-            Icon(
-              Icons.check_circle_outline,
-              size: 64,
-              color: Colors.green.shade300,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Tudo em dia!',
-              style: AppTextStyles.leagueSpartan(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
+      return AnimatedCard(
+        index: 0,
+        child: CareMindCard(
+          variant: CardVariant.glass,
+          padding: AppSpacing.paddingXLarge,
+          child: Column(
+            children: [
+              Icon(
+                Icons.check_circle_outline,
+                size: 64,
+                color: Colors.green.shade300,
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Não há medicamentos pendentes no momento.',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.leagueSpartan(
-                fontSize: 18,
-                color: Colors.white.withValues(alpha: 0.9),
+              SizedBox(height: AppSpacing.medium),
+              Text(
+                'Tudo em dia!',
+                style: AppTextStyles.leagueSpartan(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
               ),
-            ),
-          ],
+              SizedBox(height: AppSpacing.small),
+              Text(
+                'Não há medicamentos pendentes no momento.',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.leagueSpartan(
+                  fontSize: 18,
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -393,13 +427,16 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
         ? '${_proximoHorarioAgendado!.hour.toString().padLeft(2, '0')}:${_proximoHorarioAgendado!.minute.toString().padLeft(2, '0')}'
         : 'Horário desconhecido';
 
-    return GlassCard(
-      padding: const EdgeInsets.all(32),
-      child: Column(
+    return AnimatedCard(
+      index: 1,
+      child: CareMindCard(
+        variant: CardVariant.glass,
+        padding: AppSpacing.paddingXLarge,
+        child: Column(
         children: [
           // Ícone de medicamento
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: AppSpacing.paddingLarge,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
@@ -467,7 +504,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: AppSpacing.xlarge),
           
           // Botão GIGANTE "JÁ TOMEI"
           Semantics(
@@ -483,7 +520,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                   backgroundColor: Colors.white,
                   foregroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: AppBorderRadius.mediumAll,
                   ),
                   elevation: 4,
                 ),
@@ -499,6 +536,77 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
             ),
           ),
         ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSOSButton() {
+    return Semantics(
+      label: 'Botão SOS de Emergência',
+      hint: 'Toque para abrir a tela de emergência e alertar todos os familiares',
+      button: true,
+      child: AnimatedCard(
+        index: 2,
+        child: CareMindCard(
+          variant: CardVariant.glass,
+          padding: AppSpacing.paddingLarge,
+        onTap: () {
+          AccessibilityService.vibrar(duration: 200);
+          Navigator.push(
+            context,
+            AppNavigation.smoothRoute(
+              const AjudaScreen(),
+            ),
+          );
+        },
+        child: Row(
+          children: [
+            Container(
+              padding: AppSpacing.paddingCard,
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.warning_amber_rounded,
+                size: 32,
+                color: Colors.red,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '🚨 EMERGÊNCIA',
+                    style: AppTextStyles.leagueSpartan(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.red,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Alerta todos os familiares',
+                    style: AppTextStyles.leagueSpartan(
+                      fontSize: 14,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
       ),
     );
   }
@@ -546,17 +654,22 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
         ),
         const SizedBox(height: 16),
         
-        // Botão Ajuda/Emergência
+        // Botão Ajuda/Emergência (mantido para compatibilidade)
         Semantics(
           label: 'Ajuda e Emergência',
-          hint: 'Toque para chamar ajuda ou ligar para emergência',
+          hint: 'Toque para abrir a tela de emergência',
           button: true,
           child: _buildActionButton(
-            icon: Icons.phone,
-            label: 'Ajuda / Emergência',
-            color: Colors.red,
+            icon: Icons.help_outline,
+            label: 'Ajuda',
+            color: Colors.blue,
             onTap: () async {
-              await _voiceNavigation.navigateToScreen(context, VoiceScreen.emergency);
+              Navigator.push(
+                context,
+                AppNavigation.smoothRoute(
+                  const AjudaScreen(),
+                ),
+              );
               await TTSEnhancer.announceNavigation('Dashboard', 'Ajuda e Emergência');
             },
           ),
@@ -573,46 +686,50 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
     required VoidCallback onTap,
     bool isLarge = false,
   }) {
-    return GlassCard(
-      onTap: () {
-        AccessibilityService.vibrar();
-        onTap();
-      },
-      padding: EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: isLarge ? 24 : 20,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: isLarge ? 36 : 28, color: Colors.white),
-              const SizedBox(width: 16),
-              Flexible(
-                child: Text(
-                  label,
-                  style: AppTextStyles.leagueSpartan(
-                    fontSize: isLarge ? 24 : 20,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+    return AnimatedCard(
+      index: 4,
+      child: CareMindCard(
+        variant: CardVariant.glass,
+        onTap: () {
+          AccessibilityService.vibrar();
+          onTap();
+        },
+        padding: EdgeInsets.symmetric(
+          horizontal: AppSpacing.large,
+          vertical: isLarge ? AppSpacing.large : AppSpacing.medium + 4,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: isLarge ? 36 : 28, color: Colors.white),
+                SizedBox(width: AppSpacing.medium),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: AppTextStyles.leagueSpartan(
+                      fontSize: isLarge ? 24 : 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
+                ),
+              ],
+            ),
+            if (subtitle != null) ...[
+              SizedBox(height: AppSpacing.xsmall),
+              Text(
+                subtitle,
+                style: AppTextStyles.leagueSpartan(
+                  fontSize: 14,
+                  color: Colors.white.withValues(alpha: 0.8),
                 ),
               ),
             ],
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: AppTextStyles.leagueSpartan(
-                fontSize: 14,
-                color: Colors.white.withValues(alpha: 0.8),
-              ),
-            ),
           ],
-        ],
+        ),
       ),
     );
   }

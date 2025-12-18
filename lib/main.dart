@@ -30,6 +30,8 @@ import 'services/accessibility_service.dart';
 import 'services/daily_cache_service.dart';
 import 'services/supabase_service.dart';
 import 'services/offline_cache_service.dart';
+import 'core/deep_link/deep_link_handler.dart';
+import 'screens/auth/processar_convite_screen.dart';
 import 'package:get_it/get_it.dart';
 
 void main() async {
@@ -137,17 +139,57 @@ class CareMindApp extends StatefulWidget {
 
 class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  late DeepLinkHandler _deepLinkHandler;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _setupFCMForegroundHandler();
+    _setupDeepLinks();
+  }
+
+  void _setupDeepLinks() {
+    _deepLinkHandler = DeepLinkHandler();
+    
+    // Processar link inicial se houver
+    if (_deepLinkHandler.initialLink != null) {
+      _processDeepLink(_deepLinkHandler.initialLink!);
+    }
+    
+    // Escutar novos deep links
+    _deepLinkHandler.linkStream.listen((uri) {
+      _processDeepLink(uri);
+    });
+  }
+
+  void _processDeepLink(Uri uri) {
+    final route = DeepLinkHandler.parseRoute(uri);
+    
+    if (route == DeepLinkRoute.conviteIdoso) {
+      final token = DeepLinkHandler.extractConviteToken(uri);
+      final codigo = DeepLinkHandler.extractConviteCodigo(uri);
+      
+      if (token != null || codigo != null) {
+        final tokenOuCodigo = token ?? codigo!;
+        final context = _navigatorKey.currentContext;
+        if (context != null) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ProcessarConviteScreen(
+                tokenOuCodigo: tokenOuCodigo,
+              ),
+            ),
+          );
+        }
+      }
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _deepLinkHandler.dispose();
     super.dispose();
   }
 

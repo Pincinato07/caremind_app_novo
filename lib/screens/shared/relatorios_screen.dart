@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
 import 'package:intl/intl.dart';
 import '../../services/relatorios_service.dart';
@@ -9,7 +8,8 @@ import '../../core/state/familiar_state.dart';
 import '../../core/errors/app_exception.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/caremind_app_bar.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../widgets/animated_card.dart';
 import '../../widgets/banner_contexto_familiar.dart';
 
 class RelatoriosScreen extends StatefulWidget {
@@ -224,11 +224,12 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
               ),
 
             // Seletor de período
-            GlassCard(
-              padding: const EdgeInsets.all(16),
-              blurSigma: 15.0,
-              opacity: 0.3,
-              child: Row(
+            AnimatedCard(
+              index: 0,
+              child: CareMindCard(
+                variant: CardVariant.glass,
+                padding: AppSpacing.paddingCard,
+                child: Row(
                 children: [
                   const Icon(
                     Icons.calendar_today,
@@ -268,8 +269,9 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                 ],
               ),
             ),
+          ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: AppSpacing.large),
 
             // KPIs
             _buildKPISection(_analyticsData!['kpis'] as Map<String, dynamic>? ?? {}),
@@ -380,10 +382,11 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
   }
 
   Widget _buildKPICard(String title, String value, IconData icon, Color color, String description) {
-    return GlassCard(
-      padding: const EdgeInsets.all(16),
-      blurSigma: 15.0,
-      opacity: 0.3,
+    return AnimatedCard(
+      index: 1,
+      child: CareMindCard(
+        variant: CardVariant.glass,
+        padding: AppSpacing.paddingCard,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -432,6 +435,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -497,17 +501,18 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
       return const SizedBox.shrink();
     }
 
-    return GlassCard(
-      padding: const EdgeInsets.all(20),
-      blurSigma: 15.0,
-      opacity: 0.3,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.trending_up,
+    return AnimatedCard(
+      index: 2,
+      child: CareMindCard(
+        variant: CardVariant.glass,
+        padding: AppSpacing.paddingLarge,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.trending_up,
                 color: Colors.white,
                 size: 24,
               ),
@@ -543,6 +548,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -553,17 +559,18 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
       {'nome': 'Noite', 'key': 'noite'},
     ];
 
-    return GlassCard(
-      padding: const EdgeInsets.all(20),
-      blurSigma: 15.0,
-      opacity: 0.3,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.schedule,
+    return AnimatedCard(
+      index: 3,
+      child: CareMindCard(
+        variant: CardVariant.glass,
+        padding: AppSpacing.paddingLarge,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.schedule,
                 color: Colors.white,
                 size: 24,
               ),
@@ -635,6 +642,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
           }).toList(),
         ],
       ),
+    ),
     );
   }
 
@@ -645,17 +653,18 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
       {'nome': 'Outros', 'key': 'outros'},
     ];
 
-    return GlassCard(
-      padding: const EdgeInsets.all(20),
-      blurSigma: 15.0,
-      opacity: 0.3,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.pie_chart,
+    return AnimatedCard(
+      index: 4,
+      child: CareMindCard(
+        variant: CardVariant.glass,
+        padding: AppSpacing.paddingLarge,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.pie_chart,
                 color: Colors.white,
                 size: 24,
               ),
@@ -727,6 +736,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
           }).toList(),
         ],
       ),
+    ),
     );
   }
 
@@ -760,12 +770,13 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
             color: Colors.white.withValues(alpha: 0.8),
           ),
         ),
-        const SizedBox(height: 20),
-        GlassCard(
-          padding: EdgeInsets.zero,
-          blurSigma: 15.0,
-          opacity: 0.3,
-          child: Column(
+        SizedBox(height: AppSpacing.medium + 4),
+        AnimatedCard(
+          index: 5,
+          child: CareMindCard(
+            variant: CardVariant.glass,
+            padding: EdgeInsets.zero,
+            child: Column(
             children: eventos.take(20).map((evento) {
               final data = evento as Map<String, dynamic>;
               final dataPrevista = data['data_prevista'] as String?;
@@ -862,6 +873,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
             }).toList(),
           ),
         ),
+      ),
       ],
     );
   }

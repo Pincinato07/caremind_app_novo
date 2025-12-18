@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
 import '../../services/account_manager_service.dart';
 import '../../services/supabase_service.dart';
@@ -8,7 +7,8 @@ import '../../core/errors/app_exception.dart';
 import '../../core/state/familiar_state.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/caremind_app_bar.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../widgets/animated_card.dart';
 import '../auth/auth_shell.dart';
 
 class TrocarContaScreen extends StatefulWidget {
@@ -179,7 +179,7 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                 child: CircularProgressIndicator(color: Colors.white),
               )
             : SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: AppSpacing.paddingScreen,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -230,9 +230,12 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                       ..._accounts.map((account) {
                         final isCurrent = account.userId == _currentUserId;
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: GlassCard(
-                            padding: EdgeInsets.zero,
+                          padding: EdgeInsets.only(bottom: AppSpacing.small + 4),
+                          child: AnimatedCard(
+                            index: 0,
+                            child: CareMindCard(
+                              variant: CardVariant.glass,
+                              padding: EdgeInsets.zero,
                             child: Material(
                               color: Colors.transparent,
                               child: InkWell(
@@ -244,7 +247,7 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                                     : () => _removeAccount(account),
                                 borderRadius: BorderRadius.circular(12),
                                 child: Padding(
-                                  padding: const EdgeInsets.all(16),
+                                  padding: AppSpacing.paddingCard,
                                   child: Row(
                                     children: [
                                       // Avatar
@@ -364,14 +367,18 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                               ),
                             ),
                           ),
+                        ),
                         );
                       }).toList(),
 
-                    const SizedBox(height: 24),
+                    SizedBox(height: AppSpacing.large),
 
                     // Botão adicionar nova conta
-                    GlassCard(
-                      padding: EdgeInsets.zero,
+                    AnimatedCard(
+                      index: 1,
+                      child: CareMindCard(
+                        variant: CardVariant.glass,
+                        padding: EdgeInsets.zero,
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
@@ -402,8 +409,9 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                         ),
                       ),
                     ),
+                    ),
 
-                    const SizedBox(height: 16),
+                    SizedBox(height: AppSpacing.medium),
 
                     // Aviso sobre remover
                     if (_accounts.isNotEmpty)

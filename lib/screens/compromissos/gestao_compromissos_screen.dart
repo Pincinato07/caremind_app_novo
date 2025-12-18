@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
@@ -38,7 +37,6 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
   String? _perfilTipo;
   String _viewMode = 'list';
   bool _isOffline = false;
-  DateTime? _lastSync;
 
   @override
   void initState() {
@@ -99,10 +97,6 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
   }
 
   bool get _isIdoso => _perfilTipo == 'idoso';
-  bool get _isFamiliar {
-    final familiarState = getIt<FamiliarState>();
-    return familiarState.hasIdosos && widget.idosoId == null;
-  }
 
   Future<void> _loadCompromissos() async {
     setState(() {
@@ -129,7 +123,6 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
           final compromissos = await compromissoService.getCompromissos(targetId);
           
           await OfflineCacheService.cacheCompromissos(targetId, compromissos);
-          _lastSync = DateTime.now();
           
           setState(() {
             _compromissos = compromissos;
@@ -164,7 +157,6 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
   Future<void> _loadFromCache(String userId) async {
     try {
       final cachedCompromissos = await OfflineCacheService.getCachedCompromissos(userId);
-      _lastSync = await OfflineCacheService.getCacheTimestamp(userId, 'compromissos');
       
       if (cachedCompromissos.isNotEmpty) {
         setState(() {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
@@ -11,6 +10,7 @@ import '../../core/injection/injection.dart';
 import '../../models/medicamento.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/caremind_app_bar.dart';
+import '../../widgets/caremind_card.dart';
 import '../../widgets/voice_interface_widget.dart';
 import '../../services/historico_eventos_service.dart';
 import '../../core/accessibility/tts_enhancer.dart';
@@ -457,7 +457,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
               if (_errorMessage != null)
                 Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: AppSpacing.paddingLarge,
                     child: ErrorWidgetWithRetry(
                       message: _errorMessage!,
                       onRetry: _loadUserData,
@@ -589,24 +589,15 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     );
   }
 
-  Widget _surfaceCard({required Widget child, EdgeInsets padding = const EdgeInsets.all(20), Color? borderColor, Color? backgroundColor}) {
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: backgroundColor ?? AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor ?? AppColors.border),
-        boxShadow: AppShadows.small,
-      ),
-      child: child,
-    );
-  }
+  // Removido: _surfaceCard substituído por CareMindCard
+  // Use: CareMindCard(variant: CardVariant.solid, ...)
 
   Widget _buildSemaforoStatus() {
     return Semantics(
       label: 'Status dos medicamentos',
       hint: 'Mostra se você está em dia com seus medicamentos',
-      child: _surfaceCard(
+      child: CareMindCard(
+        variant: CardVariant.solid,
         borderColor: _temAtraso ? AppColors.error.withValues(alpha: 0.5) : AppColors.success.withValues(alpha: 0.4),
         child: Row(
           children: [
@@ -623,7 +614,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                 size: 28,
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: AppSpacing.medium),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -636,7 +627,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: AppSpacing.xsmall),
                   Text(
                     '$_medicamentosTomados de $_totalMedicamentos medicamentos tomados hoje',
                     style: AppTextStyles.leagueSpartan(
@@ -658,7 +649,8 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
       return Semantics(
         label: 'Medicamentos em dia',
         hint: 'Todos os medicamentos do dia foram tomados',
-        child: _surfaceCard(
+        child: CareMindCard(
+          variant: CardVariant.solid,
           child: Row(
             children: [
               Container(
@@ -673,7 +665,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   size: 28,
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: AppSpacing.medium),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -686,7 +678,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: AppSpacing.xsmall),
                     Text(
                       'Parabéns! Você está em dia com seus medicamentos.',
                       style: AppTextStyles.leagueSpartan(
@@ -716,7 +708,8 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
             'Próximo medicamento: ${_proximoMedicamento!.nome}, dosagem: ${_proximoMedicamento!.dosagem ?? 'não especificada'}, horário: $horarioStr',
           );
         },
-        child: _surfaceCard(
+        child: CareMindCard(
+          variant: CardVariant.solid,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -734,7 +727,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       size: 28,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: AppSpacing.medium),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -747,7 +740,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                             color: AppColors.textSecondary,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: AppSpacing.xsmall),
                         Text(
                           _proximoMedicamento!.nome,
                           style: AppTextStyles.leagueSpartan(
@@ -790,7 +783,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: AppSpacing.small + 4),
                   Expanded(
                     child: Text(
                       _proximoMedicamento!.dosagem ?? 'Dosagem não especificada',
@@ -810,14 +803,15 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
   }
 
   Widget _buildMedicamentosPendentes() {
-    return _surfaceCard(
+    return CareMindCard(
+      variant: CardVariant.solid,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: EdgeInsets.all(AppSpacing.small + 2),
                 decoration: BoxDecoration(
                   color: AppColors.accent.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(10),
@@ -901,14 +895,15 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     return Semantics(
       label: 'Próximas atividades',
       hint: 'Lista das próximas rotinas e atividades',
-      child: _surfaceCard(
+      child: CareMindCard(
+        variant: CardVariant.solid,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: EdgeInsets.all(AppSpacing.small + 2),
                   decoration: BoxDecoration(
                     color: AppColors.success.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(10),
@@ -919,7 +914,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                     size: 24,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: AppSpacing.small + 4),
                 Text(
                   'Próximas Atividades',
                   style: AppTextStyles.leagueSpartan(
@@ -958,7 +953,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                             shape: BoxShape.circle,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: AppSpacing.small + 4),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

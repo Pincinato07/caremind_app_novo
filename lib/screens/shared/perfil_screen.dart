@@ -1,7 +1,6 @@
 // lib/screens/perfil_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
@@ -19,9 +18,10 @@ import '../../core/state/familiar_state.dart';
 import '../../services/account_manager_service.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/caremind_app_bar.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../widgets/animated_card.dart';
 import '../../widgets/nav_item.dart';
-import '../lgpd/termos_privacidade_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'trocar_conta_screen.dart';
 
 class PerfilScreen extends StatefulWidget {
@@ -586,26 +586,22 @@ class _PerfilScreenState extends State<PerfilScreen> {
                           _buildSmallButton(
                             icon: Icons.description_outlined,
                             text: 'Termos de Uso',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                AppNavigation.smoothRoute(
-                                  const TermosPrivacidadeScreen(showTerms: true),
-                                ),
-                              );
+                            onTap: () async {
+                              final uri = Uri.parse('https://caremind.com.br/termos');
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              }
                             },
                           ),
                           const SizedBox(height: 12),
                           _buildSmallButton(
                             icon: Icons.privacy_tip_outlined,
                             text: 'Política de Privacidade',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                AppNavigation.smoothRoute(
-                                  const TermosPrivacidadeScreen(showTerms: false),
-                                ),
-                              );
+                            onTap: () async {
+                              final uri = Uri.parse('https://caremind.com.br/politica-privacidade');
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              }
                             },
                           ),
                           const SizedBox(height: 12),
@@ -659,9 +655,12 @@ class _PerfilScreenState extends State<PerfilScreen> {
     required IconData icon,
     required VoidCallback onSave,
   }) {
-    return GlassCard(
-      padding: const EdgeInsets.all(16),
-      child: Row(
+    return AnimatedCard(
+      index: 0,
+      child: CareMindCard(
+        variant: CardVariant.glass,
+        padding: AppSpacing.paddingCard,
+        child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
@@ -734,13 +733,17 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 ),
         ],
       ),
+    ),
     );
   }
 
   Widget _buildTimezoneField() {
-    return GlassCard(
-      padding: const EdgeInsets.all(16),
-      child: Row(
+    return AnimatedCard(
+      index: 0,
+      child: CareMindCard(
+        variant: CardVariant.glass,
+        padding: AppSpacing.paddingCard,
+        child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
@@ -794,6 +797,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -802,9 +806,12 @@ class _PerfilScreenState extends State<PerfilScreen> {
     required String value,
     required IconData icon,
   }) {
-    return GlassCard(
-      padding: const EdgeInsets.all(16),
-      child: Row(
+    return AnimatedCard(
+      index: 0,
+      child: CareMindCard(
+        variant: CardVariant.glass,
+        padding: AppSpacing.paddingCard,
+        child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
@@ -840,6 +847,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -849,9 +857,12 @@ class _PerfilScreenState extends State<PerfilScreen> {
     VoidCallback? onTap,
     bool isLoading = false,
   }) {
-    return GlassCard(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      child: Material(
+    return AnimatedCard(
+      index: 3,
+      child: CareMindCard(
+        variant: CardVariant.glass,
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.small + 4, horizontal: AppSpacing.medium),
+        child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
@@ -889,6 +900,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 

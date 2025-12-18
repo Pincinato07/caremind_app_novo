@@ -1,12 +1,12 @@
 // lib/screens/shared/alertas_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/caremind_app_bar.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../widgets/animated_card.dart';
 import '../../core/state/familiar_state.dart';
 import '../../core/injection/injection.dart';
 import '../../services/notificacoes_app_service.dart';
@@ -58,10 +58,13 @@ class _AlertasScreenState extends State<AlertasScreen> with SingleTickerProvider
               if (count == 0) return const SizedBox.shrink();
               
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: GlassCard(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: TextButton.icon(
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
+                child: AnimatedCard(
+                  index: 0,
+                  child: CareMindCard(
+                    variant: CardVariant.glass,
+                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium, vertical: AppSpacing.small),
+                    child: TextButton.icon(
                     onPressed: () async {
                       final service = getIt<NotificacoesAppService>();
                       final marcadas = await service.marcarTodasComoLidas();
@@ -85,6 +88,7 @@ class _AlertasScreenState extends State<AlertasScreen> with SingleTickerProvider
                     ),
                   ),
                 ),
+              ),
               );
             },
           ),
@@ -356,9 +360,12 @@ class _NotificacoesTabState extends State<_NotificacoesTab> {
                   child: AnimatedOpacity(
                     duration: const Duration(milliseconds: 300),
                     opacity: notificacao.lida ? 0.7 : 1.0,
-                    child: GlassCard(
-                      padding: const EdgeInsets.all(20),
-                      borderColor: notificacao.lida 
+                    child: AnimatedCard(
+                      index: 1,
+                      child: CareMindCard(
+                        variant: CardVariant.glass,
+                        padding: AppSpacing.paddingLarge,
+                        borderColor: notificacao.lida 
                           ? Colors.white.withValues(alpha: 0.1)
                           : color.withValues(alpha: 0.5),
                       child: Row(
@@ -507,6 +514,7 @@ class _NotificacoesTabState extends State<_NotificacoesTab> {
                     ),
                   ),
                 ),
+              ),
               );
             },
           ),

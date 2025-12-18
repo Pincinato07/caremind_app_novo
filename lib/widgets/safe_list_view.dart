@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
 
 /// ListView com padding bottom automático para não ser coberta por FAB/VoiceButton
 /// Resolve o problema de conteúdo oculto por botões flutuantes

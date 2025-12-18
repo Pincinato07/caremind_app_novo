@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_theme.dart';
 import 'package:vibration/vibration.dart';
@@ -9,7 +8,8 @@ import '../../services/accessibility_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../widgets/animated_card.dart';
 
 /// Tela de Ajuda/Emergência para o perfil IDOSO
 class AjudaScreen extends StatefulWidget {
@@ -363,84 +363,88 @@ class _AjudaScreenState extends State<AjudaScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: GlassCard(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.warning_amber_rounded,
-                        size: 80,
-                        color: Colors.red,
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'BOTÃO DE PÂNICO',
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.leagueSpartan(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 2,
+                child: AnimatedCard(
+                  index: 0,
+                  child: CareMindCard(
+                    variant: CardVariant.glass,
+                    padding: AppSpacing.paddingXLarge,
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.warning_amber_rounded,
+                          size: 80,
+                          color: Colors.red,
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Envia alerta para TODOS os familiares via SMS e notificações',
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.leagueSpartan(
-                          fontSize: 16,
-                          color: Colors.white.withValues(alpha: 0.9),
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 100, // Botão GIGANTE para acessibilidade
-                        child: ElevatedButton(
-                          onPressed: _isDisparandoEmergencia ? null : _acionarPanico,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            elevation: 8,
-                            shadowColor: Colors.red.withValues(alpha: 0.5),
+                        const SizedBox(height: 24),
+                        Text(
+                          'BOTÃO DE PÂNICO',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: 2,
                           ),
-                          child: _isDisparandoEmergencia
-                              ? const SizedBox(
-                                  width: 40,
-                                  height: 40,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 4,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.warning, size: 36),
-                                    const SizedBox(width: 12),
-                                    Flexible(
-                                      child: FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        child: Text(
-                                          'ACIONAR EMERGÊNCIA',
-                                          style: AppTextStyles.leagueSpartan(
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.w700,
-                                            letterSpacing: 1.5,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Envia alerta para TODOS os familiares via SMS e notificações',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 16,
+                            color: Colors.white.withValues(alpha: 0.9),
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 100, // Botão GIGANTE para acessibilidade
+                          child: ElevatedButton(
+                            onPressed: _isDisparandoEmergencia ? null : _acionarPanico,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              elevation: 8,
+                              shadowColor: Colors.red.withValues(alpha: 0.5),
+                            ),
+                            child: _isDisparandoEmergencia
+                                ? const SizedBox(
+                                    width: 40,
+                                    height: 40,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 4,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.warning, size: 36),
+                                      const SizedBox(width: 12),
+                                      Flexible(
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Text(
+                                            'ACIONAR EMERGÊNCIA',
+                                            style: AppTextStyles.leagueSpartan(
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: 1.5,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                    ],
+                                  ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -451,45 +455,49 @@ class _AjudaScreenState extends State<AjudaScreen> {
             // Botão de ligação direta (secundário)
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: GlassCard(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Ou ligue diretamente',
-                        style: AppTextStyles.leagueSpartan(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 70,
-                        child: ElevatedButton.icon(
-                          onPressed: _ligarParaFamiliar,
-                          icon: const Icon(Icons.phone, size: 28),
-                          label: Text(
-                            'LIGAR PARA FAMILIAR',
-                            style: AppTextStyles.leagueSpartan(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            elevation: 4,
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
+                child: AnimatedCard(
+                  index: 1,
+                  child: CareMindCard(
+                    variant: CardVariant.glass,
+                    padding: AppSpacing.paddingLarge,
+                    child: Column(
+                      children: [
+                        Text(
+                          'Ou ligue diretamente',
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 70,
+                          child: ElevatedButton.icon(
+                            onPressed: _ligarParaFamiliar,
+                            icon: const Icon(Icons.phone, size: 28),
+                            label: Text(
+                              'LIGAR PARA FAMILIAR',
+                              style: AppTextStyles.leagueSpartan(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppColors.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -500,82 +508,86 @@ class _AjudaScreenState extends State<AjudaScreen> {
             // Informações de contato
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: GlassCard(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Informações de Contato',
-                        style: AppTextStyles.leagueSpartan(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      if (_isLoading)
-                        const Center(
-                          child: CircularProgressIndicator(
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
+                child: AnimatedCard(
+                  index: 2,
+                  child: CareMindCard(
+                    variant: CardVariant.glass,
+                    padding: AppSpacing.paddingLarge,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Informações de Contato',
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
                             color: Colors.white,
                           ),
-                        )
-                      else if (_nomeCuidador != null)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Familiar: $_nomeCuidador',
-                              style: AppTextStyles.leagueSpartan(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
+                        ),
+                        const SizedBox(height: 16),
+                        if (_isLoading)
+                          const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
                             ),
-                            if (_telefoneCuidador != null && _telefoneCuidador!.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Text(
-                                  'Telefone: $_telefoneCuidador',
-                                  style: AppTextStyles.leagueSpartan(
-                                    fontSize: 16,
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                  ),
-                                ),
-                              )
-                            else
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Text(
-                                  '⚠️ Telefone não cadastrado',
-                                  style: AppTextStyles.leagueSpartan(
-                                    fontSize: 16,
-                                    color: Colors.orange.shade300,
-                                    fontStyle: FontStyle.italic,
-                                  ),
+                          )
+                        else if (_nomeCuidador != null)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Familiar: $_nomeCuidador',
+                                style: AppTextStyles.leagueSpartan(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
                                 ),
                               ),
-                          ],
-                        )
-                      else
+                              if (_telefoneCuidador != null && _telefoneCuidador!.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    'Telefone: $_telefoneCuidador',
+                                    style: AppTextStyles.leagueSpartan(
+                                      fontSize: 16,
+                                      color: Colors.white.withValues(alpha: 0.9),
+                                    ),
+                                  ),
+                                )
+                              else
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    '⚠️ Telefone não cadastrado',
+                                    style: AppTextStyles.leagueSpartan(
+                                      fontSize: 16,
+                                      color: Colors.orange.shade300,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          )
+                        else
+                          Text(
+                            'Nenhum familiar vinculado encontrado.',
+                            style: AppTextStyles.leagueSpartan(
+                              fontSize: 16,
+                              color: Colors.white.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        const SizedBox(height: 16),
                         Text(
-                          'Nenhum familiar vinculado encontrado.',
+                          '💡 Dica: O botão de pânico envia alertas para TODOS os seus familiares cadastrados, mesmo que você não tenha o telefone deles.',
                           style: AppTextStyles.leagueSpartan(
-                            fontSize: 16,
+                            fontSize: 14,
                             color: Colors.white.withValues(alpha: 0.8),
+                            height: 1.5,
                           ),
                         ),
-                      const SizedBox(height: 16),
-                      Text(
-                        '💡 Dica: O botão de pânico envia alertas para TODOS os seus familiares cadastrados, mesmo que você não tenha o telefone deles.',
-                        style: AppTextStyles.leagueSpartan(
-                          fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.8),
-                          height: 1.5,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
@@ -8,7 +7,8 @@ import '../../services/historico_eventos_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../widgets/animated_card.dart';
 import '../../widgets/voice_interface_widget.dart';
 import '../../services/accessibility_service.dart';
 
@@ -75,7 +75,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
       
       if (user == null) return;
       
-      final compromissoId = compromisso['id'] as String;
+      // final compromissoId = compromisso['id'] as String; // Não utilizado
       final titulo = compromisso['titulo'] as String? ?? 'Compromisso';
       
       // Registrar evento no histórico (tabela compromissos não tem campo concluido)
@@ -177,14 +177,17 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                        child: GlassCard(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.error_outline,
-                                size: 48,
-                                color: Colors.red.shade300,
+                        child: AnimatedCard(
+                          index: 0,
+                          child: CareMindCard(
+                            variant: CardVariant.glass,
+                            padding: AppSpacing.paddingLarge,
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  size: 48,
+                                  color: Colors.red.shade300,
                               ),
                               const SizedBox(height: 16),
                               Text(
@@ -224,17 +227,21 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                         ),
                       ),
                     ),
+                    ),
 
                   // Lista vazia
                   if (_error == null && _compromissos.isEmpty)
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                        child: GlassCard(
-                          padding: const EdgeInsets.all(32),
-                          child: Column(
-                            children: [
-                              Icon(
+                        padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
+                        child: AnimatedCard(
+                          index: 1,
+                          child: CareMindCard(
+                            variant: CardVariant.glass,
+                            padding: AppSpacing.paddingXLarge,
+                            child: Column(
+                              children: [
+                                Icon(
                                 Icons.calendar_today,
                                 size: 64,
                                 color: Colors.white.withValues(alpha: 0.7),
@@ -258,7 +265,8 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
                                   color: Colors.white.withValues(alpha: 0.8),
                                 ),
                               ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -311,17 +319,20 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
     final dateFormat = DateFormat('dd/MM/yyyy');
     final timeFormat = DateFormat('HH:mm');
 
-    return GlassCard(
-      onTap: isPassado
-          ? null
-          : () {
+    return AnimatedCard(
+      index: 2,
+      child: CareMindCard(
+        variant: CardVariant.glass,
+        onTap: isPassado
+            ? null
+            : () {
               AccessibilityService.vibrar();
               _marcarComoConcluido(compromisso);
             },
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        padding: AppSpacing.paddingLarge,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Header com data e status
           Row(
             children: [
@@ -452,6 +463,7 @@ class _CompromissosIdosoScreenState extends State<CompromissosIdosoScreen> {
             ),
           ],
         ],
+        ),
       ),
     );
   }

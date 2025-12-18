@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
@@ -17,7 +16,8 @@ import '../../core/state/familiar_state.dart';
 import '../../core/accessibility/tts_enhancer.dart';
 import '../../services/historico_eventos_service.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../widgets/animated_card.dart';
 import '../../widgets/banner_contexto_familiar.dart';
 import '../../widgets/voice_interface_widget.dart';
 import '../../widgets/skeleton_loader.dart';
@@ -50,7 +50,6 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
   String? _error;
   String? _perfilTipo;
   bool _isOffline = false;
-  DateTime? _lastSync;
 
   @override
   void initState() {
@@ -357,10 +356,13 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                 ),
                 const SizedBox(height: 24),
                 // Opção: Formulário
-                GlassCard(
-                  onTap: () => Navigator.pop(context, 'formulario'),
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
+                AnimatedCard(
+                  index: 0,
+                  child: CareMindCard(
+                    variant: CardVariant.glass,
+                    onTap: () => Navigator.pop(context, 'formulario'),
+                    padding: AppSpacing.paddingLarge,
+                    child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -406,21 +408,25 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+              ),
+                SizedBox(height: AppSpacing.small + 4),
                 // Opção: OCR
                 PremiumGuard(
                   isEnabled: getIt<SubscriptionService>().canUseOCR,
                   mode: PremiumGuardMode.blockTouch,
-                  child: GlassCard(
-                    onTap: () async {
-                      final subscriptionService = getIt<SubscriptionService>();
-                      await subscriptionService.getPermissions();
-                      if (subscriptionService.canUseOCR && mounted) {
-                        Navigator.pop(context, 'ocr');
-                      }
-                    },
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
+                  child: AnimatedCard(
+                    index: 1,
+                    child: CareMindCard(
+                      variant: CardVariant.glass,
+                      onTap: () async {
+                        final subscriptionService = getIt<SubscriptionService>();
+                        await subscriptionService.getPermissions();
+                        if (subscriptionService.canUseOCR && mounted) {
+                          Navigator.pop(context, 'ocr');
+                        }
+                      },
+                      padding: AppSpacing.paddingLarge,
+                      child: Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(12),
@@ -467,7 +473,8 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+              ),
+                SizedBox(height: AppSpacing.medium),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(
@@ -535,10 +542,13 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                 ),
                 const SizedBox(height: 24),
                 // Opção: Câmera
-                GlassCard(
-                  onTap: () => Navigator.pop(context, ImageSource.camera),
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
+                AnimatedCard(
+                  index: 2,
+                  child: CareMindCard(
+                    variant: CardVariant.glass,
+                    onTap: () => Navigator.pop(context, ImageSource.camera),
+                    padding: AppSpacing.paddingLarge,
+                    child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -584,12 +594,16 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+              ),
+                SizedBox(height: AppSpacing.small + 4),
                 // Opção: Galeria
-                GlassCard(
-                  onTap: () => Navigator.pop(context, ImageSource.gallery),
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
+                AnimatedCard(
+                  index: 3,
+                  child: CareMindCard(
+                    variant: CardVariant.glass,
+                    onTap: () => Navigator.pop(context, ImageSource.gallery),
+                    padding: AppSpacing.paddingLarge,
+                    child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -635,7 +649,8 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+              ),
+                SizedBox(height: AppSpacing.medium),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(
@@ -896,13 +911,13 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                         fontSize: 16,
                         height: 1.5,
                       ),
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
       );
     }
 

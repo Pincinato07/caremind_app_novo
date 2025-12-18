@@ -5,7 +5,8 @@ import '../../services/medication_crud_service.dart';
 import '../../services/accessibility_service.dart';
 import '../../core/accessibility/tts_enhancer.dart';
 import '../../widgets/app_text_field.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../widgets/animated_card.dart';
 import '../../widgets/caremind_app_bar.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../theme/app_theme.dart';
@@ -246,14 +247,18 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
     return Semantics(
       label: 'Barra de busca',
       hint: 'Digite para buscar medicamentos',
-      child: GlassCard(
-        padding: const EdgeInsets.all(16),
+      child: AnimatedCard(
+        index: 0,
+        child: CareMindCard(
+          variant: CardVariant.glass,
+          padding: AppSpacing.paddingCard,
         child: AppTextField(
           controller: _searchController,
           label: 'Buscar medicamentos',
           prefixIcon: Icon(Icons.search),
         ),
       ),
+    ),
     );
   }
 
@@ -261,9 +266,12 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
     return Semantics(
       label: 'Medicamento ${medication.nome}',
       hint: 'Dosagem: ${medication.dosagem ?? 'Não informada'}',
-      child: GlassCard(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      child: AnimatedCard(
+        index: 1,
+        child: CareMindCard(
+          variant: CardVariant.glass,
+          padding: AppSpacing.paddingCard,
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -361,6 +369,7 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -433,8 +442,11 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
   }
 
   Widget _buildMedicamentoForm() {
-    return GlassCard(
-      padding: const EdgeInsets.all(20),
+    return AnimatedCard(
+      index: 2,
+      child: CareMindCard(
+        variant: CardVariant.glass,
+        padding: AppSpacing.paddingLarge,
       child: Form(
         key: _formKey,
         child: Column(
@@ -513,6 +525,7 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
           ],
         ),
       ),
+    ),
     );
   }
 

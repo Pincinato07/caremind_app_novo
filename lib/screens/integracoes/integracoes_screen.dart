@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../widgets/animated_card.dart';
 import '../../core/injection/injection.dart';
 import '../../services/ocr_service.dart';
 import '../../services/supabase_service.dart';
@@ -105,8 +105,11 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: GlassCard(
-                  padding: const EdgeInsets.all(24),
+                child: AnimatedCard(
+                  index: 0,
+                  child: CareMindCard(
+                    variant: CardVariant.glass,
+                    padding: AppSpacing.paddingLarge,
                   child: Column(
                     children: [
                       Icon(
@@ -140,8 +143,9 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                 ),
               ),
             ),
+            ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            SliverToBoxAdapter(child: SizedBox(height: AppSpacing.large)),
 
             // Botão de captura de imagem
             if (_selectedImage == null && !_isProcessing)
@@ -202,9 +206,12 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
-                  child: GlassCard(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
+                  child: AnimatedCard(
+                    index: 1,
+                    child: CareMindCard(
+                      variant: CardVariant.glass,
+                      padding: AppSpacing.paddingCard,
+                      child: Column(
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
@@ -254,14 +261,18 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                   ),
                 ),
               ),
+            ),
 
             // Loading durante upload
             if (_isProcessing && !_isPolling)
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
-                  child: GlassCard(
-                    padding: const EdgeInsets.all(32),
+                  child: AnimatedCard(
+                    index: 2,
+                    child: CareMindCard(
+                      variant: CardVariant.glass,
+                      padding: AppSpacing.paddingXLarge,
                     child: Column(
                       children: [
                         const CircularProgressIndicator(
@@ -289,14 +300,18 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                   ),
                 ),
               ),
+            ),
 
             // Polling durante processamento OCR
             if (_isPolling)
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
-                  child: GlassCard(
-                    padding: const EdgeInsets.all(32),
+                  child: AnimatedCard(
+                    index: 2,
+                    child: CareMindCard(
+                      variant: CardVariant.glass,
+                      padding: AppSpacing.paddingXLarge,
                     child: Column(
                       children: [
                         const CircularProgressIndicator(
@@ -344,14 +359,18 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                   ),
                 ),
               ),
+            ),
 
             // Erro
             if (_error != null)
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
-                  child: GlassCard(
-                    padding: const EdgeInsets.all(24),
+                  child: AnimatedCard(
+                    index: 4,
+                    child: CareMindCard(
+                      variant: CardVariant.glass,
+                      padding: AppSpacing.paddingLarge,
                     child: Column(
                       children: [
                         Icon(
@@ -392,9 +411,10 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                   ),
                 ),
               ),
+            ),
 
 
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            SliverToBoxAdapter(child: SizedBox(height: AppSpacing.large)),
           ],
         ),
       ),

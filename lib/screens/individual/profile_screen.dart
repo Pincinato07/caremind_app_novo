@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../widgets/animated_card.dart';
 import '../../widgets/caremind_app_bar.dart';
 import '../../services/profile_service.dart';
 import '../../services/accessibility_service.dart';
@@ -229,9 +229,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildProfileHeader() {
     return Semantics(
       label: 'Cabeçalho do perfil',
-      child: GlassCard(
-        padding: const EdgeInsets.all(24),
-        child: Column(
+      child: AnimatedCard(
+        index: 0,
+        child: CareMindCard(
+          variant: CardVariant.glass,
+          padding: AppSpacing.paddingLarge,
+          child: Column(
           children: [
             // Foto do perfil
             GestureDetector(
@@ -315,6 +318,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -635,10 +639,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             if (_currentProfile != null)
               Semantics(
                 label: 'Informações adicionais do perfil',
-                child: GlassCard(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                child: AnimatedCard(
+                  index: 1,
+                  child: CareMindCard(
+                    variant: CardVariant.glass,
+                    padding: AppSpacing.paddingCard,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Informações Adicionais',
@@ -658,6 +665,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ),
+            ),
           ],
         ),
       ),

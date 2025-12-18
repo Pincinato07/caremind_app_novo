@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
@@ -38,7 +37,6 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
   String? _error;
   String? _perfilTipo;
   bool _isOffline = false;
-  DateTime? _lastSync;
 
   @override
   void initState() {
@@ -129,7 +127,6 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
           final rotinas = await rotinaService.getRotinas(targetId);
           
           await OfflineCacheService.cacheRotinas(targetId, rotinas);
-          _lastSync = DateTime.now();
           
           setState(() {
             _rotinas = rotinas;
@@ -164,7 +161,6 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
   Future<void> _loadFromCache(String userId) async {
     try {
       final cachedRotinas = await OfflineCacheService.getCachedRotinas(userId);
-      _lastSync = await OfflineCacheService.getCacheTimestamp(userId, 'rotinas');
       
       if (cachedRotinas.isNotEmpty) {
         setState(() {

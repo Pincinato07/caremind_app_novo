@@ -20,6 +20,11 @@ import '../../services/appointment_crud_service.dart';
 import '../../services/vinculo_familiar_service.dart';
 import '../../services/daily_cache_service.dart';
 import '../../services/subscription_service.dart';
+import '../../services/convite_idoso_service.dart';
+import '../../services/organizacao_service.dart';
+import '../../services/membro_organizacao_service.dart';
+import '../../services/idoso_organizacao_service.dart';
+import '../../services/exportacao_service.dart';
 import '../services/auth_service.dart';
 import '../../core/state/familiar_state.dart';
 
@@ -122,5 +127,25 @@ Future<void> configureDependencies() async {
   await dailyCacheService.initialize();
   getIt.registerLazySingleton<DailyCacheService>(
     () => dailyCacheService,
+  );
+
+  getIt.registerLazySingleton<ConviteIdosoService>(
+    () => ConviteIdosoService(getIt<SupabaseClient>()),
+  );
+
+  getIt.registerLazySingleton<OrganizacaoService>(
+    () => OrganizacaoService(getIt<SupabaseService>()),
+  );
+
+  getIt.registerLazySingleton<MembroOrganizacaoService>(
+    () => MembroOrganizacaoService(getIt<SupabaseService>()),
+  );
+
+  getIt.registerLazySingleton<IdosoOrganizacaoService>(
+    () => IdosoOrganizacaoService(getIt<SupabaseService>()),
+  );
+
+  getIt.registerLazySingleton<ExportacaoService>(
+    () => ExportacaoService(getIt<SupabaseService>()),
   );
 }

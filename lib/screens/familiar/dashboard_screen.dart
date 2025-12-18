@@ -8,6 +8,7 @@ import '../../core/state/familiar_state.dart';
 import '../../models/medicamento.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/caremind_app_bar.dart';
+import '../../widgets/caremind_card.dart';
 import '../../core/accessibility/accessibility_helper.dart';
 import '../../widgets/charts/adherence_bar_chart.dart';
 import '../../widgets/charts/adherence_line_chart.dart';
@@ -29,6 +30,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
   
   List<Map<String, dynamic>> _alertas = [];
   DateTime? _ultimaAtividade;
+  List<DailyAdherence> _dadosAdesao = [];
 
   @override
   void initState() {
@@ -120,6 +122,9 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
       
       // Gerar alertas baseados em medicamentos atrasados
       _alertas = _gerarAlertas(medicamentos, statusMedicamentos);
+      
+      // Buscar dados de adesão dos últimos 7 dias
+      _dadosAdesao = await HistoricoEventosService.getDadosAdesaoUltimos7Dias(idosoId);
       
       final pendentes = medicamentos.where((m) => !(statusMedicamentos[m.id] ?? false)).toList();
       final tomados = medicamentos.where((m) => statusMedicamentos[m.id] ?? false).toList();
@@ -228,7 +233,10 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffoldWithWaves(
-      appBar: const CareMindAppBar(isFamiliar: true),
+      appBar: const CareMindAppBar(
+        isFamiliar: true,
+        isIdoso: false,
+      ),
       useSolidBackground: true,
       showWaves: false,
       backgroundColor: AppColors.background,
@@ -237,11 +245,22 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
             ? const Center(
                 child: CircularProgressIndicator(color: AppColors.primary),
               )
-            : CustomScrollView(
+            : RefreshIndicator(
+                onRefresh: _loadUserData,
+                color: AppColors.primary,
+                backgroundColor: Colors.white,
+                strokeWidth: 2.5,
+                displacement: 40,
+                child: CustomScrollView(
                 slivers: [
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                      padding: EdgeInsets.fromLTRB(
+                        AppSpacing.large,
+                        AppSpacing.medium,
+                        AppSpacing.large,
+                        AppSpacing.large,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -275,7 +294,10 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                         final familiarState = getIt<FamiliarState>();
                         if (familiarState.idosoSelecionado != null) {
                           return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.large,
+                              vertical: AppSpacing.small,
+                            ),
                             child: _buildSemaforoStatus(),
                           );
                         }
@@ -310,21 +332,12 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                 ],
               ),
       ),
+        ),
     );
   }
 
-  Widget _surfaceCard({required Widget child, EdgeInsets padding = const EdgeInsets.all(20), Color? borderColor}) {
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor ?? AppColors.border),
-        boxShadow: AppShadows.small,
-      ),
-      child: child,
-    );
-  }
+  // Removido: _surfaceCard substituído por CareMindCard
+  // Use: CareMindCard(variant: CardVariant.solid, ...)
 
   Widget _buildSemaforoStatus() {
     final familiarState = getIt<FamiliarState>();
@@ -336,7 +349,8 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
     final temAtraso = status?['temAtraso'] ?? false;
     final mensagem = status?['mensagem'] ?? 'Carregando status...';
 
-    return _surfaceCard(
+    return CareMindCard(
+      variant: CardVariant.solid,
       borderColor: (temAtraso ? AppColors.error : AppColors.success).withValues(alpha: 0.4),
       child: Row(
         children: [
@@ -361,19 +375,13 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
               children: [
                 Text(
                   temAtraso ? 'Atenção necessária' : 'Tudo em dia!',
-                  style: AppTextStyles.leagueSpartan(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: AppTextStyles.titleMedium,
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: AppSpacing.xsmall),
                 Text(
                   mensagem,
-                  style: AppTextStyles.leagueSpartan(
-                    fontSize: 14,
+                  style: AppTextStyles.bodyMedium.copyWith(
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -402,17 +410,18 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
 
         return Column(
           children: [
-            _surfaceCard(
+            CareMindCard(
+              variant: CardVariant.solid,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: EdgeInsets.all(AppSpacing.small + 4),
                         decoration: BoxDecoration(
                           color: AppColors.info.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: AppBorderRadius.smallAll,
                         ),
                         child: Icon(
                           Icons.analytics_outlined,
@@ -420,33 +429,26 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                           size: 28,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      SizedBox(width: AppSpacing.medium),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Status de Adesão',
-                              style: AppTextStyles.leagueSpartan(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
+                              style: AppTextStyles.headlineSmall,
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: AppSpacing.xsmall),
                             Text(
                               idosoSelecionado.nome ?? 'Idoso',
-                              style: AppTextStyles.leagueSpartan(
-                                fontSize: 14,
-                                color: AppColors.textSecondary,
-                              ),
+                              style: AppTextStyles.bodyMedium,
                             ),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: AppSpacing.medium + 4),
                   Row(
                     children: [
                       SizedBox(
@@ -503,44 +505,38 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            _surfaceCard(
-              padding: const EdgeInsets.all(16),
+            SizedBox(height: AppSpacing.medium),
+            CareMindCard(
+              variant: CardVariant.solid,
+              padding: AppSpacing.paddingCard,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Adesão Últimos 7 Dias',
-                    style: AppTextStyles.leagueSpartan(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
+                    style: AppTextStyles.titleMedium,
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: AppSpacing.medium),
                   AdherenceBarChart(
-                    data: [], // TODO: Implementar busca de dados de adesão
+                    data: _dadosAdesao,
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            _surfaceCard(
-              padding: const EdgeInsets.all(16),
+            SizedBox(height: AppSpacing.medium),
+            CareMindCard(
+              variant: CardVariant.solid,
+              padding: AppSpacing.paddingCard,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Tendência Semanal',
-                    style: AppTextStyles.leagueSpartan(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
+                    style: AppTextStyles.titleMedium,
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: AppSpacing.medium),
                   AdherenceLineChart(
-                    data: [], // TODO: Implementar busca de dados de adesão
+                    data: _dadosAdesao,
                   ),
                 ],
               ),
@@ -563,14 +559,15 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
         }
 
         if (_alertas.isEmpty) {
-          return _surfaceCard(
+          return CareMindCard(
+            variant: CardVariant.solid,
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(AppSpacing.small + 4),
                   decoration: BoxDecoration(
                     color: AppColors.success.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppBorderRadius.smallAll,
                   ),
                   child: Icon(
                     Icons.check_circle,
@@ -578,26 +575,19 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                     size: 28,
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: AppSpacing.medium),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Nenhum alerta recente',
-                        style: AppTextStyles.leagueSpartan(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
+                        style: AppTextStyles.headlineSmall,
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: AppSpacing.xsmall),
                       Text(
                         'Tudo está em ordem!',
-                        style: AppTextStyles.leagueSpartan(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                        ),
+                        style: AppTextStyles.bodyMedium,
                       ),
                     ],
                   ),
@@ -607,17 +597,18 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
           );
         }
 
-        return _surfaceCard(
+        return CareMindCard(
+          variant: CardVariant.solid,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: EdgeInsets.all(AppSpacing.small + 4),
                     decoration: BoxDecoration(
                       color: AppColors.error.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppBorderRadius.smallAll,
                     ),
                     child: Icon(
                       Icons.warning_rounded,
@@ -625,18 +616,14 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                       size: 28,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: AppSpacing.medium),
                   Text(
                     'Alertas Recentes',
-                    style: AppTextStyles.leagueSpartan(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
+                    style: AppTextStyles.headlineSmall,
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: AppSpacing.medium),
               ..._alertas.map((alerta) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -711,14 +698,15 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
           textoAtividade = 'Visto agora';
         }
 
-        return _surfaceCard(
+        return CareMindCard(
+          variant: CardVariant.solid,
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(AppSpacing.small + 4),
                 decoration: BoxDecoration(
                   color: AppColors.accent.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppBorderRadius.smallAll,
                 ),
                 child: Icon(
                   Icons.access_time,
@@ -726,26 +714,19 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                   size: 28,
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: AppSpacing.medium),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Última Atividade',
-                      style: AppTextStyles.leagueSpartan(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+                      style: AppTextStyles.headlineSmall,
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: AppSpacing.xsmall),
                     Text(
                       textoAtividade,
-                      style: AppTextStyles.leagueSpartan(
-                        fontSize: 14,
-                        color: AppColors.textSecondary,
-                      ),
+                      style: AppTextStyles.bodyMedium,
                     ),
                   ],
                 ),

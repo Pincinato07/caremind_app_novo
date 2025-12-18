@@ -37,22 +37,30 @@ class AppTextStyles {
   static const TextStyle displayMedium = TextStyle(fontSize: 28, fontWeight: FontWeight.w700, height: 1.2, color: AppColors.textPrimary, fontFamily: fontFamily);
   static const TextStyle displaySmall = TextStyle(fontSize: 24, fontWeight: FontWeight.w700, height: 1.2, color: AppColors.textPrimary, fontFamily: fontFamily);
 
+  // Headline (Títulos de seções)
   static const TextStyle headlineLarge = TextStyle(fontSize: 24, fontWeight: FontWeight.w700, height: 1.2, color: AppColors.textPrimary, fontFamily: fontFamily);
-  static const TextStyle headlineMedium = TextStyle(fontSize: 22, fontWeight: FontWeight.w700, height: 1.2, color: AppColors.textPrimary, fontFamily: fontFamily);
-  static const TextStyle headlineSmall = TextStyle(fontSize: 20, fontWeight: FontWeight.w700, height: 1.2, color: AppColors.textPrimary, fontFamily: fontFamily);
+  static const TextStyle headlineMedium = TextStyle(fontSize: 20, fontWeight: FontWeight.w700, height: 1.2, color: AppColors.textPrimary, fontFamily: fontFamily);
+  static const TextStyle headlineSmall = TextStyle(fontSize: 18, fontWeight: FontWeight.w700, height: 1.2, color: AppColors.textPrimary, fontFamily: fontFamily);
 
+  // Title (Subtítulos e labels importantes)
   static const TextStyle titleLarge = TextStyle(fontSize: 18, fontWeight: FontWeight.w700, height: 1.25, color: AppColors.textPrimary, fontFamily: fontFamily);
   static const TextStyle titleMedium = TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.25, color: AppColors.textPrimary, fontFamily: fontFamily);
   static const TextStyle titleSmall = TextStyle(fontSize: 14, fontWeight: FontWeight.w600, height: 1.25, color: AppColors.textPrimary, fontFamily: fontFamily);
 
+  // Body (Texto corrido)
   static const TextStyle bodyLarge = TextStyle(fontSize: 16, height: 1.5, color: AppColors.textPrimary, fontFamily: fontFamily);
   static const TextStyle bodyMedium = TextStyle(fontSize: 14, height: 1.5, color: AppColors.textSecondary, fontFamily: fontFamily);
   static const TextStyle bodySmall = TextStyle(fontSize: 12, height: 1.5, color: AppColors.textSecondary, fontFamily: fontFamily);
 
-  static const TextStyle labelLarge = TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textOnPrimary, fontFamily: fontFamily);
-  static const TextStyle labelMedium = TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary, fontFamily: fontFamily);
-  static const TextStyle labelSmall = TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textPrimary, fontFamily: fontFamily);
+  // Label (Botões e ações)
+  static const TextStyle labelLarge = TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textOnPrimary, fontFamily: fontFamily);
+  static const TextStyle labelMedium = TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary, fontFamily: fontFamily);
+  static const TextStyle labelSmall = TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary, fontFamily: fontFamily);
 
+  // Caption (Legendas e informações secundárias)
+  static const TextStyle caption = TextStyle(fontSize: 12, height: 1.4, color: AppColors.textHint, fontFamily: fontFamily);
+
+  // Link
   static const TextStyle link = TextStyle(fontSize: 14, color: AppColors.primary, fontWeight: FontWeight.w700, decoration: TextDecoration.underline, fontFamily: fontFamily);
 
   // Método para League Spartan
@@ -116,6 +124,7 @@ class AppShadows {
 }
 
 /// Espaçamentos padronizados
+/// REGRA: Use APENAS estes valores. Nunca valores hardcoded como EdgeInsets.all(24)
 class AppSpacing {
   static const double xsmall = 4.0;
   static const double small = 8.0;
@@ -124,6 +133,18 @@ class AppSpacing {
   static const double xlarge = 32.0;
   static const double xxlarge = 48.0;
   static const double bottomNavBarPadding = 96.0;
+  
+  /// Helpers para EdgeInsets comuns
+  static const EdgeInsets paddingSmall = EdgeInsets.all(small);
+  static const EdgeInsets paddingMedium = EdgeInsets.all(medium);
+  static const EdgeInsets paddingLarge = EdgeInsets.all(large);
+  static const EdgeInsets paddingXLarge = EdgeInsets.all(xlarge);
+  
+  static const EdgeInsets paddingHorizontal = EdgeInsets.symmetric(horizontal: medium);
+  static const EdgeInsets paddingVertical = EdgeInsets.symmetric(vertical: medium);
+  
+  static const EdgeInsets paddingScreen = EdgeInsets.all(large);
+  static const EdgeInsets paddingCard = EdgeInsets.all(medium);
 }
 
 /// Tema principal do aplicativo

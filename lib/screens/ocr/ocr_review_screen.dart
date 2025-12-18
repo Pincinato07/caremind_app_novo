@@ -3,7 +3,8 @@ import 'package:get_it/get_it.dart';
 import '../../services/ocr_service.dart';
 import '../../services/supabase_service.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../widgets/animated_card.dart';
 import '../../widgets/wave_background.dart';
 import '../../models/ocr_medicamento.dart';
 
@@ -171,9 +172,12 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
                 // Cabeçalho
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: GlassCard(
-                    child: Row(
-                      children: [
+                  child: AnimatedCard(
+                    index: 0,
+                    child: CareMindCard(
+                      variant: CardVariant.glass,
+                      child: Row(
+                        children: [
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -211,7 +215,8 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                ),
+                SizedBox(height: AppSpacing.medium),
 
                 // Lista de medicamentos
                 Expanded(
@@ -272,9 +277,12 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
     
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: GlassCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: AnimatedCard(
+        index: 1,
+        child: CareMindCard(
+          variant: CardVariant.glass,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header com número e botão remover
             Row(
@@ -372,6 +380,7 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../widgets/animated_card.dart';
 
 /// Tela de Termos de Uso e Política de Privacidade (LGPD)
 class TermosPrivacidadeScreen extends StatelessWidget {
@@ -53,38 +54,75 @@ class TermosPrivacidadeScreen extends StatelessWidget {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
-                child: GlassCard(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        showTerms
-                            ? 'Termos de Uso - CareMind'
-                            : 'Política de Privacidade - CareMind',
-                        style: AppTextStyles.leagueSpartan(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                child: AnimatedCard(
+                  index: 0,
+                  child: CareMindCard(
+                    variant: CardVariant.glass,
+                    padding: AppSpacing.paddingLarge,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          showTerms
+                              ? 'Termos de Uso - CareMind'
+                              : 'Política de Privacidade - CareMind',
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Última atualização: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
-                        style: AppTextStyles.leagueSpartan(
-                          fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.7),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Última atualização: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 14,
+                            color: Colors.white.withValues(alpha: 0.7),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      ..._buildContent(showTerms),
-                    ],
+                        const SizedBox(height: 24),
+                        ..._buildContent(showTerms),
+                        const SizedBox(height: 24),
+                        // Botão para ver versão completa no site
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            final url = showTerms 
+                                ? 'https://caremind.com.br/termos'
+                                : 'https://caremind.com.br/politica-privacidade';
+                            final uri = Uri.parse(url);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                          icon: const Icon(Icons.open_in_browser),
+                          label: Text(
+                            'Ver versão completa no site',
+                            style: AppTextStyles.leagueSpartan(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white.withValues(alpha: 0.2),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            SliverToBoxAdapter(child: SizedBox(height: AppSpacing.large)),
           ],
         ),
       ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+// import 'package:qr_flutter/qr_flutter.dart'; // TODO: Adicionar dependência qr_flutter no pubspec.yaml
 
 class ExibirConviteScreen extends StatelessWidget {
   final String codigoConvite;
@@ -31,16 +31,29 @@ class ExibirConviteScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // QR Code com o deep link
+            // TODO: Descomentar quando qr_flutter for adicionado ao pubspec.yaml
+            // Container(
+            //   padding: const EdgeInsets.all(16),
+            //   decoration: BoxDecoration(
+            //     border: Border.all(color: Colors.blue, width: 2),
+            //     borderRadius: BorderRadius.circular(8),
+            //   ),
+            //   child: QrImageView(
+            //     data: deepLink,
+            //     version: QrVersions.auto,
+            //     size: 200.0,
+            //   ),
+            // ),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.blue, width: 2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: QrImageView(
-                data: deepLink,
-                version: QrVersions.auto,
+              child: const Icon(
+                Icons.qr_code,
                 size: 200.0,
+                color: Colors.blue,
               ),
             ),
 

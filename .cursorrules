@@ -1,0 +1,445 @@
+# Regras e Guia do Cursor - CareMind App (Flutter)
+
+## 📋 Visão Geral do Projeto
+
+O CareMind App é um aplicativo Flutter para cuidado e acompanhamento de saúde de idosos, com:
+- **Framework**: Flutter 3.5+
+- **Linguagem**: Dart
+- **State Management**: Riverpod 2.4+
+- **Backend**: Supabase
+- **Notificações**: Firebase Cloud Messaging (FCM)
+- **Navegação**: GoRouter
+
+## 🏗️ Estrutura do Projeto
+
+```
+lib/
+├── main.dart                    # Ponto de entrada
+├── core/                       # Funcionalidades core
+│   ├── accessibility/         # Acessibilidade
+│   ├── deep_link/            # Deep links
+│   ├── errors/               # Tratamento de erros
+│   ├── injection/            # Injeção de dependências (GetIt)
+│   ├── navigation/           # Configuração de navegação
+│   └── services/             # Serviços base
+├── models/                    # Modelos de dados
+├── providers/                 # Riverpod providers
+├── screens/                   # Telas do app
+│   ├── auth/                 # Autenticação
+│   ├── individual/           # Perfil individual
+│   ├── familiar/             # Perfil familiar
+│   ├── idoso/                # Perfil idoso
+│   ├── organizacao/          # Organizações
+│   ├── medication/           # Medicamentos
+│   ├── rotinas/              # Rotinas
+│   ├── compromissos/         # Compromissos
+│   └── shared/               # Telas compartilhadas
+├── services/                  # Serviços de negócio
+├── theme/                     # Tema do app
+└── widgets/                   # Widgets reutilizáveis
+```
+
+## 📝 Convenções de Código
+
+### Nomenclatura
+- **Classes**: PascalCase (`UserProfileScreen`)
+- **Arquivos**: snake_case (`user_profile_screen.dart`)
+- **Variáveis/Funções**: camelCase (`getUserData`)
+- **Constantes**: camelCase com prefixo `k` ou `const` em UPPER_CASE
+- **Privados**: Prefixo `_` (`_privateMethod`)
+
+### Estrutura de Arquivos
+```dart
+// 1. Imports (Flutter primeiro, depois packages, depois relativos)
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/user.dart';
+
+// 2. Classe principal
+class UserProfileScreen extends ConsumerWidget {
+  const UserProfileScreen({super.key});
+  
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // implementação
+  }
+}
+```
+
+### Widgets
+- Prefira `StatelessWidget` ou `ConsumerWidget` (Riverpod)
+- Use `const` quando possível
+- Extraia widgets grandes em métodos privados ou classes separadas
+- Use `super.key` em construtores
+
+### State Management (Riverpod)
+- Use `ConsumerWidget` para widgets que precisam de providers
+- Use `ref.watch()` para ler e observar mudanças
+- Use `ref.read()` para ações únicas (não observar)
+- Use `ref.listen()` para side effects
+
+```dart
+// Exemplo de uso do Riverpod
+class MyWidget extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(userProvider);
+    final isLoading = ref.watch(loadingProvider);
+    
+    return Scaffold(
+      body: isLoading 
+        ? CircularProgressIndicator()
+        : Text(user.name),
+    );
+  }
+}
+```
+
+### Models
+- Use classes com construtores nomeados
+- Implemente `fromJson` e `toJson` quando necessário
+- Use `equatable` para comparação de objetos
+- Documente campos importantes
+
+### Services
+- Uma classe por serviço
+- Use injeção de dependências (GetIt)
+- Sempre trate erros adequadamente
+- Use async/await, não `.then()`
+
+```dart
+// Exemplo de service
+class UserService {
+  final SupabaseClient _supabase;
+  
+  UserService(this._supabase);
+  
+  Future<User> getUser(String id) async {
+    try {
+      final response = await _supabase
+        .from('users')
+        .select()
+        .eq('id', id)
+        .single();
+      
+      return User.fromJson(response);
+    } catch (e) {
+      throw UserServiceException('Erro ao buscar usuário: $e');
+    }
+  }
+}
+```
+
+## 🎨 UI e Design
+
+### Tema
+- Use `AppTheme` para cores, textos e espaçamentos
+- Sempre use `AppColors`, `AppTextStyles`, `AppSpacing`
+- Mantenha consistência visual
+
+### Widgets Reutilizáveis
+- Crie widgets em `lib/widgets/` quando reutilizáveis
+- Use composição ao invés de herança
+- Documente props importantes
+
+### Responsividade
+- Use `MediaQuery` para tamanhos de tela
+- Teste em diferentes dispositivos
+- Considere tablets e landscape quando necessário
+
+## 🔐 Autenticação e Segurança
+
+### Supabase
+- Use `Supabase.instance.client` para acessar o cliente
+- Sempre verifique autenticação antes de operações sensíveis
+- Use RLS do Supabase (não bypass)
+
+### Dados Sensíveis
+- Use `flutter_secure_storage` para tokens
+- Nunca hardcode secrets
+- Use `.env` para configurações (flutter_dotenv)
+
+## 📱 Navegação
+
+### GoRouter
+- Configure rotas em `core/navigation/`
+- Use named routes
+- Passe parâmetros via `extra` ou query params
+- Use `context.go()` para navegação
+
+### Deep Links
+- Use `DeepLinkHandler` para processar deep links
+- Configure URLs no `AndroidManifest.xml` e `Info.plist`
+
+## 🔔 Notificações
+
+### Firebase Cloud Messaging
+- Use `NotificationService` para gerenciar notificações
+- Configure handlers para foreground e background
+- Atualize token FCM quando necessário
+
+## 💾 Armazenamento Local
+
+### SharedPreferences
+- Use para configurações simples
+- Não use para dados sensíveis
+
+### Secure Storage
+- Use para tokens e dados sensíveis
+- Sempre trate erros de acesso
+
+### Hive
+- Use para cache de dados
+- Configure boxes apropriadamente
+
+## 🧪 Testes e Qualidade
+
+### Linting
+- Use `dart analyze` antes de commitar
+- Corrija todos os warnings
+- Use `dart format .` para formatação
+
+### Type Safety
+- Sempre use tipos explícitos
+- Evite `dynamic` - use `Object?` se necessário
+- Use null safety adequadamente
+
+## 🚀 Build e Deploy
+
+### Android
+- Configure `android/app/build.gradle`
+- Use `key.properties` para signing
+- Configure `google-services.json` para Firebase
+
+### iOS
+- Configure `ios/Runner/Info.plist`
+- Configure `GoogleService-Info.plist` para Firebase
+- Configure signing no Xcode
+
+### Variáveis de Ambiente
+- Use `.env` para configurações
+- Configure no CI/CD para produção
+- Nunca commite `.env` files
+
+## 📚 Bibliotecas Principais
+
+- **flutter_riverpod**: State management
+- **supabase_flutter**: Backend e auth
+- **go_router**: Navegação
+- **firebase_messaging**: Notificações push
+- **cached_network_image**: Imagens
+- **intl**: Internacionalização
+- **url_launcher**: Abrir URLs externas
+
+## 🔄 Padrões de Commit
+
+Use Conventional Commits em português:
+
+Formato: `tipo(escopo): descrição`
+
+Tipos:
+- `feat`: Nova funcionalidade
+- `fix`: Correção de bug
+- `docs`: Documentação
+- `style`: Formatação
+- `refactor`: Refatoração
+- `perf`: Performance
+- `test`: Testes
+- `chore`: Manutenção
+
+Exemplos:
+- `feat(auth): adiciona login com Google`
+- `fix(dashboard): corrige carregamento de dados`
+- `refactor(services): reorganiza estrutura de serviços`
+
+## ⚠️ Avisos Importantes
+
+1. **Async/Await**: Sempre use, nunca `.then()` chains
+2. **Error Handling**: Sempre trate erros adequadamente
+3. **Memory Leaks**: Dispose controllers e subscriptions
+4. **Performance**: Use `const` quando possível, evite rebuilds desnecessários
+5. **Acessibilidade**: Sempre considere acessibilidade (semantics)
+
+## 🎯 Padrões Específicos do Projeto
+
+### Providers
+- Crie providers em `lib/providers/`
+- Use `@riverpod` annotations quando possível
+- Documente providers complexos
+
+### Screens
+- Uma screen por arquivo
+- Use `ConsumerWidget` quando precisar de providers
+- Extraia lógica complexa para services
+
+### Services
+- Uma responsabilidade por service
+- Use GetIt para injeção de dependências
+- Sempre retorne tipos específicos, não `dynamic`
+
+### Models
+- Use `fromJson` e `toJson` para serialização
+- Implemente `toString()` para debug
+- Use `copyWith` quando apropriado
+
+## 🏛️ Arquitetura
+
+### Camadas da Aplicação
+1. **Presentation Layer**: `lib/screens/`, `lib/widgets/` - UI e widgets
+2. **Business Logic Layer**: `lib/providers/` - Lógica de negócio (Riverpod)
+3. **Data Access Layer**: `lib/services/` - Comunicação com backend
+4. **Domain Layer**: `lib/models/` - Modelos de dados
+5. **Infrastructure Layer**: `lib/core/` - Serviços base (DI, Navigation, etc)
+
+### Fluxo de Dados
+```
+User Action → Widget → Provider → Service → Supabase Backend
+```
+
+### State Management (Riverpod)
+- **Providers**: Estado global e lógica de negócio
+- **Watch**: Observar mudanças (`ref.watch()`)
+- **Read**: Ações únicas (`ref.read()`)
+- **Listen**: Side effects (`ref.listen()`)
+
+### Injeção de Dependências
+- **GetIt**: Registrado em `core/injection/injection.dart`
+- Use `getIt<ServiceType>()` para obter instâncias
+- Services são singletons ou factories conforme necessário
+
+## 🔄 Fluxos Comuns de Desenvolvimento
+
+### Adicionar Nova Feature
+1. Criar screen em `lib/screens/[categoria]/`
+2. Criar models em `lib/models/` se necessário
+3. Criar services em `lib/services/` se necessário
+4. Criar providers em `lib/providers/` se necessário
+5. Adicionar rota em `core/navigation/`
+6. Testar fluxo completo
+
+### Criar Nova Screen
+1. Localização: `lib/screens/[categoria]/screen_name_screen.dart`
+2. Use `ConsumerWidget` se precisar de providers
+3. Extraia widgets grandes em classes privadas ou métodos
+4. Use `AppTheme` para cores, textos e espaçamentos
+5. Trate estados de loading e erro
+
+### Criar Novo Provider
+1. Localização: `lib/providers/provider_name_provider.dart`
+2. Use `@riverpod` annotations quando possível
+3. Use `@riverpod` class para providers com estado mutável
+4. Use `@riverpod` Future/Stream para dados assíncronos
+5. Execute `dart run build_runner build` após criar
+
+### Criar Novo Service
+1. Localização: `lib/services/service_name_service.dart`
+2. Registre no GetIt em `core/injection/injection.dart`
+3. Use `Supabase.instance.client` para queries
+4. Sempre trate erros adequadamente
+5. Retorne tipos específicos, não `dynamic`
+
+### Trabalhar com Supabase
+```dart
+final supabase = Supabase.instance.client;
+
+// Select
+final { data, error } = await supabase
+  .from('table')
+  .select()
+  .eq('column', value);
+
+// Insert
+final { data, error } = await supabase
+  .from('table')
+  .insert({ 'column': value });
+
+// Update
+final { error } = await supabase
+  .from('table')
+  .update({ 'column': value })
+  .eq('id', id);
+
+// Delete
+final { error } = await supabase
+  .from('table')
+  .delete()
+  .eq('id', id);
+```
+
+### Adicionar Navegação
+1. Adicionar rota em `core/navigation/router.dart`
+2. Usar `context.go('/route')` para navegação
+3. Passar parâmetros via `extra` se necessário
+4. Configurar deep links se aplicável
+
+### Adicionar Notificação
+1. Usar `NotificationService` para gerenciar
+2. Configurar handlers em `main.dart`
+3. Atualizar FCM token quando necessário
+4. Testar em dispositivo real
+
+## 🐛 Troubleshooting Comum
+
+### Erros Frequentes
+- **"Provider not found"**: Verificar se provider está registrado e widget é `ConsumerWidget`
+- **"Supabase error"**: Verificar variáveis de ambiente, RLS policies e conexão
+- **"Build fails"**: Limpar build (`flutter clean`), atualizar dependências (`flutter pub get`)
+- **"Riverpod not working"**: Verificar se `ProviderScope` está no root, se widget é `ConsumerWidget`
+
+### Comandos Úteis
+```bash
+# Formatar código
+dart format .
+
+# Analisar código
+dart analyze
+
+# Limpar build
+flutter clean
+flutter pub get
+
+# Rodar app
+flutter run
+
+# Gerar código Riverpod
+dart run build_runner build --delete-conflicting-outputs
+
+# Build release Android
+flutter build apk --release
+
+# Build release iOS
+flutter build ios --release
+```
+
+## 🎨 Design System
+
+### Cores
+Sempre use `AppColors` do tema:
+- `AppColors.primary`
+- `AppColors.secondary`
+- `AppColors.error`
+- `AppColors.success`
+- `AppColors.textPrimary`
+- `AppColors.textSecondary`
+
+### Textos
+Sempre use `AppTextStyles`:
+- `AppTextStyles.headlineLarge`
+- `AppTextStyles.bodyMedium`
+- `AppTextStyles.titleSmall`
+
+### Espaçamentos
+Sempre use `AppSpacing`:
+- `AppSpacing.small`
+- `AppSpacing.medium`
+- `AppSpacing.large`
+- `AppSpacing.xlarge`
+
+## 🆘 Quando Precisar de Ajuda
+
+1. Consulte a documentação do Flutter
+2. Veja exemplos em `lib/screens/` e `lib/widgets/`
+3. Verifique `docs/` para documentação específica
+4. Use autocomplete do IDE para descobrir APIs
+5. Consulte `CURSOR_GUIDE.md` e `ARCHITECTURE.md` para detalhes completos
+

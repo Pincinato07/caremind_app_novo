@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../familiar/dashboard_screen.dart';
 import '../../familia_gerenciamento/familiares_screen.dart';
 import '../../shared/alertas_screen.dart';
 import '../../shared/gestao_screen.dart';
 import '../../../widgets/nav_item.dart';
+import '../../../widgets/organizacao/context_selector_widget.dart';
 import '../../../core/state/familiar_state.dart';
 import '../../../core/injection/injection.dart';
 import '../../../services/supabase_service.dart';
@@ -68,58 +70,67 @@ class _FamiliarNavigationShellState extends State<FamiliarNavigationShell> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        body: IndexedStack(
-          index: _selectedIndex,
-          children: _pages,
-        ),
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: const Border(
-              top: BorderSide(color: AppColors.border),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 12,
-                offset: const Offset(0, -4),
+      child: ProviderScope(
+        child: Scaffold(
+          backgroundColor: AppColors.background,
+          body: Column(
+            children: [
+              const ContextSelectorWidget(),
+              Expanded(
+                child: IndexedStack(
+                  index: _selectedIndex,
+                  children: _pages,
+                ),
               ),
             ],
           ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  NavItem(
-                    icon: Icons.dashboard_rounded,
-                    label: 'Início',
-                    isSelected: _selectedIndex == 0,
-                    onTap: () => _onItemTapped(0),
-                  ),
-                  NavItem(
-                    icon: Icons.groups_rounded,
-                    label: 'Família',
-                    isSelected: _selectedIndex == 1,
-                    onTap: () => _onItemTapped(1),
-                  ),
-                  NavItem(
-                    icon: Icons.notifications_rounded,
-                    label: 'Notificações',
-                    isSelected: _selectedIndex == 2,
-                    onTap: () => _onItemTapped(2),
-                  ),
-                  NavItem(
-                    icon: Icons.settings_rounded,
-                    label: 'Gestão',
-                    isSelected: _selectedIndex == 3,
-                    onTap: () => _onItemTapped(3),
-                  ),
-                ],
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              border: const Border(
+                top: BorderSide(color: AppColors.border),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    NavItem(
+                      icon: Icons.dashboard_rounded,
+                      label: 'Início',
+                      isSelected: _selectedIndex == 0,
+                      onTap: () => _onItemTapped(0),
+                    ),
+                    NavItem(
+                      icon: Icons.groups_rounded,
+                      label: 'Família',
+                      isSelected: _selectedIndex == 1,
+                      onTap: () => _onItemTapped(1),
+                    ),
+                    NavItem(
+                      icon: Icons.notifications_rounded,
+                      label: 'Notificações',
+                      isSelected: _selectedIndex == 2,
+                      onTap: () => _onItemTapped(2),
+                    ),
+                    NavItem(
+                      icon: Icons.settings_rounded,
+                      label: 'Gestão',
+                      isSelected: _selectedIndex == 3,
+                      onTap: () => _onItemTapped(3),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -3,7 +3,7 @@ description: CareMind - Aplicativo de cuidado e acompanhamento de saúde
 
 publish_to: 'none'
 
-version: 1.0.1+6
+version: 1.1.1+6
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
@@ -55,12 +55,14 @@ dependencies:
   get_it: ^9.2.0
   flutter_dotenv: ^5.1.0
   share_plus: ^10.0.0
+  http: ^1.2.0
   vibration: ^3.1.4
   
   # Image & Camera
   image_picker: ^1.0.7
   camera: ^0.11.3
   google_mlkit_text_recognition: ^0.15.0
+  mobile_scanner: ^5.0.0
   
   # Animations
   flutter_animate: ^4.5.0

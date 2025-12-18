@@ -5,7 +5,8 @@ import 'package:get_it/get_it.dart';
 import '../../services/ocr_service.dart';
 import '../../services/supabase_service.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/glass_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../widgets/animated_card.dart';
 import '../../widgets/wave_background.dart';
 import '../../core/state/familiar_state.dart';
 import 'ocr_processing_screen.dart';
@@ -177,22 +178,26 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
 
                         // Erro
                         if (_errorMessage != null) ...[
-                          GlassCard(
-                            borderColor: AppColors.error.withValues(alpha: 0.5),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.error_outline, color: AppColors.error),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    _errorMessage!,
-                                    style: const TextStyle(color: AppColors.error),
+                          AnimatedCard(
+                            index: 0,
+                            child: CareMindCard(
+                              variant: CardVariant.glass,
+                              borderColor: AppColors.error.withValues(alpha: 0.5),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.error_outline, color: AppColors.error),
+                                  SizedBox(width: AppSpacing.small + 4),
+                                  Expanded(
+                                    child: Text(
+                                      _errorMessage!,
+                                      style: const TextStyle(color: AppColors.error),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: AppSpacing.large),
                         ],
 
                         // Botões de ação
@@ -234,8 +239,11 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
                         const SizedBox(height: 32),
 
                         // Dicas
-                        GlassCard(
-                          child: Column(
+                        AnimatedCard(
+                          index: 1,
+                          child: CareMindCard(
+                            variant: CardVariant.glass,
+                            child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
@@ -262,6 +270,7 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
                             ],
                           ),
                         ),
+                      ),
                       ],
                     ),
                   ),
