@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -142,13 +143,50 @@ class OfflineCacheService {
 
   // === PENDING ACTIONS (para sync quando voltar online) ===
   
-  /// Adiciona uma ação pendente com ID único para controle de idempotência
+  /// Gera hash único para uma ação offline baseado no conteúdo
   /// 
-  /// [action] - Ação a ser adicionada (deve conter 'action_id' único)
+  /// O hash é gerado a partir do tipo de ação e dos dados principais,
+  /// garantindo que ações idênticas tenham o mesmo hash e sejam detectadas como duplicatas.
+  static String generateActionHash(Map<String, dynamic> action) {
+    try {
+      // Criar uma representação estável da ação para hash
+      final hashData = {
+        'type': action['type'] ?? '',
+        'data': action['data'] ?? action,
+        // Incluir campos relevantes que identificam unicamente a ação
+        if (action.containsKey('medicamento_id')) 'medicamento_id': action['medicamento_id'],
+        if (action.containsKey('perfil_id')) 'perfil_id': action['perfil_id'],
+        if (action.containsKey('timestamp')) 'timestamp': action['timestamp'],
+      };
+      
+      final jsonString = jsonEncode(hashData);
+      final bytes = utf8.encode(jsonString);
+      final digest = sha256.convert(bytes);
+      
+      return digest.toString();
+    } catch (e) {
+      debugPrint('❌ Erro ao gerar hash de ação: $e');
+      // Fallback: usar timestamp + tipo como hash
+      return '${action['type']}_${DateTime.now().millisecondsSinceEpoch}';
+    }
+  }
+  
+  /// Adiciona uma ação pendente com hash único para controle de idempotência
+  /// 
+  /// [action] - Ação a ser adicionada
+  /// 
+  /// A função:
+  /// - Gera um hash único baseado no conteúdo da ação
+  /// - Verifica se já existe ação com mesmo hash (evita duplicatas)
+  /// - Adiciona metadados padrão (timestamp, retry_count, etc.)
   static Future<void> addPendingAction(Map<String, dynamic> action) async {
     if (!_initialized || _pendingActionsBoxInstance == null) return;
     
     try {
+      // Gerar hash único para a ação
+      final actionHash = generateActionHash(action);
+      
+      // Verificar se já existe ação com mesmo hash (prevenir duplicatas)
       final existing = _pendingActionsBoxInstance!.get('actions');
       List<dynamic> actions = [];
       
@@ -156,25 +194,21 @@ class OfflineCacheService {
         actions = List.from(jsonDecode(existing));
       }
       
-      // Garantir que action_id existe (para idempotência)
-      if (action['action_id'] == null) {
-        // Se não tiver action_id, gerar um baseado no tipo + timestamp
-        action['action_id'] = '${action['type']}_${DateTime.now().millisecondsSinceEpoch}';
-      }
-      
-      // Verificar se já existe ação com mesmo ID (prevenir duplicatas)
-      final actionId = action['action_id'] as String;
+      // Verificar duplicatas por hash
       final exists = actions.any((a) {
-        final existingId = (a as Map<String, dynamic>)['action_id'] as String?;
-        return existingId == actionId;
+        final existingHash = (a as Map<String, dynamic>)['action_hash'] as String?;
+        return existingHash == actionHash;
       });
       
       if (exists) {
-        debugPrint('⚠️ Ação com ID $actionId já existe, ignorando duplicata');
+        debugPrint('⚠️ Ação com hash $actionHash já existe, ignorando duplicata');
         return;
       }
       
-      // Adicionar metadados padrão
+      // Adicionar hash e metadados padrão
+      action['action_hash'] = actionHash;
+      action['action_id'] = action['action_id'] ?? '${action['type']}_${DateTime.now().millisecondsSinceEpoch}';
+      
       if (action['timestamp'] == null) {
         action['timestamp'] = DateTime.now().toIso8601String();
       }
@@ -184,11 +218,14 @@ class OfflineCacheService {
       if (action['retry_count'] == null) {
         action['retry_count'] = 0;
       }
+      if (action['created_at'] == null) {
+        action['created_at'] = DateTime.now().toIso8601String();
+      }
       
       actions.add(action);
       
       await _pendingActionsBoxInstance!.put('actions', jsonEncode(actions));
-      debugPrint('✅ Ação pendente adicionada: ${action['type']} (ID: $actionId)');
+      debugPrint('✅ Ação pendente adicionada: ${action['type']} (Hash: ${actionHash.substring(0, 8)}...)');
     } catch (e) {
       debugPrint('❌ Erro ao adicionar ação pendente: $e');
     }

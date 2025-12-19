@@ -34,6 +34,7 @@ import 'core/deep_link/deep_link_handler.dart';
 import 'screens/auth/processar_convite_screen.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'services/medicamento_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -110,6 +111,9 @@ void main() async {
 
   await _syncDailyCacheIfNeeded();
   
+  // Re-agendar todas as notificações de medicamentos após inicialização
+  await rescheduleAllMedications();
+  
   runApp(const CareMindApp());
 }
 
@@ -131,6 +135,60 @@ Future<void> _syncDailyCacheIfNeeded() async {
   }
 }
 
+/// Re-agendar todas as notificações de medicamentos
+/// 
+/// Esta função garante que todas as notificações sejam re-agendadas:
+/// - Na inicialização do app
+/// - Após reboot do dispositivo
+/// - Quando o app retorna do background
+/// 
+/// Isso é crítico para garantir que as notificações não sejam perdidas
+/// mesmo após reinicializações do sistema.
+Future<void> rescheduleAllMedications() async {
+  try {
+    final supabaseService = GetIt.instance<SupabaseService>();
+    final user = supabaseService.currentUser;
+    
+    if (user == null) {
+      debugPrint('ℹ️ rescheduleAllMedications: Usuário não autenticado, pulando re-agendamento');
+      return;
+    }
+    
+    debugPrint('🔄 rescheduleAllMedications: Iniciando re-agendamento de notificações...');
+    
+    // Buscar todos os medicamentos do usuário
+    final medicamentoService = MedicamentoService(supabaseService.client);
+    final medicamentos = await medicamentoService.getMedicamentos(user.id);
+    
+    if (medicamentos.isEmpty) {
+      debugPrint('ℹ️ rescheduleAllMedications: Nenhum medicamento encontrado');
+      return;
+    }
+    
+    debugPrint('📋 rescheduleAllMedications: ${medicamentos.length} medicamento(s) encontrado(s)');
+    
+    // Re-agendar notificações para cada medicamento
+    int sucessos = 0;
+    int falhas = 0;
+    
+    for (final medicamento in medicamentos) {
+      try {
+        await NotificationService.scheduleMedicationReminders(medicamento);
+        sucessos++;
+      } catch (e) {
+        falhas++;
+        debugPrint('❌ rescheduleAllMedications: Erro ao re-agendar ${medicamento.nome}: $e');
+      }
+    }
+    
+    debugPrint('✅ rescheduleAllMedications: Concluído - $sucessos sucesso(s), $falhas falha(s)');
+  } catch (e, stackTrace) {
+    debugPrint('❌ rescheduleAllMedications: Erro crítico - $e');
+    debugPrint('Stack trace: $stackTrace');
+    // Não relançar erro - não deve bloquear inicialização do app
+  }
+}
+
 class CareMindApp extends StatefulWidget {
   const CareMindApp({super.key});
 
@@ -140,6 +198,37 @@ class CareMindApp extends StatefulWidget {
   // Método estático para mudar o tema de qualquer lugar do app
   static void changeThemeMode(ThemeMode mode) {
     _CareMindAppState.setThemeMode(mode);
+  }
+  
+  // Método estático para verificar DND bypass após login
+  static Future<void> checkDndBypassOnLogin(BuildContext? context) async {
+    if (context == null || !context.mounted) return;
+    
+    try {
+      // Verificar se o usuário está logado
+      final supabaseService = GetIt.instance<SupabaseService>();
+      final user = supabaseService.currentUser;
+      
+      if (user == null) {
+        debugPrint('ℹ️ DND Bypass: Usuário não logado, pulando verificação');
+        return;
+      }
+      
+      // Verificar se já foi mostrado antes
+      final prefs = await SharedPreferences.getInstance();
+      final hasShownDndDialog = prefs.getBool('has_shown_dnd_dialog') ?? false;
+      
+      // Mostrar apenas uma vez
+      if (!hasShownDndDialog && context.mounted) {
+        final isGranted = await NotificationService.isDndBypassGranted();
+        if (!isGranted && context.mounted) {
+          await NotificationService.showDndBypassDialog(context);
+          await prefs.setBool('has_shown_dnd_dialog', true);
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Erro ao verificar DND bypass no login: $e');
+    }
   }
 }
 
@@ -158,8 +247,46 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
     _setupAuthStateListener();
     _setupDeepLinks();
     _loadThemeMode();
+    _checkDndBypassAfterInit();
   }
-
+  
+  /// Verificar bypass de DND após inicialização do app
+  /// 
+  /// Aguarda um frame para garantir que o contexto está disponível,
+  /// então verifica e mostra dialog se necessário.
+  /// IMPORTANTE: Só mostra se o usuário estiver logado.
+  void _checkDndBypassAfterInit() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Aguardar um pouco para garantir que o app está totalmente inicializado
+      await Future.delayed(const Duration(seconds: 2));
+      
+      // Verificar se o usuário está logado antes de mostrar o dialog
+      final supabaseService = GetIt.instance<SupabaseService>();
+      final user = supabaseService.currentUser;
+      
+      if (user == null) {
+        debugPrint('ℹ️ DND Bypass: Usuário não logado, pulando verificação');
+        return;
+      }
+      
+      final context = _navigatorKey.currentContext;
+      if (context != null && context.mounted) {
+        // Verificar se já foi mostrado antes (usar SharedPreferences)
+        final prefs = await SharedPreferences.getInstance();
+        final hasShownDndDialog = prefs.getBool('has_shown_dnd_dialog') ?? false;
+        
+        // Mostrar apenas uma vez, a menos que o usuário queira ver novamente
+        if (!hasShownDndDialog) {
+          final isGranted = await NotificationService.isDndBypassGranted();
+          if (!isGranted && context.mounted) {
+            await NotificationService.showDndBypassDialog(context);
+            await prefs.setBool('has_shown_dnd_dialog', true);
+          }
+        }
+      }
+    });
+  }
+  
   Future<void> _loadThemeMode() async {
     try {
       // Carregar preferência de tema do SharedPreferences
@@ -296,7 +423,45 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _syncDailyCacheOnResume();
       _checkSessionOnResume();
+      // Re-agendar notificações quando o app retorna do background
+      rescheduleAllMedications();
+      // Verificar DND bypass se usuário estiver logado
+      _checkDndBypassOnResume();
     }
+  }
+  
+  /// Verificar bypass de DND quando o app retorna do background
+  /// 
+  /// Só verifica se o usuário estiver logado.
+  void _checkDndBypassOnResume() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Aguardar um pouco para garantir que o app está totalmente carregado
+      await Future.delayed(const Duration(seconds: 1));
+      
+      // Verificar se o usuário está logado
+      final supabaseService = GetIt.instance<SupabaseService>();
+      final user = supabaseService.currentUser;
+      
+      if (user == null) {
+        return; // Usuário não logado, não mostrar
+      }
+      
+      final context = _navigatorKey.currentContext;
+      if (context != null && context.mounted) {
+        // Verificar se já foi mostrado antes
+        final prefs = await SharedPreferences.getInstance();
+        final hasShownDndDialog = prefs.getBool('has_shown_dnd_dialog') ?? false;
+        
+        // Mostrar apenas uma vez
+        if (!hasShownDndDialog && context.mounted) {
+          final isGranted = await NotificationService.isDndBypassGranted();
+          if (!isGranted && context.mounted) {
+            await NotificationService.showDndBypassDialog(context);
+            await prefs.setBool('has_shown_dnd_dialog', true);
+          }
+        }
+      }
+    });
   }
 
   Future<void> _checkSessionOnResume() async {

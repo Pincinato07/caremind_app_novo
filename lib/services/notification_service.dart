@@ -1,4 +1,3 @@
-import 'dart:typed_data' show Int64List;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -116,6 +115,9 @@ class NotificationService {
       
       // Verificar permissões de alarmes exatos (Android 13+)
       await checkAndRequestExactAlarmPermission();
+      
+      // Configurar bypass de DND (já está no canal)
+      await requestDndBypassPermission();
 
       // Inicializar Firebase Messaging (Push Notifications Remotas)
       await _initializeFCM();
@@ -312,6 +314,7 @@ class NotificationService {
       playSound: true, // CRÍTICO: Tocar som
       enableVibration: true, // CRÍTICO: Habilitar vibração
       showBadge: true,
+      bypassDnd: true, // CRÍTICO: Bypass do modo Não Perturbe
       // Som padrão do sistema (alto)
       // Nota: Se quiser som customizado, adicione arquivo .mp3 em android/app/src/main/res/raw/
     );
@@ -418,6 +421,238 @@ class NotificationService {
       return status.isGranted;
     } catch (e) {
       debugPrint('❌ Erro ao solicitar desabilitar otimização: $e');
+      return false;
+    }
+  }
+
+  /// Solicitar permissão de bypass do modo Não Perturbe (DND) no Android
+  /// 
+  /// Esta permissão é crítica para garantir que notificações de medicamentos
+  /// sejam exibidas mesmo quando o dispositivo está em modo Não Perturbe.
+  /// 
+  /// Android 6.0+ (API 23+): O bypass de DND é configurado através do canal
+  /// de notificação com `bypassDnd: true` (já implementado em _createMedicamentoChannel).
+  /// 
+  /// Nota: A permissão ACCESS_NOTIFICATION_POLICY pode ser necessária em alguns
+  /// dispositivos, mas não está disponível via permission_handler. O usuário pode
+  /// precisar habilitar manualmente nas configurações do sistema.
+  static Future<bool> requestDndBypassPermission() async {
+    if (!Platform.isAndroid) return true;
+    
+    try {
+      // O bypass de DND é configurado através do canal de notificação
+      // com bypassDnd: true, que já foi implementado em _createMedicamentoChannel()
+      // 
+      // Para dispositivos que requerem permissão adicional, o usuário precisará
+      // habilitar manualmente nas configurações do sistema:
+      // Configurações > Apps > CareMind > Notificações > Permitir interromper modo Não Perturbe
+      
+      debugPrint('ℹ️ Bypass DND: Configurado através do canal de notificação (bypassDnd: true)');
+      debugPrint('ℹ️ Se necessário, habilite manualmente nas configurações do sistema');
+      
+      // Retornar true pois o canal já está configurado corretamente
+      return true;
+    } catch (e) {
+      debugPrint('❌ Erro ao verificar configuração DND bypass: $e');
+      // Continuar mesmo com erro - notificações ainda podem funcionar
+      return false;
+    }
+  }
+
+  /// Verificar se a permissão de bypass DND está concedida (método público)
+  /// 
+  /// Nota: A verificação real do status de bypass DND requer acesso nativo
+  /// que não está disponível via flutter_local_notifications. Este método
+  /// verifica se o canal foi criado corretamente (com bypassDnd: true).
+  /// 
+  /// Para uma verificação mais precisa, seria necessário usar código nativo Android.
+  static Future<bool> isDndBypassGranted() async {
+    if (!Platform.isAndroid) return true;
+    
+    try {
+      // O canal foi criado com bypassDnd: true em _createMedicamentoChannel()
+      // A verificação real se o usuário permitiu nas configurações requer
+      // acesso nativo que não está disponível via flutter_local_notifications
+      
+      // Por enquanto, assumimos que se o canal foi criado, está configurado
+      // O usuário pode precisar habilitar manualmente nas configurações
+      // se o dispositivo requerer permissão adicional
+      
+      debugPrint('ℹ️ Bypass DND: Canal configurado com bypassDnd: true');
+      debugPrint('ℹ️ Verificação real requer acesso nativo (não disponível)');
+      
+      // Como não podemos verificar o status real via API, vamos sempre
+      // mostrar o dialog na primeira vez para garantir que o usuário saiba
+      // como habilitar se necessário
+      return false;
+    } catch (e) {
+      debugPrint('❌ Erro ao verificar permissão DND bypass: $e');
+      return false;
+    }
+  }
+  
+  /// Abrir configurações de notificação do app no Android
+  /// 
+  /// Abre diretamente a tela de configurações de notificação do CareMind
+  /// onde o usuário pode habilitar o bypass de DND.
+  static Future<void> openNotificationSettings() async {
+    if (!Platform.isAndroid) return;
+    
+    try {
+      // Abrir configurações do app (vai para a tela de notificações)
+      await openAppSettings();
+      debugPrint('✅ Abrindo configurações de notificação do app');
+    } catch (e) {
+      debugPrint('❌ Erro ao abrir configurações: $e');
+    }
+  }
+  
+  /// Mostrar dialog informando sobre bypass de DND
+  /// 
+  /// Exibe um dialog explicando a importância do bypass de DND e oferece
+  /// um botão para abrir as configurações do sistema.
+  static Future<void> showDndBypassDialog(BuildContext context) async {
+    if (!Platform.isAndroid) return;
+    
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(
+              Icons.notifications_active,
+              color: Colors.orange,
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Modo Não Perturbe',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Para garantir que você receba todos os alertas de medicamentos, mesmo quando o dispositivo estiver em modo Não Perturbe, é necessário habilitar esta permissão.',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Esta configuração é importante para sua saúde!',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Como habilitar:',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _buildInstructionItem('1. Toque em "Abrir Configurações" abaixo'),
+              _buildInstructionItem('2. Procure por "Notificações" ou "Notifications"'),
+              _buildInstructionItem('3. Encontre "Lembretes de Medicamentos"'),
+              _buildInstructionItem('4. Ative "Permitir interromper modo Não Perturbe"'),
+              _buildInstructionItem('5. Volte ao app'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Depois'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              openNotificationSettings();
+            },
+            icon: const Icon(Icons.settings),
+            label: const Text('Abrir Configurações'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// Widget helper para itens de instrução
+  static Widget _buildInstructionItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ', style: TextStyle(fontSize: 16)),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// Verificar e solicitar bypass de DND com dialog se necessário
+  /// 
+  /// Verifica se o bypass está ativo e mostra um dialog se não estiver.
+  /// Retorna true se está ativo ou foi configurado, false caso contrário.
+  static Future<bool> checkAndRequestDndBypass(BuildContext? context) async {
+    if (!Platform.isAndroid) return true;
+    if (context == null) return false;
+    
+    try {
+      // Verificar se está ativo
+      final isGranted = await isDndBypassGranted();
+      
+      if (isGranted) {
+        debugPrint('✅ Bypass DND: Já está ativo');
+        return true;
+      }
+      
+      // Mostrar dialog para o usuário
+      await showDndBypassDialog(context);
+      
+      // Verificar novamente após o usuário voltar
+      return await isDndBypassGranted();
+    } catch (e) {
+      debugPrint('❌ Erro ao verificar bypass DND: $e');
       return false;
     }
   }

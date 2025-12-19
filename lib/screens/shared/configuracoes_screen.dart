@@ -17,6 +17,8 @@ import '../organizacao/organizacao_lista_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../main.dart';
+import '../../services/notification_service.dart';
+import 'dart:io' show Platform;
 
 /// Tela de Configurações
 /// Centraliza configurações do app
@@ -441,6 +443,9 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                 }
                               },
                             ),
+                            // Botão para configurar bypass de DND (apenas Android)
+                            if (Platform.isAndroid)
+                              _buildDndBypassTile(context),
                           ],
                         );
                       },
@@ -1136,6 +1141,64 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
         activeTrackColor: Colors.white.withValues(alpha: 0.5),
         inactiveThumbColor: Colors.grey[300],
         inactiveTrackColor: Colors.grey[400]?.withValues(alpha: 0.5),
+      ),
+    );
+  }
+
+  /// Widget para configurar bypass de DND
+  Widget _buildDndBypassTile(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.3),
+            Colors.white.withValues(alpha: 0.25),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.4),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        leading: const Icon(
+          Icons.do_not_disturb_off,
+          color: Colors.white,
+        ),
+        title: Text(
+          'Modo Não Perturbe',
+          style: AppTextStyles.leagueSpartan(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        subtitle: Text(
+          'Permitir alertas mesmo em modo Não Perturbe',
+          style: AppTextStyles.leagueSpartan(
+            fontSize: 14,
+            color: Colors.white.withValues(alpha: 0.9),
+          ),
+        ),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          color: Colors.white,
+          size: 16,
+        ),
+        onTap: () async {
+          await NotificationService.showDndBypassDialog(context);
+        },
       ),
     );
   }

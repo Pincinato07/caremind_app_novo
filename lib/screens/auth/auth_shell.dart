@@ -11,6 +11,7 @@ import '../../widgets/wave_background.dart';
 import '../shared/main_navigator_screen.dart';
 import '../onboarding/onboarding_contextual_screen.dart';
 import '../../core/injection/injection.dart';
+import '../../main.dart';
 
 enum AuthMode { login, register }
 
@@ -156,6 +157,13 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                       }
                     });
                   }
+                  
+                  // Verificar DND bypass após login (com delay para garantir que a tela está carregada)
+                  Future.delayed(const Duration(seconds: 2), () {
+                    if (mounted) {
+                      CareMindApp.checkDndBypassOnLogin(context);
+                    }
+                  });
                 }
               } else {
                 // Navegar direto para tela principal (usuário retornando)
@@ -164,6 +172,13 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                   MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
                   (_) => false,
                 );
+                
+                // Verificar DND bypass após login (com delay para garantir que a tela está carregada)
+                Future.delayed(const Duration(seconds: 2), () {
+                  if (mounted) {
+                    CareMindApp.checkDndBypassOnLogin(context);
+                  }
+                });
               }
             } catch (e) {
               debugPrint('⚠️ Erro no fluxo de onboarding: $e');

@@ -59,6 +59,7 @@ dependencies:
   vibration: ^3.1.4
   path_provider: ^2.1.1
   geolocator: ^10.1.0
+  crypto: ^3.0.3
   
   # Image & Camera
   image_picker: ^1.0.7

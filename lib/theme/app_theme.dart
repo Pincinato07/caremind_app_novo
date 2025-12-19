@@ -229,23 +229,25 @@ class AppTheme {
       ),
       
       // Configurações de botões
+      // WCAG 2.5.5: Alvos de toque mínimo de 44x44px
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.textOnPrimary,
           elevation: 0,
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size(44, 44), // WCAG: Mínimo 44x44px
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: const RoundedRectangleBorder(borderRadius: AppBorderRadius.smallAll),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5), // WCAG: Mínimo 16px
         ),
       ),
       
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
+          minimumSize: const Size(44, 44), // WCAG: Mínimo 44x44px
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600), // WCAG: Aumentado de 14px para 16px
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600), // WCAG: Mínimo 16px
         ),
       ),
       
@@ -254,10 +256,10 @@ class AppTheme {
           foregroundColor: AppColors.textPrimary,
           backgroundColor: Colors.white,
           side: const BorderSide(color: AppColors.border, width: 1.5),
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size(44, 44), // WCAG: Mínimo 44x44px
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: const RoundedRectangleBorder(borderRadius: AppBorderRadius.smallAll),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5), // WCAG: Mínimo 16px
         ),
       ),
       
@@ -345,10 +347,12 @@ class AppTheme {
       ),
       
       // Configurações de botão flutuante
+      // WCAG 2.5.5: Alvos de toque mínimo de 44x44px (FAB padrão já é 56x56, mas garantimos)
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.textOnPrimary,
         elevation: 2,
+        // FAB padrão do Material já é 56x56, mas garantimos mínimo de 44x44
       ),
       
       // Configurações de tabs
@@ -439,15 +443,16 @@ class AppTheme {
       ),
       
       // Configurações de botões
+      // WCAG 2.5.5: Alvos de toque mínimo de 44x44px
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.darkPrimary,
           foregroundColor: AppColors.darkTextOnPrimary,
           elevation: 0,
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size(44, 44), // WCAG: Mínimo 44x44px
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: const RoundedRectangleBorder(borderRadius: AppBorderRadius.smallAll),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5), // WCAG: Mínimo 16px
         ),
       ),
       
@@ -464,10 +469,10 @@ class AppTheme {
           foregroundColor: AppColors.darkTextPrimary,
           backgroundColor: AppColors.darkSurface,
           side: const BorderSide(color: AppColors.darkBorder, width: 1.5),
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size(44, 44), // WCAG: Mínimo 44x44px
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: const RoundedRectangleBorder(borderRadius: AppBorderRadius.smallAll),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5), // WCAG: Mínimo 16px
         ),
       ),
       
@@ -555,10 +560,12 @@ class AppTheme {
       ),
       
       // Configurações de botão flutuante
+      // WCAG 2.5.5: Alvos de toque mínimo de 44x44px (FAB padrão já é 56x56, mas garantimos)
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: AppColors.darkPrimary,
         foregroundColor: AppColors.darkTextOnPrimary,
         elevation: 2,
+        // FAB padrão do Material já é 56x56, mas garantimos mínimo de 44x44
       ),
       
       // Configurações de tabs

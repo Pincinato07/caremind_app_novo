@@ -78,16 +78,11 @@ class OfflineSyncManager {
         debugPrint('✅ OfflineSyncManager: $ocrProcessed imagens OCR processadas');
       }
 
-      // 2. Sincronizar ações de medicamentos pendentes
+      // 2. Sincronizar ações de medicamentos pendentes com retry logic
       try {
-        final supabaseService = GetIt.I<SupabaseService>();
-        final medicamentoService = MedicamentoService(supabaseService.client);
-        final syncService = MedicationSyncService(medicamentoService, userId);
-        
-        await syncService.syncPendingActions();
-        debugPrint('✅ OfflineSyncManager: Ações de medicamentos sincronizadas');
+        await processPendingActionsWithRetry(userId);
       } catch (e) {
-        debugPrint('⚠️ OfflineSyncManager: Erro ao sincronizar medicamentos: $e');
+        debugPrint('⚠️ OfflineSyncManager: Erro ao sincronizar ações: $e');
       }
 
       // 3. Limpar imagens antigas (manutenção)
@@ -99,6 +94,21 @@ class OfflineSyncManager {
       debugPrint('✅ OfflineSyncManager: Processamento de pendências concluído');
     } catch (e) {
       debugPrint('❌ OfflineSyncManager: Erro ao processar dados pendentes: $e');
+    }
+  }
+  
+  /// Sincronizar ações de medicamentos pendentes
+  static Future<void> processPendingActionsWithRetry(String userId) async {
+    try {
+      final supabaseService = GetIt.I<SupabaseService>();
+      final medicamentoService = MedicamentoService(supabaseService.client);
+      final syncService = MedicationSyncService(medicamentoService, userId);
+      
+      // Usar o método de sincronização do MedicationSyncService
+      await syncService.syncPendingActions();
+      debugPrint('✅ OfflineSyncManager: Ações de medicamentos sincronizadas');
+    } catch (e) {
+      debugPrint('⚠️ OfflineSyncManager: Erro ao sincronizar medicamentos: $e');
     }
   }
 
