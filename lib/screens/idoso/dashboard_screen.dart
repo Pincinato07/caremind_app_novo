@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../../theme/app_theme.dart';
 import '../../core/injection/injection.dart';
@@ -16,6 +17,7 @@ import '../../core/navigation/app_navigation.dart';
 import '../../screens/shared/configuracoes_screen.dart';
 import '../../screens/idoso/ajuda_screen.dart';
 import '../../models/medicamento.dart';
+import '../../widgets/skeleton_loader.dart';
 
 /// Dashboard do IDOSO - Foco em Acessibilidade Extrema (WCAG AAA)
 /// Objetivo: Autonomia. O idoso não "gerencia"; ele "executa" e "consulta".
@@ -127,44 +129,80 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
         }
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      debugPrint('Erro ao carregar dados do dashboard: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        // Não mostrar erro ao usuário aqui - apenas logar
+        // O estado vazio já indica que não há dados
+      }
     }
   }
 
   /// Extrai horários da frequência do medicamento (como feito no FamiliarDashboard)
   List<TimeOfDay> _extrairHorarios(Medicamento medicamento) {
-    final frequencia = medicamento.frequencia;
-    
-    if (frequencia != null && frequencia.containsKey('horarios')) {
-      final horariosList = frequencia['horarios'] as List?;
-      if (horariosList != null) {
-        return horariosList
-            .map((h) => _parseTimeOfDay(h.toString()))
-            .where((h) => h != null)
-            .cast<TimeOfDay>()
-            .toList();
+    try {
+      final frequencia = medicamento.frequencia;
+      if (frequencia == null || !frequencia.containsKey('horarios')) {
+        return [];
       }
+      
+      final horariosList = frequencia['horarios'] as List?;
+      if (horariosList == null || horariosList.isEmpty) {
+        return [];
+      }
+      
+      final horarios = <TimeOfDay>[];
+      for (var h in horariosList) {
+        try {
+          if (h == null) continue;
+          final timeOfDay = _parseTimeOfDay(h.toString());
+          if (timeOfDay != null) {
+            horarios.add(timeOfDay);
+          }
+        } catch (e) {
+          debugPrint('⚠️ Erro ao parsear horário $h: $e');
+          continue;
+        }
+      }
+      
+      return horarios;
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erro ao extrair horários: $e');
+      debugPrint('Stack trace: $stackTrace');
+      return [];
     }
-    
-    // Se não tem horários explícitos, retornar lista vazia
-    return [];
   }
 
   TimeOfDay? _parseTimeOfDay(String timeStr) {
+    if (timeStr.isEmpty) {
+      return null;
+    }
+    
     try {
       final parts = timeStr.split(':');
-      if (parts.length == 2) {
-        return TimeOfDay(
-          hour: int.parse(parts[0]),
-          minute: int.parse(parts[1]),
-        );
+      if (parts.length != 2) {
+        return null;
       }
+      
+      final hour = int.tryParse(parts[0]);
+      final minute = int.tryParse(parts[1]);
+      
+      if (hour == null || minute == null) {
+        return null;
+      }
+      
+      if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+        debugPrint('⚠️ Horário inválido: $hour:$minute');
+        return null;
+      }
+      
+      return TimeOfDay(hour: hour, minute: minute);
     } catch (e) {
-      // Ignorar erro
+      debugPrint('⚠️ Erro ao parsear TimeOfDay de "$timeStr": $e');
+      return null;
     }
-    return null;
   }
 
   Future<void> _marcarComoTomado() async {
@@ -223,10 +261,20 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
       );
 
       // Feedback multissensorial: vibração longa + som
-      await AccessibilityService.feedbackSucesso();
+      try {
+        await AccessibilityService.feedbackSucesso();
+      } catch (e) {
+        // Erro no feedback não deve impedir a operação
+        debugPrint('Erro no feedback de sucesso: $e');
+      }
 
       // Anuncia sucesso com TTS avançado
-      await TTSEnhancer.announceCriticalSuccess('Medicamento marcado como tomado');
+      try {
+        await TTSEnhancer.announceCriticalSuccess('Medicamento marcado como tomado');
+      } catch (e) {
+        // Erro no TTS não deve impedir a operação
+        debugPrint('Erro no TTS: $e');
+      }
 
       // Recarregar dados
       await _loadUserData();
@@ -241,11 +289,30 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
         );
       }
     } catch (e) {
+      // WCAG: Feedback de erro acessível
+      try {
+        await AccessibilityService.feedbackNegativo();
+        await AccessibilityService.speak('Erro ao marcar medicamento. Tente novamente.');
+      } catch (ttsError) {
+        debugPrint('Erro ao fornecer feedback de erro: $ttsError');
+      }
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao marcar medicamento: $e'),
+            content: Text(
+              'Erro ao marcar medicamento. Tente novamente.',
+              style: AppTextStyles.leagueSpartan(
+                fontSize: (MediaQuery.maybeOf(context)?.textScaler ?? const TextScaler.linear(1.0)).scale(16),
+              ),
+            ),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Tentar novamente',
+              textColor: Colors.white,
+              onPressed: () => _marcarComoTomado(),
+            ),
           ),
         );
       }
@@ -263,10 +330,8 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
         child: Stack(
           children: [
             _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                    ),
+                ? const SingleChildScrollView(
+                    child: DashboardSkeletonLoader(),
                   )
                 : RefreshIndicator(
                     onRefresh: () async {
@@ -302,30 +367,54 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                                 Text(
                                   'O Próximo Passo',
                                   style: AppTextStyles.leagueSpartan(
-                                    fontSize: 32,
+                                    fontSize: (MediaQuery.maybeOf(context)?.textScaler ?? const TextScaler.linear(1.0)).scale(32),
                                     fontWeight: FontWeight.w700,
                                     color: Colors.white,
                                     letterSpacing: -0.5,
+                                  ).copyWith(
+                                    // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                                    shadows: [
+                                      Shadow(
+                                        offset: const Offset(0, 2),
+                                        blurRadius: 4,
+                                        color: Colors.black.withValues(alpha: 0.5),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Olá, $_userName',
                                   style: AppTextStyles.leagueSpartan(
-                                    fontSize: 20,
-                                    color: Colors.white.withValues(alpha: 0.9),
+                                    fontSize: (MediaQuery.maybeOf(context)?.textScaler ?? const TextScaler.linear(1.0)).scale(20),
+                                    color: Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
+                                  ).copyWith(
+                                    // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                                    shadows: [
+                                      Shadow(
+                                        offset: const Offset(0, 2),
+                                        blurRadius: 4,
+                                        color: Colors.black.withValues(alpha: 0.5),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
                           ),
                           // Botão discreto de configurações
+                          // WCAG 2.5.5: Garantir área mínima de toque de 48x48dp
                           IconButton(
                             icon: Icon(
                               Icons.settings_outlined,
                               color: Colors.white.withValues(alpha: 0.8),
                               size: 28,
                             ),
+                            constraints: const BoxConstraints(
+                              minWidth: 48,
+                              minHeight: 48,
+                            ),
+                            padding: const EdgeInsets.all(12),
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -386,6 +475,11 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
   }
 
   Widget _buildHeroCard() {
+    // WCAG 1.4.4: Respeitar configuração de fonte grande do sistema
+    // Tratamento de erro: garantir que textScaler sempre esteja disponível
+    final textScaler = MediaQuery.maybeOf(context)?.textScaler ?? 
+                       const TextScaler.linear(1.0);
+    
     if (_proximoMedicamento == null) {
       return AnimatedCard(
         index: 0,
@@ -403,9 +497,18 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
               Text(
                 'Tudo em dia!',
                 style: AppTextStyles.leagueSpartan(
-                  fontSize: 28,
+                  fontSize: textScaler.scale(28),
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
+                ).copyWith(
+                  // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                  shadows: [
+                    Shadow(
+                      offset: const Offset(0, 2),
+                      blurRadius: 4,
+                      color: Colors.black.withValues(alpha: 0.5),
+                    ),
+                  ],
                 ),
               ),
               SizedBox(height: AppSpacing.small),
@@ -413,8 +516,17 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                 'Não há medicamentos pendentes no momento.',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.leagueSpartan(
-                  fontSize: 18,
-                  color: Colors.white.withValues(alpha: 0.9),
+                  fontSize: textScaler.scale(18),
+                  color: Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
+                ).copyWith(
+                  // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                  shadows: [
+                    Shadow(
+                      offset: const Offset(0, 2),
+                      blurRadius: 4,
+                      color: Colors.black.withValues(alpha: 0.5),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -455,9 +567,18 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                 ? 'Agora:'
                 : 'Próximo às:',
             style: AppTextStyles.leagueSpartan(
-              fontSize: 20,
-              color: Colors.white.withValues(alpha: 0.9),
+              fontSize: textScaler.scale(20),
+              color: Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
               fontWeight: FontWeight.w500,
+            ).copyWith(
+              // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+              shadows: [
+                Shadow(
+                  offset: const Offset(0, 2),
+                  blurRadius: 4,
+                  color: Colors.black.withValues(alpha: 0.5),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 8),
@@ -466,9 +587,18 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
           Text(
             horaPrevista,
             style: AppTextStyles.leagueSpartan(
-              fontSize: 28,
+              fontSize: textScaler.scale(28),
               fontWeight: FontWeight.w700,
               color: Colors.white,
+            ).copyWith(
+              // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+              shadows: [
+                Shadow(
+                  offset: const Offset(0, 2),
+                  blurRadius: 4,
+                  color: Colors.black.withValues(alpha: 0.5),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 8),
@@ -485,10 +615,19 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
               '${_proximoMedicamento!.nome}',
               textAlign: TextAlign.center,
               style: AppTextStyles.leagueSpartan(
-                fontSize: 36,
+                fontSize: textScaler.scale(36),
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 letterSpacing: -0.5,
+              ).copyWith(
+                // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                shadows: [
+                  Shadow(
+                    offset: const Offset(0, 2),
+                    blurRadius: 4,
+                    color: Colors.black.withValues(alpha: 0.5),
+                  ),
+                ],
               ),
             ),
           ),
@@ -499,9 +638,18 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
             _proximoMedicamento!.dosagem ?? 'Dosagem não especificada',
             textAlign: TextAlign.center,
             style: AppTextStyles.leagueSpartan(
-              fontSize: 24,
-              color: Colors.white.withValues(alpha: 0.9),
+              fontSize: textScaler.scale(24),
+              color: Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
               fontWeight: FontWeight.w500,
+            ).copyWith(
+              // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+              shadows: [
+                Shadow(
+                  offset: const Offset(0, 2),
+                  blurRadius: 4,
+                  color: Colors.black.withValues(alpha: 0.5),
+                ),
+              ],
             ),
           ),
           SizedBox(height: AppSpacing.xlarge),
@@ -527,7 +675,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                 child: Text(
                   'JÁ TOMEI',
                   style: AppTextStyles.leagueSpartan(
-                    fontSize: 28,
+                    fontSize: textScaler.scale(28),
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.5,
                   ),
@@ -542,6 +690,11 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
   }
 
   Widget _buildSOSButton() {
+    // WCAG 1.4.4: Respeitar configuração de fonte grande do sistema
+    // Tratamento de erro: garantir que textScaler sempre esteja disponível
+    final textScaler = MediaQuery.maybeOf(context)?.textScaler ?? 
+                       const TextScaler.linear(1.0);
+    
     return Semantics(
       label: 'Botão SOS de Emergência',
       hint: 'Toque para abrir a tela de emergência e alertar todos os familiares',
@@ -551,14 +704,41 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
         child: CareMindCard(
           variant: CardVariant.glass,
           padding: AppSpacing.paddingLarge,
-        onTap: () {
-          AccessibilityService.vibrar(duration: 200);
-          Navigator.push(
-            context,
-            AppNavigation.smoothRoute(
-              const AjudaScreen(),
-            ),
-          );
+        onTap: () async {
+          try {
+            // WCAG: Feedback multissensorial (háptico + sonoro) para ação crítica
+            try {
+              await AccessibilityService.vibrar(duration: 300);
+            } catch (e) {
+              debugPrint('Erro ao vibrar: $e');
+            }
+            
+            try {
+              await AccessibilityService.speak("Abrindo tela de emergência");
+            } catch (e) {
+              debugPrint('Erro ao falar: $e');
+            }
+            
+            if (mounted) {
+              Navigator.push(
+                context,
+                AppNavigation.smoothRoute(
+                  const AjudaScreen(),
+                ),
+              );
+            }
+          } catch (e) {
+            // Erro crítico - garantir que usuário ainda possa acessar a tela
+            debugPrint('Erro ao abrir tela de emergência: $e');
+            if (mounted) {
+              Navigator.push(
+                context,
+                AppNavigation.smoothRoute(
+                  const AjudaScreen(),
+                ),
+              );
+            }
+          }
         },
         child: Row(
           children: [
@@ -582,7 +762,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                   Text(
                     '🚨 EMERGÊNCIA',
                     style: AppTextStyles.leagueSpartan(
-                      fontSize: 20,
+                      fontSize: textScaler.scale(20),
                       fontWeight: FontWeight.w700,
                       color: Colors.red,
                       letterSpacing: 1.5,
@@ -592,8 +772,17 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                   Text(
                     'Alerta todos os familiares',
                     style: AppTextStyles.leagueSpartan(
-                      fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: textScaler.scale(16), // WCAG: Aumentado de 14px para 16px
+                      color: Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
+                    ).copyWith(
+                      // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                      shadows: [
+                        Shadow(
+                          offset: const Offset(0, 2),
+                          blurRadius: 4,
+                          color: Colors.black.withValues(alpha: 0.5),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -686,6 +875,11 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
     required VoidCallback onTap,
     bool isLarge = false,
   }) {
+    // WCAG 1.4.4: Respeitar configuração de fonte grande do sistema
+    // Tratamento de erro: garantir que textScaler sempre esteja disponível
+    final textScaler = MediaQuery.maybeOf(context)?.textScaler ?? 
+                       const TextScaler.linear(1.0);
+    
     return AnimatedCard(
       index: 4,
       child: CareMindCard(
@@ -710,9 +904,18 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                   child: Text(
                     label,
                     style: AppTextStyles.leagueSpartan(
-                      fontSize: isLarge ? 24 : 20,
+                      fontSize: textScaler.scale(isLarge ? 24 : 20),
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
+                    ).copyWith(
+                      // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                      shadows: [
+                        Shadow(
+                          offset: const Offset(0, 2),
+                          blurRadius: 4,
+                          color: Colors.black.withValues(alpha: 0.5),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -723,8 +926,17 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
               Text(
                 subtitle,
                 style: AppTextStyles.leagueSpartan(
-                  fontSize: 14,
-                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: textScaler.scale(16), // WCAG: Aumentado de 14px para 16px
+                  color: Colors.white, // WCAG: Aumentado opacidade de 0.8 para 1.0
+                ).copyWith(
+                  // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                  shadows: [
+                    Shadow(
+                      offset: const Offset(0, 2),
+                      blurRadius: 4,
+                      color: Colors.black.withValues(alpha: 0.5),
+                    ),
+                  ],
                 ),
               ),
             ],

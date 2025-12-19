@@ -142,6 +142,9 @@ class OfflineCacheService {
 
   // === PENDING ACTIONS (para sync quando voltar online) ===
   
+  /// Adiciona uma ação pendente com ID único para controle de idempotência
+  /// 
+  /// [action] - Ação a ser adicionada (deve conter 'action_id' único)
   static Future<void> addPendingAction(Map<String, dynamic> action) async {
     if (!_initialized || _pendingActionsBoxInstance == null) return;
     
@@ -153,16 +156,45 @@ class OfflineCacheService {
         actions = List.from(jsonDecode(existing));
       }
       
-      action['timestamp'] = DateTime.now().toIso8601String();
+      // Garantir que action_id existe (para idempotência)
+      if (action['action_id'] == null) {
+        // Se não tiver action_id, gerar um baseado no tipo + timestamp
+        action['action_id'] = '${action['type']}_${DateTime.now().millisecondsSinceEpoch}';
+      }
+      
+      // Verificar se já existe ação com mesmo ID (prevenir duplicatas)
+      final actionId = action['action_id'] as String;
+      final exists = actions.any((a) {
+        final existingId = (a as Map<String, dynamic>)['action_id'] as String?;
+        return existingId == actionId;
+      });
+      
+      if (exists) {
+        debugPrint('⚠️ Ação com ID $actionId já existe, ignorando duplicata');
+        return;
+      }
+      
+      // Adicionar metadados padrão
+      if (action['timestamp'] == null) {
+        action['timestamp'] = DateTime.now().toIso8601String();
+      }
+      if (action['synced'] == null) {
+        action['synced'] = false;
+      }
+      if (action['retry_count'] == null) {
+        action['retry_count'] = 0;
+      }
+      
       actions.add(action);
       
       await _pendingActionsBoxInstance!.put('actions', jsonEncode(actions));
-      debugPrint('✅ Ação pendente adicionada: ${action['type']}');
+      debugPrint('✅ Ação pendente adicionada: ${action['type']} (ID: $actionId)');
     } catch (e) {
       debugPrint('❌ Erro ao adicionar ação pendente: $e');
     }
   }
   
+  /// Obtém todas as ações pendentes (não sincronizadas)
   static Future<List<Map<String, dynamic>>> getPendingActions() async {
     if (!_initialized || _pendingActionsBoxInstance == null) return [];
     
@@ -178,6 +210,86 @@ class OfflineCacheService {
     }
   }
   
+  /// Obtém apenas ações pendentes não sincronizadas
+  static Future<List<Map<String, dynamic>>> getUnsyncedActions() async {
+    final all = await getPendingActions();
+    return all.where((a) => a['synced'] != true).toList();
+  }
+  
+  /// Marca uma ação como sincronizada
+  static Future<void> markActionAsSynced(String actionId) async {
+    if (!_initialized || _pendingActionsBoxInstance == null) return;
+    
+    try {
+      final all = await getPendingActions();
+      final updated = all.map((action) {
+        if (action['action_id'] == actionId) {
+          return {
+            ...action,
+            'synced': true,
+            'synced_at': DateTime.now().toIso8601String(),
+          };
+        }
+        return action;
+      }).toList();
+      
+      await _pendingActionsBoxInstance!.put('actions', jsonEncode(updated));
+      debugPrint('✅ Ação $actionId marcada como sincronizada');
+    } catch (e) {
+      debugPrint('❌ Erro ao marcar ação como sincronizada: $e');
+    }
+  }
+  
+  /// Substitui todas as ações pendentes (usado para atualização em lote)
+  static Future<void> replacePendingActions(List<Map<String, dynamic>> newActions) async {
+    if (!_initialized || _pendingActionsBoxInstance == null) return;
+    
+    try {
+      // Manter outras ações que não são OCR
+      final all = await getPendingActions();
+      final otherActions = all.where((a) => a['type'] != 'ocr_upload').toList();
+      
+      // Combinar com novas ações
+      final combined = [...otherActions, ...newActions];
+      
+      await _pendingActionsBoxInstance!.put('actions', jsonEncode(combined));
+      debugPrint('✅ Ações pendentes atualizadas: ${combined.length} ações');
+    } catch (e) {
+      debugPrint('❌ Erro ao substituir ações pendentes: $e');
+    }
+  }
+  
+  /// Remove ações sincronizadas antigas (mais de 24h)
+  static Future<void> cleanupSyncedActions({Duration maxAge = const Duration(hours: 24)}) async {
+    if (!_initialized || _pendingActionsBoxInstance == null) return;
+    
+    try {
+      final all = await getPendingActions();
+      final now = DateTime.now();
+      
+      final filtered = all.where((action) {
+        if (action['synced'] != true) return true; // Manter não sincronizadas
+        
+        final syncedAt = action['synced_at'] as String?;
+        if (syncedAt == null) return true; // Manter se não tiver timestamp
+        
+        final syncedTime = DateTime.parse(syncedAt);
+        final age = now.difference(syncedTime);
+        
+        return age < maxAge; // Remover apenas se for muito antiga
+      }).toList();
+      
+      if (filtered.length < all.length) {
+        await _pendingActionsBoxInstance!.put('actions', jsonEncode(filtered));
+        final removed = all.length - filtered.length;
+        debugPrint('🧹 Limpeza: $removed ações sincronizadas antigas removidas');
+      }
+    } catch (e) {
+      debugPrint('❌ Erro ao limpar ações sincronizadas: $e');
+    }
+  }
+  
+  /// Limpa todas as ações pendentes
   static Future<void> clearPendingActions() async {
     if (!_initialized || _pendingActionsBoxInstance == null) return;
     
@@ -187,6 +299,19 @@ class OfflineCacheService {
     } catch (e) {
       debugPrint('❌ Erro ao limpar ações pendentes: $e');
     }
+  }
+  
+  /// Conta ações pendentes por tipo
+  static Future<Map<String, int>> getPendingActionsCount() async {
+    final all = await getUnsyncedActions();
+    final counts = <String, int>{};
+    
+    for (final action in all) {
+      final type = action['type'] as String? ?? 'unknown';
+      counts[type] = (counts[type] ?? 0) + 1;
+    }
+    
+    return counts;
   }
 
   // === CACHE META ===

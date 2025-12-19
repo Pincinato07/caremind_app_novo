@@ -12,6 +12,7 @@ import '../../widgets/caremind_card.dart';
 import '../../core/accessibility/accessibility_helper.dart';
 import '../../widgets/charts/adherence_bar_chart.dart';
 import '../../widgets/charts/adherence_line_chart.dart';
+import '../../widgets/skeleton_loader.dart';
 
 /// Dashboard do FAMILIAR/CUIDADOR
 /// Objetivo: Tranquilidade. O familiar quer saber: "Está tudo bem?"
@@ -69,62 +70,164 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
   Future<void> _loadUserData() async {
     try {
       final supabaseService = getIt<SupabaseService>();
-      final familiarState = getIt<FamiliarState>();
-      final user = supabaseService.currentUser;
+      if (supabaseService == null) {
+        throw Exception('SupabaseService não disponível');
+      }
       
-      if (user != null) {
-        final perfil = await supabaseService.getProfile(user.id);
-        if (perfil != null && mounted) {
-          // Carregar idosos no FamiliarState (já deve estar carregado pelo shell, mas garantir)
-          if (!familiarState.hasIdosos) {
-            await familiarState.carregarIdosos(user.id);
-          }
-          
-          // Carregar status do idoso selecionado
-          if (familiarState.idosoSelecionado != null) {
-            await _carregarStatusIdoso(familiarState.idosoSelecionado!.id);
-          }
-
+      final familiarState = getIt<FamiliarState>();
+      if (familiarState == null) {
+        throw Exception('FamiliarState não disponível');
+      }
+      
+      final user = supabaseService.currentUser;
+      if (user == null) {
+        if (mounted) {
           setState(() {
-            _userName = perfil.nome ?? 'Familiar';
             _isLoading = false;
           });
         }
+        debugPrint('⚠️ Usuário não autenticado');
+        return;
       }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      
+      if (user.id.isEmpty) {
+        throw Exception('ID de usuário inválido');
+      }
+      
+      final perfil = await supabaseService.getProfile(user.id);
+      if (perfil == null) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        debugPrint('⚠️ Perfil não encontrado');
+        return;
+      }
+      
+      if (!mounted) return;
+      
+      // Carregar idosos no FamiliarState (já deve estar carregado pelo shell, mas garantir)
+      try {
+        if (!familiarState.hasIdosos) {
+          await familiarState.carregarIdosos(user.id);
+        }
+      } catch (e) {
+        debugPrint('⚠️ Erro ao carregar idosos: $e');
+        // Continuar mesmo se falhar
+      }
+      
+      // Carregar status do idoso selecionado
+      if (familiarState.idosoSelecionado != null) {
+        try {
+          await _carregarStatusIdoso(familiarState.idosoSelecionado!.id);
+        } catch (e) {
+          debugPrint('⚠️ Erro ao carregar status do idoso: $e');
+          // Continuar mesmo se falhar
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _userName = perfil.nome ?? 'Familiar';
+          _isLoading = false;
+        });
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erro ao carregar dados do usuário: $e');
+      debugPrint('Stack trace: $stackTrace');
+      
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        // Mostrar erro apenas se for crítico
+        if (e.toString().contains('network') || 
+            e.toString().contains('connection') ||
+            e.toString().contains('timeout')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Erro de conexão. Verifique sua internet.'),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 3),
+              action: SnackBarAction(
+                label: 'Tentar novamente',
+                textColor: Colors.white,
+                onPressed: _loadUserData,
+              ),
+            ),
+          );
+        }
+      }
     }
   }
 
   Future<void> _carregarStatusIdoso(String idosoId) async {
+    if (idosoId.isEmpty) {
+      debugPrint('⚠️ ID do idoso vazio');
+      return;
+    }
+    
     try {
       final familiarState = getIt<FamiliarState>();
       final supabaseService = getIt<SupabaseService>();
       final medicamentoService = getIt<MedicamentoService>();
       
       // Carregar medicamentos
-      final medicamentos = await medicamentoService.getMedicamentos(idosoId);
+      List<Medicamento> medicamentos = [];
+      try {
+        medicamentos = await medicamentoService.getMedicamentos(idosoId);
+      } catch (e) {
+        debugPrint('⚠️ Erro ao carregar medicamentos: $e');
+        medicamentos = []; // Continuar com lista vazia
+      }
       
       // Carregar última atividade (updated_at do perfil)
-      final perfilIdoso = await supabaseService.getProfile(idosoId);
-      if (perfilIdoso != null) {
-        _ultimaAtividade = perfilIdoso.createdAt; // Usar createdAt como fallback
+      try {
+        final perfilIdoso = await supabaseService.getProfile(idosoId);
+        if (perfilIdoso != null) {
+          _ultimaAtividade = perfilIdoso.createdAt; // Usar createdAt como fallback
+        }
+      } catch (e) {
+        debugPrint('⚠️ Erro ao carregar perfil do idoso: $e');
+        // Continuar sem última atividade
       }
       
       // Verificar status de medicamentos concluídos hoje
       Map<int, bool> statusMedicamentos = {};
       if (medicamentos.isNotEmpty) {
-        final ids = medicamentos.where((m) => m.id != null).map((m) => m.id!).toList();
-        statusMedicamentos = await HistoricoEventosService.checkMedicamentosConcluidosHoje(idosoId, ids);
+        try {
+          final ids = medicamentos
+              .where((m) => m.id != null)
+              .map((m) => m.id!)
+              .where((id) => id > 0)
+              .toList();
+          
+          if (ids.isNotEmpty) {
+            statusMedicamentos = await HistoricoEventosService.checkMedicamentosConcluidosHoje(idosoId, ids);
+          }
+        } catch (e) {
+          debugPrint('⚠️ Erro ao verificar status de medicamentos: $e');
+          // Continuar com mapa vazio
+        }
       }
       
       // Gerar alertas baseados em medicamentos atrasados
-      _alertas = _gerarAlertas(medicamentos, statusMedicamentos);
+      try {
+        _alertas = _gerarAlertas(medicamentos, statusMedicamentos);
+      } catch (e) {
+        debugPrint('⚠️ Erro ao gerar alertas: $e');
+        _alertas = []; // Continuar sem alertas
+      }
       
       // Buscar dados de adesão dos últimos 7 dias
-      _dadosAdesao = await HistoricoEventosService.getDadosAdesaoUltimos7Dias(idosoId);
+      try {
+        _dadosAdesao = await HistoricoEventosService.getDadosAdesaoUltimos7Dias(idosoId);
+      } catch (e) {
+        debugPrint('⚠️ Erro ao carregar dados de adesão: $e');
+        _dadosAdesao = []; // Continuar sem dados de adesão
+      }
       
       final pendentes = medicamentos.where((m) => !(statusMedicamentos[m.id] ?? false)).toList();
       final tomados = medicamentos.where((m) => statusMedicamentos[m.id] ?? false).toList();
@@ -146,8 +249,10 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
           };
         });
       }
-    } catch (e) {
-      // Erro ao carregar status
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erro ao carregar status do idoso: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Não mostrar erro ao usuário, apenas log
     }
   }
 
@@ -155,47 +260,91 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
     List<Medicamento> medicamentos, 
     Map<int, bool> statusMedicamentos
   ) {
-    final alertas = <Map<String, dynamic>>[];
-    final agora = DateTime.now();
-    
-    for (var med in medicamentos) {
-      if (statusMedicamentos[med.id] ?? false) continue;
+    try {
+      final alertas = <Map<String, dynamic>>[];
+      final agora = DateTime.now();
       
-      // Verificar se há horários passados hoje
-      final horarios = _extrairHorarios(med);
-      for (var horario in horarios) {
-        final horarioDateTime = DateTime(
-          agora.year,
-          agora.month,
-          agora.day,
-          horario.hour,
-          horario.minute,
-        );
-        
-        if (horarioDateTime.isBefore(agora)) {
-          alertas.add({
-            'tipo': 'atraso',
-            'mensagem': '${med.nome} Atrasado',
-            'horario': '${horario.hour.toString().padLeft(2, '0')}:${horario.minute.toString().padLeft(2, '0')}',
-            'medicamento': med.nome,
-          });
+      if (medicamentos.isEmpty) {
+        return alertas;
+      }
+      
+      for (var med in medicamentos) {
+        try {
+          if (statusMedicamentos[med.id] ?? false) continue;
+          
+          // Verificar se há horários passados hoje
+          try {
+            final horarios = _extrairHorarios(med);
+            for (var horario in horarios) {
+              try {
+                final horarioDateTime = DateTime(
+                  agora.year,
+                  agora.month,
+                  agora.day,
+                  horario.hour,
+                  horario.minute,
+                );
+                
+                if (horarioDateTime.isBefore(agora)) {
+                  final nomeMed = med.nome ?? 'Medicamento';
+                  alertas.add({
+                    'tipo': 'atraso',
+                    'mensagem': '$nomeMed Atrasado',
+                    'horario': '${horario.hour.toString().padLeft(2, '0')}:${horario.minute.toString().padLeft(2, '0')}',
+                    'medicamento': nomeMed,
+                  });
+                }
+              } catch (e) {
+                debugPrint('⚠️ Erro ao processar horário: $e');
+                continue;
+              }
+            }
+          } catch (e) {
+            debugPrint('⚠️ Erro ao extrair horários do medicamento ${med.id}: $e');
+          }
+          
+          // Verificar estoque baixo
+          try {
+            final quantidade = med.quantidade ?? 0;
+            if (quantidade < 10 && quantidade >= 0) {
+              final nomeMed = med.nome ?? 'Medicamento';
+              alertas.add({
+                'tipo': 'estoque',
+                'mensagem': '$nomeMed - Estoque baixo',
+                'horario': agora.toString().substring(11, 16),
+                'medicamento': nomeMed,
+              });
+            }
+          } catch (e) {
+            debugPrint('⚠️ Erro ao verificar estoque: $e');
+          }
+        } catch (e) {
+          debugPrint('⚠️ Erro ao processar medicamento: $e');
+          continue;
         }
       }
       
-      // Verificar estoque baixo
-      if ((med.quantidade ?? 0) < 10) {
-        alertas.add({
-          'tipo': 'estoque',
-          'mensagem': '${med.nome} - Estoque baixo',
-          'horario': agora.toString().substring(11, 16),
-          'medicamento': med.nome,
+      // Ordenar por horário (mais recente primeiro) e limitar a 3
+      try {
+        alertas.sort((a, b) {
+          try {
+            final horarioA = a['horario'] as String? ?? '';
+            final horarioB = b['horario'] as String? ?? '';
+            return horarioB.compareTo(horarioA);
+          } catch (e) {
+            return 0;
+          }
         });
+        return alertas.take(3).toList();
+      } catch (e) {
+        debugPrint('⚠️ Erro ao ordenar alertas: $e');
+        return alertas.take(3).toList();
       }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erro ao gerar alertas: $e');
+      debugPrint('Stack trace: $stackTrace');
+      return [];
     }
-    
-    // Ordenar por horário (mais recente primeiro) e limitar a 3
-    alertas.sort((a, b) => (b['horario'] as String).compareTo(a['horario'] as String));
-    return alertas.take(3).toList();
   }
 
   List<TimeOfDay> _extrairHorarios(Medicamento medicamento) {
@@ -242,11 +391,26 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
+            ? const SingleChildScrollView(
+                child: DashboardSkeletonLoader(),
               )
             : RefreshIndicator(
-                onRefresh: _loadUserData,
+                onRefresh: () async {
+                  try {
+                    await _loadUserData();
+                  } catch (e) {
+                    debugPrint('❌ Erro ao atualizar dados: $e');
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Erro ao atualizar. Tente novamente.'),
+                          backgroundColor: Colors.orange,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  }
+                },
                 color: AppColors.primary,
                 backgroundColor: Colors.white,
                 strokeWidth: 2.5,
@@ -308,21 +472,21 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                   // Card Status de Adesão
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12),
                       child: _buildStatusAdesao(),
                     ),
                   ),
                   // Widget Alertas Recentes
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12),
                       child: _buildAlertasRecentess(),
                     ),
                   ),
                   // Widget Última Atividade
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12),
                       child: _buildUltimaAtividade(),
                     ),
                   ),

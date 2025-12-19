@@ -23,7 +23,7 @@ class AuthService {
     }
   }
 
-  Future<Perfil?> handleSignup(String email, String password, String nome, bool lgpdConsent) async {
+  Future<Perfil?> handleSignup(String email, String password, String nome, bool lgpdConsent, {String tipo = 'individual', String? telefone}) async {
     if (!lgpdConsent) {
       throw const ValidationException(message: 'Consentimento para compartilhamento de dados de saúde é obrigatório (LGPD)');
     }
@@ -33,7 +33,8 @@ class AuthService {
         email: email,
         password: password,
         nome: nome,
-        tipo: 'pessoal',
+        tipo: tipo,
+        telefone: telefone,
         lgpdConsent: lgpdConsent,
       );
       if (response.user == null) {

@@ -15,6 +15,8 @@ import '../../core/injection/injection.dart';
 import '../../core/accessibility/accessibility_helper.dart';
 import '../organizacao/organizacao_lista_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../main.dart';
 
 /// Tela de Configurações
 /// Centraliza configurações do app
@@ -375,6 +377,15 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                           ),
                         ],
                       ),
+
+                    // Seção: Aparência
+                    _buildSection(
+                      context,
+                      title: '🎨 Aparência',
+                      children: [
+                        _buildThemeModeTile(context),
+                      ],
+                    ),
 
                     // Seção: Notificações
                     ListenableBuilder(
@@ -1001,6 +1012,130 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
         value: value,
         onChanged: onChanged,
         activeColor: AppColors.primary,
+      ),
+    );
+  }
+
+  Future<void> _saveThemePreference(ThemeMode mode) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      final modeString = mode.toString().split('.').last;
+      if (modeString.isEmpty) {
+        throw Exception('String de tema vazia');
+      }
+      
+      final success = await prefs.setString('theme_mode', modeString);
+      if (!success) {
+        throw Exception('Falha ao salvar preferência');
+      }
+      
+      // Atualizar o tema usando o método estático do CareMindApp
+      try {
+        CareMindApp.changeThemeMode(mode);
+      } catch (e) {
+        debugPrint('⚠️ Erro ao atualizar tema imediatamente: $e');
+        // Continuar mesmo se falhar, o tema será aplicado na próxima inicialização
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              mode == ThemeMode.dark 
+                ? 'Modo escuro ativado'
+                : 'Modo claro ativado',
+            ),
+            duration: const Duration(seconds: 2),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erro ao salvar preferência de tema: $e');
+      debugPrint('Stack trace: $stackTrace');
+      
+      if (mounted) {
+        String errorMessage = 'Erro ao salvar preferência';
+        if (e.toString().contains('SharedPreferences')) {
+          errorMessage = 'Erro de armazenamento. Tente novamente.';
+        } else if (e.toString().contains('network') || e.toString().contains('connection')) {
+          errorMessage = 'Erro de conexão. Verifique sua internet.';
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: 'Tentar novamente',
+              textColor: Colors.white,
+              onPressed: () => _saveThemePreference(mode),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildThemeModeTile(BuildContext context) {
+    final currentTheme = Theme.of(context).brightness;
+    final isDark = currentTheme == Brightness.dark;
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.3),
+            Colors.white.withValues(alpha: 0.25),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.4),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: SwitchListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        secondary: Icon(
+          isDark ? Icons.dark_mode : Icons.light_mode,
+          color: Colors.white,
+        ),
+        title: Text(
+          'Modo Escuro',
+          style: AppTextStyles.leagueSpartan(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        subtitle: Text(
+          isDark ? 'Tema escuro ativado' : 'Tema claro ativado',
+          style: AppTextStyles.leagueSpartan(
+            fontSize: 14,
+            color: Colors.white.withValues(alpha: 0.9),
+          ),
+        ),
+        value: isDark,
+        onChanged: (value) {
+          // Salvar preferência e recarregar app
+          _saveThemePreference(value ? ThemeMode.dark : ThemeMode.light);
+        },
+        activeColor: Colors.white,
+        activeTrackColor: Colors.white.withValues(alpha: 0.5),
+        inactiveThumbColor: Colors.grey[300],
+        inactiveTrackColor: Colors.grey[400]?.withValues(alpha: 0.5),
       ),
     );
   }

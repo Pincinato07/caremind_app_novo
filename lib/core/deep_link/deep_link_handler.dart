@@ -69,9 +69,20 @@ class DeepLinkHandler {
         return DeepLinkRoute.error;
       case 'convite':
         return DeepLinkRoute.conviteIdoso;
+      case 'medicamento':
+        return DeepLinkRoute.medicamento;
       default:
         return null;
     }
+  }
+
+  /// Extrai o ID do medicamento de um URI
+  static int? extractMedicamentoId(Uri uri) {
+    if (uri.scheme != 'caremind' || uri.host != 'medicamento') {
+      return null;
+    }
+    final idStr = uri.queryParameters['id'];
+    return idStr != null ? int.tryParse(idStr) : null;
   }
 
   /// Extrai o token do convite de um URI
@@ -101,5 +112,6 @@ enum DeepLinkRoute {
   success,
   error,
   conviteIdoso,
+  medicamento,
 }
 

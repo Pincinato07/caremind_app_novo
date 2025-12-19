@@ -27,11 +27,36 @@ class AppColors {
   
   static const Color disabled = Color(0xFFE5E7EB);
   static const Color disabledText = Color(0xFF9AA4B2);
+
+  // Dark Mode Colors
+  static const Color darkBackground = Color(0xFF0B1222);
+  static const Color darkSurface = Color(0xFF1A1F35);
+  static const Color darkCard = Color(0xFF1F2A44);
+  static const Color darkPrimary = Color(0xFF4A90E2);
+  static const Color darkPrimaryLight = Color(0xFF5BA3F5);
+  
+  static const Color darkTextPrimary = Color(0xFFF5F7FB);
+  static const Color darkTextSecondary = Color(0xFFB8C5D6);
+  static const Color darkTextHint = Color(0xFF8B9DB0);
+  static const Color darkTextOnPrimary = Colors.white;
+  
+  static const Color darkDivider = Color(0xFF2D3A52);
+  static const Color darkBorder = Color(0xFF2D3A52);
+  
+  static const Color darkDisabled = Color(0xFF2D3A52);
+  static const Color darkDisabledText = Color(0xFF6B7A8F);
 }
 
 /// Estilos de texto padronizados
 class AppTextStyles {
   static const String fontFamily = 'Manrope';
+
+  /// Helper para aplicar escala de texto baseado nas configurações de acessibilidade do sistema
+  /// WCAG 1.4.4: Respeitar preferências de tamanho de texto do usuário
+  static double scaleFontSize(BuildContext context, double baseFontSize) {
+    final textScaler = MediaQuery.of(context).textScaler;
+    return textScaler.scale(baseFontSize);
+  }
 
   static const TextStyle displayLarge = TextStyle(fontSize: 32, fontWeight: FontWeight.w700, height: 1.2, color: AppColors.textPrimary, fontFamily: fontFamily);
   static const TextStyle displayMedium = TextStyle(fontSize: 28, fontWeight: FontWeight.w700, height: 1.2, color: AppColors.textPrimary, fontFamily: fontFamily);
@@ -44,24 +69,24 @@ class AppTextStyles {
 
   // Title (Subtítulos e labels importantes)
   static const TextStyle titleLarge = TextStyle(fontSize: 18, fontWeight: FontWeight.w700, height: 1.25, color: AppColors.textPrimary, fontFamily: fontFamily);
-  static const TextStyle titleMedium = TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.25, color: AppColors.textPrimary, fontFamily: fontFamily);
-  static const TextStyle titleSmall = TextStyle(fontSize: 14, fontWeight: FontWeight.w600, height: 1.25, color: AppColors.textPrimary, fontFamily: fontFamily);
+  static const TextStyle titleMedium = TextStyle(fontSize: 18, fontWeight: FontWeight.w600, height: 1.25, color: AppColors.textPrimary, fontFamily: fontFamily); // WCAG: Aumentado de 16px para 18px
+  static const TextStyle titleSmall = TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.25, color: AppColors.textPrimary, fontFamily: fontFamily); // WCAG: Aumentado de 14px para 16px
 
   // Body (Texto corrido)
-  static const TextStyle bodyLarge = TextStyle(fontSize: 16, height: 1.5, color: AppColors.textPrimary, fontFamily: fontFamily);
-  static const TextStyle bodyMedium = TextStyle(fontSize: 14, height: 1.5, color: AppColors.textSecondary, fontFamily: fontFamily);
-  static const TextStyle bodySmall = TextStyle(fontSize: 12, height: 1.5, color: AppColors.textSecondary, fontFamily: fontFamily);
+  static const TextStyle bodyLarge = TextStyle(fontSize: 18, height: 1.5, color: AppColors.textPrimary, fontFamily: fontFamily); // WCAG: Aumentado de 16px para 18px
+  static const TextStyle bodyMedium = TextStyle(fontSize: 16, height: 1.5, color: AppColors.textSecondary, fontFamily: fontFamily); // WCAG: Aumentado de 14px para 16px (mínimo para textos secundários)
+  static const TextStyle bodySmall = TextStyle(fontSize: 16, height: 1.5, color: AppColors.textSecondary, fontFamily: fontFamily); // WCAG: Aumentado de 12px para 16px
 
   // Label (Botões e ações)
-  static const TextStyle labelLarge = TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textOnPrimary, fontFamily: fontFamily);
-  static const TextStyle labelMedium = TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary, fontFamily: fontFamily);
-  static const TextStyle labelSmall = TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary, fontFamily: fontFamily);
+  static const TextStyle labelLarge = TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textOnPrimary, fontFamily: fontFamily); // WCAG: Aumentado de 16px para 18px
+  static const TextStyle labelMedium = TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary, fontFamily: fontFamily); // WCAG: Aumentado de 14px para 16px
+  static const TextStyle labelSmall = TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary, fontFamily: fontFamily); // WCAG: Aumentado de 12px para 16px
 
   // Caption (Legendas e informações secundárias)
-  static const TextStyle caption = TextStyle(fontSize: 12, height: 1.4, color: AppColors.textHint, fontFamily: fontFamily);
+  static const TextStyle caption = TextStyle(fontSize: 16, height: 1.4, color: AppColors.textHint, fontFamily: fontFamily); // WCAG: Aumentado de 12px para 16px
 
   // Link
-  static const TextStyle link = TextStyle(fontSize: 14, color: AppColors.primary, fontWeight: FontWeight.w700, decoration: TextDecoration.underline, fontFamily: fontFamily);
+  static const TextStyle link = TextStyle(fontSize: 16, color: AppColors.primary, fontWeight: FontWeight.w700, decoration: TextDecoration.underline, fontFamily: fontFamily); // WCAG: Aumentado de 14px para 16px
 
   // Método para League Spartan
   static TextStyle leagueSpartan({
@@ -220,7 +245,7 @@ class AppTheme {
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600), // WCAG: Aumentado de 14px para 16px
         ),
       ),
       
@@ -350,14 +375,226 @@ class AppTheme {
         ),
         labelStyle: TextStyle(
           color: AppColors.textPrimary,
-          fontSize: 14.0,
+          fontSize: 16.0, // WCAG: Aumentado de 14px para 16px
         ),
         secondaryLabelStyle: TextStyle(
           color: AppColors.textOnPrimary,
-          fontSize: 14.0,
+          fontSize: 16.0, // WCAG: Aumentado de 14px para 16px
         ),
         brightness: Brightness.light,
       ),
+    );
+  }
+
+  /// Tema escuro do aplicativo
+  static ThemeData get darkTheme {
+    final base = ThemeData.dark();
+    final textTheme = GoogleFonts.manropeTextTheme(base.textTheme).copyWith(
+      displayLarge: AppTextStyles.displayLarge.copyWith(color: AppColors.darkTextPrimary),
+      displayMedium: AppTextStyles.displayMedium.copyWith(color: AppColors.darkTextPrimary),
+      displaySmall: AppTextStyles.displaySmall.copyWith(color: AppColors.darkTextPrimary),
+      headlineLarge: AppTextStyles.headlineLarge.copyWith(color: AppColors.darkTextPrimary),
+      headlineMedium: AppTextStyles.headlineMedium.copyWith(color: AppColors.darkTextPrimary),
+      headlineSmall: AppTextStyles.headlineSmall.copyWith(color: AppColors.darkTextPrimary),
+      titleLarge: AppTextStyles.titleLarge.copyWith(color: AppColors.darkTextPrimary),
+      titleMedium: AppTextStyles.titleMedium.copyWith(color: AppColors.darkTextPrimary),
+      titleSmall: AppTextStyles.titleSmall.copyWith(color: AppColors.darkTextPrimary),
+      bodyLarge: AppTextStyles.bodyLarge.copyWith(color: AppColors.darkTextPrimary),
+      bodyMedium: AppTextStyles.bodyMedium.copyWith(color: AppColors.darkTextSecondary),
+      bodySmall: AppTextStyles.bodySmall.copyWith(color: AppColors.darkTextSecondary),
+      labelLarge: AppTextStyles.labelLarge.copyWith(color: AppColors.darkTextOnPrimary),
+    );
+
+    return base.copyWith(
+      colorScheme: ColorScheme.dark(
+        primary: AppColors.darkPrimary,
+        primaryContainer: AppColors.darkPrimaryLight,
+        secondary: AppColors.accent,
+        surface: AppColors.darkSurface,
+        background: AppColors.darkBackground,
+        error: AppColors.error,
+        onPrimary: AppColors.darkTextOnPrimary,
+        onSecondary: AppColors.darkTextOnPrimary,
+        onSurface: AppColors.darkTextPrimary,
+        onError: AppColors.darkTextOnPrimary,
+        brightness: Brightness.dark,
+        outline: AppColors.darkBorder,
+      ),
+      
+      // Configurações de tipografia
+      textTheme: textTheme,
+      
+      // Configurações de AppBar
+      appBarTheme: const AppBarTheme(
+        backgroundColor: AppColors.darkSurface,
+        elevation: 0,
+        centerTitle: true,
+        titleTextStyle: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: AppColors.darkTextPrimary,
+          fontFamily: AppTextStyles.fontFamily,
+        ),
+        iconTheme: IconThemeData(color: AppColors.darkTextPrimary),
+      ),
+      
+      // Configurações de botões
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.darkPrimary,
+          foregroundColor: AppColors.darkTextOnPrimary,
+          elevation: 0,
+          minimumSize: const Size.fromHeight(48),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          shape: const RoundedRectangleBorder(borderRadius: AppBorderRadius.smallAll),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+        ),
+      ),
+      
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.darkPrimary,
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600), // WCAG: Aumentado de 14px para 16px
+        ),
+      ),
+      
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.darkTextPrimary,
+          backgroundColor: AppColors.darkSurface,
+          side: const BorderSide(color: AppColors.darkBorder, width: 1.5),
+          minimumSize: const Size.fromHeight(48),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          shape: const RoundedRectangleBorder(borderRadius: AppBorderRadius.smallAll),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+        ),
+      ),
+      
+      // Configurações de cards
+      cardTheme: base.cardTheme.copyWith(
+        color: AppColors.darkCard,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.black.withValues(alpha: 0.3),
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: AppBorderRadius.mediumAll,
+          side: const BorderSide(color: AppColors.darkBorder),
+        ),
+      ),
+      
+      // Configurações de campos de formulário
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.darkSurface,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: const OutlineInputBorder(
+          borderRadius: AppBorderRadius.smallAll,
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: const OutlineInputBorder(
+          borderRadius: AppBorderRadius.smallAll,
+          borderSide: BorderSide(color: AppColors.darkBorder, width: 1),
+        ),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: AppBorderRadius.smallAll,
+          borderSide: BorderSide(color: AppColors.darkPrimary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: AppBorderRadius.smallAll,
+          borderSide: const BorderSide(
+            color: AppColors.error,
+            width: 2.0,
+          ),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: AppBorderRadius.smallAll,
+          borderSide: const BorderSide(
+            color: AppColors.error,
+            width: 2.0,
+          ),
+        ),
+        labelStyle: const TextStyle(color: AppColors.darkTextSecondary),
+        hintStyle: const TextStyle(color: AppColors.darkTextHint),
+        errorStyle: const TextStyle(color: AppColors.error),
+      ),
+      
+      // Configurações de diálogos
+      dialogTheme: base.dialogTheme.copyWith(
+        backgroundColor: AppColors.darkSurface,
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: AppBorderRadius.mediumAll,
+        ),
+        titleTextStyle: AppTextStyles.headlineSmall.copyWith(color: AppColors.darkTextPrimary),
+        contentTextStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.darkTextSecondary),
+      ),
+      
+      // Configurações de divisores
+      dividerTheme: const DividerThemeData(
+        color: AppColors.darkDivider,
+        thickness: 1.0,
+        space: 1.0,
+      ),
+      
+      // Configurações de ícones
+      iconTheme: const IconThemeData(
+        color: AppColors.darkTextPrimary,
+        size: 24.0,
+      ),
+      
+      // Configurações de snackbar
+      snackBarTheme: const SnackBarThemeData(
+        backgroundColor: AppColors.darkSurface,
+        contentTextStyle: TextStyle(color: AppColors.darkTextPrimary),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: AppBorderRadius.mediumAll,
+        ),
+      ),
+      
+      // Configurações de botão flutuante
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: AppColors.darkPrimary,
+        foregroundColor: AppColors.darkTextOnPrimary,
+        elevation: 2,
+      ),
+      
+      // Configurações de tabs
+      tabBarTheme: base.tabBarTheme.copyWith(
+        labelColor: AppColors.darkPrimary,
+        unselectedLabelColor: AppColors.darkTextSecondary,
+        indicator: const UnderlineTabIndicator(
+          borderSide: BorderSide(
+            color: AppColors.darkPrimary,
+            width: 2.0,
+          ),
+        ),
+      ),
+      
+      // Configurações de chip
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.darkSurface,
+        disabledColor: AppColors.darkDisabled,
+        selectedColor: AppColors.darkPrimary.withValues(alpha: 0.2),
+        checkmarkColor: AppColors.darkPrimary,
+        padding: EdgeInsets.symmetric(
+          horizontal: AppSpacing.small,
+          vertical: 4.0,
+        ),
+        labelStyle: TextStyle(
+          color: AppColors.darkTextPrimary,
+          fontSize: 16.0, // WCAG: Aumentado de 14px para 16px
+        ),
+        secondaryLabelStyle: TextStyle(
+          color: AppColors.darkTextOnPrimary,
+          fontSize: 16.0, // WCAG: Aumentado de 14px para 16px
+        ),
+        brightness: Brightness.dark,
+      ),
+      
+      scaffoldBackgroundColor: AppColors.darkBackground,
     );
   }
 }

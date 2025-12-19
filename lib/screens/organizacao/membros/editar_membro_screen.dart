@@ -142,10 +142,130 @@ class _EditarMembroScreenState extends State<EditarMembroScreen> {
                     )
                   : const Text('Salvar Alterações'),
             ),
+            const SizedBox(height: 24),
+            Divider(color: Colors.red.shade300),
+            const SizedBox(height: 16),
+            Text(
+              'Zona de Perigo',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.red.shade700,
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: _isLoading ? null : _removerMembro,
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              label: const Text(
+                'Remover Membro da Organização',
+                style: TextStyle(color: Colors.red),
+              ),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                side: const BorderSide(color: Colors.red),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _removerMembro() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Remoção'),
+        content: Text(
+          'Tem certeza que deseja remover ${widget.nomeMembro} da organização?\n\n'
+          'Esta ação não pode ser desfeita.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final precisaRedirecionar = await _membroService.removerMembro(widget.membroId);
+
+      if (mounted) {
+        if (precisaRedirecionar) {
+          // Usuário foi removido e não é membro de nenhuma organização
+          // Redirecionar para Dashboard Individual
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Você foi removido da organização. Redirecionando...'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 2),
+            ),
+          );
+
+          // Aguardar um pouco para mostrar a mensagem
+          await Future.delayed(const Duration(seconds: 2));
+
+          if (mounted) {
+            // Limpar stack de navegação e ir para dashboard individual
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/individual-dashboard',
+              (route) => false,
+            );
+          }
+        } else {
+          // Apenas outro membro foi removido, voltar para lista
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Membro removido com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, true);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        final errorMessage = e.toString();
+        String mensagemUsuario = 'Erro ao remover membro';
+        
+        // Tratar diferentes tipos de erro
+        if (errorMessage.contains('conexão') || errorMessage.contains('internet') || errorMessage.contains('network')) {
+          mensagemUsuario = 'Erro de conexão. Verifique sua internet e tente novamente.';
+        } else if (errorMessage.contains('não encontrado') || errorMessage.contains('sem permissão')) {
+          mensagemUsuario = 'Membro não encontrado ou você não tem permissão para removê-lo.';
+        } else if (errorMessage.contains('não autenticado') || errorMessage.contains('Token')) {
+          mensagemUsuario = 'Sua sessão expirou. Faça login novamente.';
+        } else {
+          // Extrair mensagem do erro
+          final match = RegExp(r'Exception:\s*(.+?)(?:\n|$)').firstMatch(errorMessage);
+          mensagemUsuario = match?.group(1)?.trim() ?? 'Erro ao remover membro. Tente novamente.';
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(mensagemUsuario),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   String _getRoleLabel(String role) {

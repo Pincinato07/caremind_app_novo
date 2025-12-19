@@ -6,9 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io' show Platform;
 import '../models/medicamento.dart';
 import 'settings_service.dart';
 import '../core/injection/injection.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/vinculo_familiar.dart';
 
 /// Serviço de Notificações (Locais + Push Remotas FCM) para Lembretes de Medicamentos
 /// 
@@ -32,12 +37,17 @@ class NotificationService {
   static bool _initialized = false;
   static SettingsService? _settingsService;
   
-  // Callback para quando o token FCM é atualizado (para enviar ao backend)
+  // Callback para quando o token FCM é atualizado (para enviar ao backend)    
   static Function(String token)? onFcmTokenUpdated;
   
   // Callback para quando uma notificação FCM chega em foreground
   // Use isso para mostrar in-app notifications
   static Function(RemoteMessage message)? onForegroundMessage;
+  
+  // Callbacks para notificar erros FCM ao usuário
+  static Function(String message)? onFcmPermissionDenied;
+  static Function(String message)? onFcmTokenError;
+  static Function(String message)? onFcmInitializationError;
 
   /// Obtém o SettingsService (lazy)
   static SettingsService? _getSettingsService() {
@@ -56,6 +66,11 @@ class NotificationService {
   static const String _medicamentoChannelName = 'Lembretes de Medicamentos';
   static const String _medicamentoChannelDescription =
       'Notificações de horários de medicamentos com som e vibração';
+
+  // Constantes para Snooze e Escalonamento
+  static const int _snoozeMinutes = 5;
+  static const int _maxSnoozes = 2; // Máximo 2 snoozes (total 3 tentativas)
+  static const String _snoozeStateKey = 'medication_snooze_state';
 
   /// Inicializar o serviço de notificações (Locais + FCM)
   static Future<void> initialize() async {
@@ -85,6 +100,7 @@ class NotificationService {
       final initialized = await _notifications.initialize(
         initSettings,
         onDidReceiveNotificationResponse: _onNotificationTapped,
+        onDidReceiveBackgroundNotificationResponse: notificationActionHandler,
       );
 
       if (initialized != true) {
@@ -97,6 +113,9 @@ class NotificationService {
 
       // Solicitar permissões
       await requestPermissions();
+      
+      // Verificar permissões de alarmes exatos (Android 13+)
+      await checkAndRequestExactAlarmPermission();
 
       // Inicializar Firebase Messaging (Push Notifications Remotas)
       await _initializeFCM();
@@ -138,8 +157,14 @@ class NotificationService {
         debugPrint('✅ Permissão FCM concedida');
       } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
         debugPrint('⚠️ Permissão FCM provisória');
+        onFcmPermissionDenied?.call(
+          'Permissão de notificações provisória. Você pode não receber todos os alertas de medicamento.',
+        );
       } else {
         debugPrint('❌ Permissão FCM negada');
+        onFcmPermissionDenied?.call(
+          'Permissão de notificações negada. Você não receberá alertas de medicamento. Ative nas configurações do dispositivo.',
+        );
         return;
       }
 
@@ -164,6 +189,9 @@ class NotificationService {
       debugPrint('✅ FCM inicializado com sucesso');
     } catch (e) {
       debugPrint('❌ Erro ao inicializar FCM: ${e.toString()}');
+      onFcmInitializationError?.call(
+        'Erro ao configurar notificações push. Você pode não receber alertas de medicamento. Notificações locais continuam funcionando.',
+      );
       // Continua mesmo sem FCM (notificações locais ainda funcionam)
     }
   }
@@ -181,6 +209,9 @@ class NotificationService {
       return _fcmToken;
     } catch (e) {
       debugPrint('❌ Erro ao obter token FCM: ${e.toString()}');
+      onFcmTokenError?.call(
+        'Erro ao obter token de notificações. Você pode não receber alertas de medicamento. Tente reiniciar o app.',
+      );
       return null;
     }
   }
@@ -314,11 +345,528 @@ class NotificationService {
     return true;
   }
 
-  /// Handler quando usuário toca na notificação
-  static void _onNotificationTapped(NotificationResponse response) {
-    debugPrint('🔔 Notificação tocada - ID: ${response.id}, Payload: ${response.payload}');
-    // Aqui você pode navegar para a tela de medicamentos
-    // O payload contém o ID do medicamento
+  /// Verificar e solicitar permissão USE_EXACT_ALARM (Android 13+)
+  /// 
+  /// Android 13+ (API 33+) requer permissão explícita para usar alarmes exatos.
+  /// Retorna true se a permissão está disponível, false caso contrário.
+  static Future<bool> checkAndRequestExactAlarmPermission() async {
+    if (!Platform.isAndroid) return true;
+
+    try {
+      final android = _notifications.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
+      if (android == null) return false;
+
+      // Verificar se pode agendar alarmes exatos
+      final canSchedule = await android.canScheduleExactNotifications();
+      
+      if (canSchedule == true) {
+        debugPrint('✅ Permissão USE_EXACT_ALARM: Já disponível');
+        return true;
+      }
+
+      debugPrint('⚠️ Permissão USE_EXACT_ALARM: Não disponível. Solicitando...');
+      
+      // Tentar solicitar permissão (pode abrir configurações do sistema)
+      final requested = await android.requestExactAlarmsPermission();
+      
+      if (requested == true) {
+        debugPrint('✅ Permissão USE_EXACT_ALARM: Concedida');
+        return true;
+      } else {
+        debugPrint('❌ Permissão USE_EXACT_ALARM: Negada. Usuário precisa habilitar manualmente.');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('❌ Erro ao verificar USE_EXACT_ALARM: $e');
+      // Em caso de erro, continuar (pode funcionar mesmo sem a permissão em alguns casos)
+      return false;
+    }
+  }
+
+  /// Verificar se pode agendar alarmes exatos (método público)
+  static Future<bool> canScheduleExactAlarms() async {
+    if (!Platform.isAndroid) return true;
+    
+    final android = _notifications.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    
+    if (android == null) return false;
+    
+    return await android.canScheduleExactNotifications() ?? false;
+  }
+
+  /// Verificar se otimização de bateria está desabilitada (método público)
+  static Future<bool> isBatteryOptimizationDisabled() async {
+    if (!Platform.isAndroid) return true;
+    
+    try {
+      return await Permission.ignoreBatteryOptimizations.isGranted;
+    } catch (e) {
+      debugPrint('❌ Erro ao verificar otimização de bateria: $e');
+      return false;
+    }
+  }
+
+  /// Solicitar desabilitar otimização de bateria (método público)
+  static Future<bool> requestDisableBatteryOptimization() async {
+    if (!Platform.isAndroid) return true;
+    
+    try {
+      final status = await Permission.ignoreBatteryOptimizations.request();
+      return status.isGranted;
+    } catch (e) {
+      debugPrint('❌ Erro ao solicitar desabilitar otimização: $e');
+      return false;
+    }
+  }
+
+  /// Handler quando usuário toca na notificação (foreground)
+  static void _onNotificationTapped(NotificationResponse response) async {
+    debugPrint('🔔 Notificação tocada - ID: ${response.id}, Payload: ${response.payload}, Action: ${response.actionId}');
+    
+    await _handleNotificationAction(response);
+  }
+
+
+  /// Processar ação da notificação (snooze ou confirmar)
+  static Future<void> _handleNotificationAction(NotificationResponse response) async {
+    try {
+      final payload = response.payload;
+      if (payload == null || payload.isEmpty) {
+        debugPrint('⚠️ Notificação sem payload: ${response.id}');
+        return;
+      }
+
+      final medicamentoId = int.tryParse(payload);
+      if (medicamentoId == null) {
+        debugPrint('⚠️ Payload inválido para medicamento: $payload');
+        return;
+      }
+
+      // Se ação for "snooze", agendar snooze
+      if (response.actionId == 'snooze') {
+        try {
+          await scheduleSnooze(medicamentoId);
+        } catch (e) {
+          debugPrint('❌ Erro ao agendar snooze: $e');
+          // Não relançar erro - já foi logado
+        }
+      } 
+      // Se ação for "confirm", marcar como confirmado (cancelar notificações pendentes)
+      else if (response.actionId == 'confirm') {
+        try {
+          await confirmMedication(medicamentoId);
+        } catch (e) {
+          debugPrint('❌ Erro ao confirmar medicamento: $e');
+          // Não relançar erro - já foi logado
+        }
+      }
+      // Se apenas tocou na notificação (sem ação), navegar para tela do medicamento
+      else {
+        try {
+          // Chamar callback para navegação (será configurado no main.dart)
+          onNotificationTapped?.call(medicamentoId);
+        } catch (e) {
+          debugPrint('❌ Erro ao chamar callback de navegação: $e');
+          // Não relançar erro - callback pode não estar configurado
+        }
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erro ao processar ação de notificação: $e');
+      debugPrint('Stack trace: $stackTrace');
+    }
+  }
+  
+  // Callback para quando uma notificação é tocada (para navegação)
+  static Function(int medicamentoId)? onNotificationTapped;
+
+  /// Processar ação da notificação em background (método estático para ser chamado pela função top-level)
+  static Future<void> _handleNotificationActionInBackground(NotificationResponse response) async {
+    try {
+      // Garantir que timezone está inicializado (pode não estar em background)
+      try {
+        tz.initializeTimeZones();
+        tz.setLocalLocation(tz.getLocation('America/Sao_Paulo'));
+      } catch (e) {
+        // Timezone já inicializado ou erro (continuar mesmo assim)
+        debugPrint('ℹ️ Timezone já inicializado ou erro: $e');
+      }
+      
+      // Garantir que serviço está inicializado
+      if (!_initialized) {
+        try {
+          await initialize();
+        } catch (e) {
+          debugPrint('❌ Erro ao inicializar serviço em background: $e');
+          // Tentar continuar mesmo sem inicialização completa
+        }
+      }
+      
+      await _handleNotificationAction(response);
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erro ao processar ação de notificação em background: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Não relançar - erro já foi logado
+    }
+  }
+
+  /// Agendar Snooze (repetir notificação após 5 minutos)
+  static Future<void> scheduleSnooze(int medicamentoId) async {
+    try {
+      if (!_initialized) {
+        try {
+          await initialize();
+        } catch (e) {
+          debugPrint('❌ Erro ao inicializar serviço para snooze: $e');
+          return;
+        }
+      }
+      
+      // Obter estado atual de snooze
+      SharedPreferences? prefs;
+      try {
+        prefs = await SharedPreferences.getInstance();
+      } catch (e) {
+        debugPrint('❌ Erro ao obter SharedPreferences para snooze: $e');
+        return;
+      }
+      
+      final stateKey = '${_snoozeStateKey}_$medicamentoId';
+      final snoozeCount = prefs.getInt(stateKey) ?? 0;
+
+      if (snoozeCount >= _maxSnoozes) {
+        // Máximo de snoozes atingido - escalar para familiar
+        debugPrint('⚠️ Máximo de snoozes atingido para medicamento $medicamentoId. Escalando para familiar...');
+        try {
+          await _escalateToFamiliar(medicamentoId);
+        } catch (e) {
+          debugPrint('❌ Erro ao escalar para familiar: $e');
+          // Continuar mesmo com erro no escalonamento
+        }
+        // Limpar estado de snooze
+        try {
+          await prefs.remove(stateKey);
+        } catch (e) {
+          debugPrint('⚠️ Erro ao limpar estado de snooze: $e');
+        }
+        return;
+      }
+
+      // Incrementar contador de snooze ANTES de usar
+      final newSnoozeCount = snoozeCount + 1;
+      try {
+        await prefs.setInt(stateKey, newSnoozeCount);
+      } catch (e) {
+        debugPrint('❌ Erro ao salvar estado de snooze: $e');
+        return;
+      }
+
+      // Buscar medicamento para obter informações
+      final medicamento = await _getMedicamentoById(medicamentoId);
+      if (medicamento == null) {
+        debugPrint('⚠️ Medicamento $medicamentoId não encontrado para snooze');
+        // Reverter contador de snooze
+        try {
+          await prefs.setInt(stateKey, snoozeCount);
+        } catch (e) {
+          debugPrint('⚠️ Erro ao reverter contador de snooze: $e');
+        }
+        return;
+      }
+
+      // Calcular horário do snooze (5 minutos a partir de agora)
+      DateTime snoozeTime;
+      tz.TZDateTime tzSnoozeTime;
+      try {
+        snoozeTime = DateTime.now().add(const Duration(minutes: _snoozeMinutes));
+        tzSnoozeTime = tz.TZDateTime.from(snoozeTime, tz.local);
+      } catch (e) {
+        debugPrint('❌ Erro ao calcular horário do snooze: $e');
+        // Reverter contador de snooze
+        try {
+          await prefs.setInt(stateKey, snoozeCount);
+        } catch (e2) {
+          debugPrint('⚠️ Erro ao reverter contador de snooze: $e2');
+        }
+        return;
+      }
+
+      // Gerar ID único para snooze (usar ID negativo para diferenciar)
+      // Usar newSnoozeCount para garantir ID único
+      final snoozeId = -(medicamentoId * 1000 + newSnoozeCount);
+
+      final saudacao = _getSaudacao(snoozeTime.hour);
+      final titulo = '$saudacao Lembrete: ${medicamento.nome}';
+      final corpo = '⏰ Você ainda não confirmou este medicamento. ${_getCorpoNotificacao(medicamento, TimeOfDay(hour: snoozeTime.hour, minute: snoozeTime.minute))}';
+
+      final androidDetails = AndroidNotificationDetails(
+        _medicamentoChannelId,
+        _medicamentoChannelName,
+        channelDescription: _medicamentoChannelDescription,
+        importance: Importance.max,
+        priority: Priority.max,
+        icon: '@mipmap/ic_launcher',
+        playSound: true,
+        enableVibration: true,
+        vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]),
+        styleInformation: BigTextStyleInformation(
+          corpo,
+          contentTitle: titulo,
+          summaryText: 'CareMind - Lembrete de Medicamento',
+        ),
+        ongoing: false,
+        autoCancel: true,
+        category: AndroidNotificationCategory.alarm,
+        visibility: NotificationVisibility.public,
+        fullScreenIntent: true,
+        ticker: 'Lembrete: ${medicamento.nome}',
+        actions: <AndroidNotificationAction>[
+          AndroidNotificationAction(
+            'snooze',
+            'Soneca (5 min)',
+            showsUserInterface: false,
+            cancelNotification: false,
+          ),
+          AndroidNotificationAction(
+            'confirm',
+            'Tomado',
+            showsUserInterface: false,
+            cancelNotification: true,
+          ),
+        ],
+      );
+
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        sound: 'default',
+        interruptionLevel: InterruptionLevel.critical,
+      );
+
+      final notificationDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      try {
+        await _notifications.zonedSchedule(
+          snoozeId,
+          titulo,
+          corpo,
+          tzSnoozeTime,
+          notificationDetails,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          payload: medicamentoId.toString(),
+        );
+
+        debugPrint('✅ Snooze agendado: Medicamento=$medicamentoId, Tentativa=$newSnoozeCount/${_maxSnoozes + 1}, Horário=$snoozeTime');
+      } catch (e) {
+        debugPrint('❌ Erro ao agendar notificação de snooze: $e');
+        // Reverter contador de snooze em caso de erro
+        try {
+          await prefs.setInt(stateKey, snoozeCount);
+        } catch (e2) {
+          debugPrint('⚠️ Erro ao reverter contador de snooze após falha: $e2');
+        }
+        rethrow; // Relançar para ser capturado pelo catch externo
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erro ao agendar snooze: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Não relançar - erro já foi logado e tratado
+    }
+  }
+
+  /// Confirmar medicamento (cancelar notificações pendentes e limpar snooze)
+  /// Método público para ser chamado quando o usuário confirma o medicamento
+  static Future<void> confirmMedication(int medicamentoId) async {
+    try {
+      // Cancelar todas as notificações deste medicamento
+      try {
+        await _cancelMedicamentoNotifications(medicamentoId);
+      } catch (e) {
+        debugPrint('⚠️ Erro ao cancelar notificações do medicamento: $e');
+        // Continuar mesmo com erro
+      }
+      
+      // Cancelar snoozes pendentes (IDs negativos)
+      for (int i = 0; i <= _maxSnoozes; i++) {
+        try {
+          final snoozeId = -(medicamentoId * 1000 + i);
+          await _notifications.cancel(snoozeId);
+        } catch (e) {
+          debugPrint('⚠️ Erro ao cancelar snooze $i: $e');
+          // Continuar cancelando os outros
+        }
+      }
+
+      // Limpar estado de snooze
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final stateKey = '${_snoozeStateKey}_$medicamentoId';
+        await prefs.remove(stateKey);
+      } catch (e) {
+        debugPrint('⚠️ Erro ao limpar estado de snooze: $e');
+        // Continuar mesmo com erro
+      }
+
+      debugPrint('✅ Medicamento $medicamentoId confirmado. Notificações canceladas.');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erro ao confirmar medicamento: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Não relançar - erro já foi logado
+    }
+  }
+
+  /// Escalar para familiar (após 3 tentativas sem confirmação)
+  static Future<void> _escalateToFamiliar(int medicamentoId) async {
+    try {
+      final medicamento = await _getMedicamentoById(medicamentoId);
+      if (medicamento == null) {
+        debugPrint('⚠️ Medicamento $medicamentoId não encontrado para escalonamento');
+        return;
+      }
+
+      // Buscar vínculos familiares do idoso
+      final vinculos = await _getVinculosFamiliares(medicamento.perfilId);
+      
+      if (vinculos.isEmpty) {
+        debugPrint('⚠️ Nenhum familiar vinculado para medicamento $medicamentoId');
+        return;
+      }
+
+      // Buscar perfil do idoso para obter nome
+      final idosoNome = await _getNomePerfil(medicamento.perfilId);
+
+      // Enviar notificação para cada familiar via Edge Function
+      int sucessos = 0;
+      int falhas = 0;
+      
+      for (final vinculo in vinculos) {
+        try {
+          await _sendPushToFamiliar(
+            familiarId: vinculo.idFamiliar,
+            medicamentoId: medicamentoId,
+            medicamentoNome: medicamento.nome,
+            idosoNome: idosoNome ?? 'Idoso',
+          );
+          sucessos++;
+        } catch (e) {
+          falhas++;
+          debugPrint('⚠️ Erro ao enviar push para familiar ${vinculo.idFamiliar}: $e');
+          // Continuar enviando para os outros familiares
+        }
+      }
+
+      if (sucessos > 0) {
+        debugPrint('✅ Escalonamento enviado: $sucessos sucesso(s), $falhas falha(s) de ${vinculos.length} familiar(es)');
+      } else {
+        debugPrint('❌ Falha ao enviar escalonamento para todos os familiares');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erro ao escalar para familiar: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Não relançar - erro já foi logado
+    }
+  }
+
+  /// Buscar medicamento por ID (helper)
+  static Future<Medicamento?> _getMedicamentoById(int medicamentoId) async {
+    try {
+      final client = Supabase.instance.client;
+      final response = await client
+          .from('medicamentos')
+          .select()
+          .eq('id', medicamentoId)
+          .maybeSingle();
+
+      if (response == null) return null;
+      return Medicamento.fromMap(response);
+    } catch (e) {
+      debugPrint('❌ Erro ao buscar medicamento: $e');
+      return null;
+    }
+  }
+
+  /// Buscar vínculos familiares (helper)
+  static Future<List<VinculoFamiliar>> _getVinculosFamiliares(String idosoId) async {
+    try {
+      final client = Supabase.instance.client;
+      final response = await client
+          .from('vinculos_familiares')
+          .select()
+          .eq('id_idoso', idosoId);
+
+      return (response as List)
+          .map((data) => VinculoFamiliar.fromMap(data))
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Erro ao buscar vínculos familiares: $e');
+      return [];
+    }
+  }
+
+  /// Obter nome do perfil (helper)
+  static Future<String?> _getNomePerfil(String perfilId) async {
+    try {
+      final client = Supabase.instance.client;
+      final response = await client
+          .from('perfis')
+          .select('nome')
+          .eq('id', perfilId)
+          .maybeSingle();
+
+      return response?['nome'] as String?;
+    } catch (e) {
+      debugPrint('❌ Erro ao buscar nome do perfil: $e');
+      return null;
+    }
+  }
+
+  /// Enviar push notification para familiar via Edge Function
+  static Future<void> _sendPushToFamiliar({
+    required String familiarId,
+    required int medicamentoId,
+    required String medicamentoNome,
+    required String idosoNome,
+  }) async {
+    try {
+      final client = Supabase.instance.client;
+      
+      // Chamar Edge Function para enviar push
+      final response = await client.functions.invoke(
+        'enviar-push-notification',
+        body: {
+          'userId': familiarId,
+          'title': '⚠️ Alerta: Medicamento não confirmado',
+          'body': '$idosoNome não confirmou o medicamento "$medicamentoNome". Por favor, verifique.',
+          'data': {
+            'type': 'medication_escalation',
+            'medicamento_id': medicamentoId.toString(),
+            'idoso_nome': idosoNome,
+            'medicamento_nome': medicamentoNome,
+          },
+          'priority': 'high',
+        },
+      );
+
+      if (response.status == 200) {
+        debugPrint('✅ Push enviado para familiar $familiarId');
+      } else {
+        debugPrint('⚠️ Push enviado para familiar $familiarId com status: ${response.status}');
+        final errorData = response.data;
+        if (errorData != null && errorData is Map && errorData.containsKey('error')) {
+          throw Exception('Erro na Edge Function: ${errorData['error']}');
+        }
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erro ao enviar push para familiar $familiarId: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow; // Relançar para ser tratado pelo chamador
+    }
   }
 
   /// Agendar lembretes de medicamento (MÉTODO PRINCIPAL)
@@ -494,6 +1042,21 @@ class NotificationService {
         visibility: NotificationVisibility.public,
         fullScreenIntent: true,
         ticker: 'Hora do medicamento: ${medicamento.nome}',
+        // Ações para Snooze e Confirmar
+        actions: <AndroidNotificationAction>[
+          AndroidNotificationAction(
+            'snooze',
+            'Soneca (5 min)',
+            showsUserInterface: false,
+            cancelNotification: false,
+          ),
+          AndroidNotificationAction(
+            'confirm',
+            'Tomado',
+            showsUserInterface: false,
+            cancelNotification: true,
+          ),
+        ],
       );
 
       const iosDetails = DarwinNotificationDetails(
@@ -717,4 +1280,22 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       payload: message.data.toString(),
     );
   }
+}
+
+/// Handler top-level para ações de notificações locais em background
+/// 
+/// Esta função DEVE estar no nível superior do arquivo (não dentro de uma classe)
+/// para funcionar corretamente quando o app está em background ou fechado.
+/// 
+/// IMPORTANTE: Esta função não pode ser async, mas pode chamar métodos assíncronos.
+/// O método assíncrono será executado em background.
+@pragma('vm:entry-point')
+void notificationActionHandler(NotificationResponse response) {
+  debugPrint('🔔 Notificação tocada (background) - ID: ${response.id}, Payload: ${response.payload}, Action: ${response.actionId}');
+  
+  // Processar ação em background de forma assíncrona
+  // Usar unawaited para não bloquear, mas processar em background
+  NotificationService._handleNotificationActionInBackground(response).catchError((error) {
+    debugPrint('❌ Erro ao processar ação de notificação em background: $error');
+  });
 }

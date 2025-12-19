@@ -80,7 +80,11 @@ class _ConfirmMedicationButtonState extends State<ConfirmMedicationButton>
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            // WCAG: Altura mínima de 48px, ideal 56px para idosos com tremores
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            constraints: const BoxConstraints(
+              minHeight: 56, // WCAG AAA: Área de toque de pelo menos 44x44px, ideal 56px
+            ),
             decoration: BoxDecoration(
               color: widget.isConfirmed
                   ? AppColors.success.withValues(alpha: 0.3)
@@ -122,7 +126,7 @@ class _ConfirmMedicationButtonState extends State<ConfirmMedicationButton>
                       Text(
                         widget.isConfirmed ? 'Tomado' : 'Marcar como tomado',
                         style: AppTextStyles.leagueSpartan(
-                          fontSize: 14,
+                          fontSize: 16, // WCAG: Mínimo 16px para textos secundários
                           fontWeight: FontWeight.w600,
                           color: widget.isConfirmed
                               ? AppColors.success
@@ -195,39 +199,46 @@ class _CompactConfirmButtonState extends State<CompactConfirmButton>
           child: child,
         );
       },
-      child: GestureDetector(
-        onTap: _handleTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: widget.isConfirmed
-                ? AppColors.success
-                : Colors.white.withValues(alpha: 0.15),
-            shape: BoxShape.circle,
-            border: Border.all(
+      child: Semantics(
+        label: widget.isConfirmed
+            ? 'Medicamento já tomado. Toque para desfazer'
+            : 'Confirmar medicamento',
+        button: true,
+        child: GestureDetector(
+          onTap: _handleTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            // WCAG 2.5.5: Mínimo 48x48dp, ideal 56dp para idosos
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
               color: widget.isConfirmed
                   ? AppColors.success
-                  : Colors.white.withValues(alpha: 0.4),
-              width: 2,
+                  : Colors.white.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: widget.isConfirmed
+                    ? AppColors.success
+                    : Colors.white.withValues(alpha: 0.4),
+                width: 2,
+              ),
             ),
-          ),
-          child: widget.isLoading
-              ? const Padding(
-                  padding: EdgeInsets.all(10),
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
+            child: widget.isLoading
+                ? const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Icon(
+                    widget.isConfirmed
+                        ? Icons.check_rounded
+                        : Icons.add_rounded,
                     color: Colors.white,
+                    size: 24,
                   ),
-                )
-              : Icon(
-                  widget.isConfirmed
-                      ? Icons.check_rounded
-                      : Icons.add_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
+          ),
         ),
       ),
     );

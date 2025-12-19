@@ -19,6 +19,11 @@ import '../../widgets/error_widget_with_retry.dart';
 import '../../widgets/feedback_snackbar.dart';
 import '../../widgets/confirm_medication_button.dart';
 import '../../widgets/offline_indicator.dart';
+import '../../widgets/undo_snackbar.dart';
+import '../../widgets/recent_actions_panel.dart';
+import '../../widgets/quick_action_fab.dart';
+import '../../widgets/batch_medication_selector.dart';
+import '../../services/notification_service.dart';
 
 class IndividualDashboardScreen extends StatefulWidget {
   const IndividualDashboardScreen({super.key});
@@ -48,6 +53,9 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
   List<Medicamento> _medicamentosPendentes = [];
   Map<int, bool> _statusMedicamentos = {};
   Map<int, bool> _loadingMedicamentos = {};
+  bool _isSelectionMode = false;
+  List<MedicationAction> _recentActions = [];
+  Map<int, bool> _syncingMedicamentos = {}; // Estado de sincronização
 
   @override
   void initState() {
@@ -76,36 +84,122 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
         setState(() => _isOffline = !isOnline);
         
         if (wasOffline && isOnline) {
-          _syncPendingActions();
+          _syncPendingActionsWithFeedback();
           _loadUserData();
-          if (mounted) {
-            FeedbackSnackbar.success(context, 'Conexão restaurada! Sincronizando...');
-          }
         }
       }
     });
   }
 
-  Future<void> _syncPendingActions() async {
-    final pendingActions = await OfflineCacheService.getPendingActions();
-    if (pendingActions.isEmpty) return;
-    
-    for (final action in pendingActions) {
-      try {
-        if (action['type'] == 'toggle_medicamento') {
-          final medicamentoService = getIt<MedicamentoService>();
-          await medicamentoService.toggleConcluido(
-            action['medicamento_id'] as int,
-            action['concluido'] as bool,
-            DateTime.parse(action['data'] as String),
-          );
+  Future<void> _syncPendingActionsWithFeedback() async {
+    try {
+      final pendingActions = await OfflineCacheService.getPendingActions();
+      if (pendingActions.isEmpty) return;
+      
+      if (mounted) {
+        try {
+          FeedbackSnackbar.info(context, 'Conexão restaurada! Sincronizando ${pendingActions.length} ação(ões)...');
+        } catch (e) {
+          debugPrint('⚠️ Erro ao mostrar feedback de sincronização: $e');
         }
-      } catch (e) {
-        debugPrint('Erro ao sincronizar ação pendente: $e');
+      }
+      
+      int synced = 0;
+      int failed = 0;
+      
+      for (final action in pendingActions) {
+        try {
+          if (action['type'] == 'toggle_medicamento') {
+            final medicamentoId = action['medicamento_id'] as int?;
+            if (medicamentoId == null) {
+              debugPrint('⚠️ Ação pendente sem medicamento_id válido');
+              failed++;
+              continue;
+            }
+            
+            // Marcar como sincronizando
+            if (mounted) {
+              try {
+                setState(() {
+                  _syncingMedicamentos[medicamentoId] = true;
+                });
+              } catch (e) {
+                debugPrint('⚠️ Erro ao atualizar estado de sincronização: $e');
+              }
+            }
+            
+            try {
+              final medicamentoService = getIt<MedicamentoService>();
+              final dataStr = action['data'] as String?;
+              if (dataStr == null) {
+                throw Exception('Data não encontrada na ação pendente');
+              }
+              
+              await medicamentoService.toggleConcluido(
+                medicamentoId,
+                action['concluido'] as bool? ?? true,
+                DateTime.parse(dataStr),
+              );
+              
+              synced++;
+            } catch (e, stackTrace) {
+              debugPrint('❌ Erro ao sincronizar ação pendente para medicamento $medicamentoId: $e');
+              debugPrint('Stack trace: $stackTrace');
+              failed++;
+            } finally {
+              // Remover estado de sincronização
+              if (mounted) {
+                try {
+                  setState(() {
+                    _syncingMedicamentos[medicamentoId] = false;
+                  });
+                } catch (e) {
+                  debugPrint('⚠️ Erro ao remover estado de sincronização: $e');
+                }
+              }
+            }
+          } else {
+            debugPrint('⚠️ Tipo de ação pendente desconhecido: ${action['type']}');
+            failed++;
+          }
+        } catch (e, stackTrace) {
+          debugPrint('❌ Erro ao processar ação pendente: $e');
+          debugPrint('Stack trace: $stackTrace');
+          failed++;
+        }
+      }
+      
+      // Limpar ações sincronizadas com sucesso
+      if (synced > 0) {
+        try {
+          await OfflineCacheService.clearPendingActions();
+        } catch (e) {
+          debugPrint('⚠️ Erro ao limpar ações pendentes: $e');
+        }
+      }
+      
+      if (mounted) {
+        try {
+          if (failed == 0) {
+            FeedbackSnackbar.success(context, '$synced ação(ões) sincronizada(s) com sucesso!');
+          } else {
+            FeedbackSnackbar.warning(context, '$synced sincronizada(s), $failed falharam. Tente novamente.');
+          }
+        } catch (e) {
+          debugPrint('⚠️ Erro ao mostrar feedback final de sincronização: $e');
+        }
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erro ao sincronizar ações pendentes: $e');
+      debugPrint('Stack trace: $stackTrace');
+      if (mounted) {
+        try {
+          FeedbackSnackbar.error(context, 'Erro ao sincronizar ações pendentes');
+        } catch (e2) {
+          debugPrint('⚠️ Erro ao mostrar feedback de erro: $e2');
+        }
       }
     }
-    
-    await OfflineCacheService.clearPendingActions();
   }
 
   Future<void> _loadUserData() async {
@@ -235,16 +329,21 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
   Future<void> _confirmarMedicamento(Medicamento medicamento) async {
     if (medicamento.id == null) return;
     
-    setState(() {
-      _loadingMedicamentos[medicamento.id!] = true;
-    });
+    final medicamentoId = medicamento.id!;
+    final isCurrentlyTaken = _statusMedicamentos[medicamentoId] ?? false;
     
-    final isCurrentlyTaken = _statusMedicamentos[medicamento.id] ?? false;
+    // Verificar conexão antes de tentar
+    final isOnline = await OfflineCacheService.isOnline();
+    
+    setState(() {
+      _loadingMedicamentos[medicamentoId] = true;
+      _syncingMedicamentos[medicamentoId] = false;
+    });
     
     // Atualizar UI imediatamente (optimistic update)
     setState(() {
-      _statusMedicamentos[medicamento.id!] = !isCurrentlyTaken;
-      _loadingMedicamentos[medicamento.id!] = false;
+      _statusMedicamentos[medicamentoId] = !isCurrentlyTaken;
+      _loadingMedicamentos[medicamentoId] = false;
       
       if (!isCurrentlyTaken) {
         _medicamentosTomados++;
@@ -261,11 +360,11 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     });
     
     try {
-      if (_isOffline) {
+      if (!isOnline) {
         // Salvar ação para sincronizar depois
         await OfflineCacheService.addPendingAction({
           'type': 'toggle_medicamento',
-          'medicamento_id': medicamento.id,
+          'medicamento_id': medicamentoId,
           'concluido': !isCurrentlyTaken,
           'data': DateTime.now().toIso8601String(),
         });
@@ -274,47 +373,346 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
           FeedbackSnackbar.info(context, 'Salvo offline. Será sincronizado quando conectar.');
         }
       } else {
+        // Mostrar estado de sincronização
+        if (mounted) {
+          setState(() {
+            _syncingMedicamentos[medicamentoId] = true;
+          });
+        }
+        
         final medicamentoService = getIt<MedicamentoService>();
         await medicamentoService.toggleConcluido(
-          medicamento.id!,
+          medicamentoId,
           !isCurrentlyTaken,
           DateTime.now(),
         );
         
+        // Se medicamento foi marcado como tomado, cancelar notificações e snoozes
+        if (!isCurrentlyTaken && medicamento.id != null) {
+          try {
+            await NotificationService.confirmMedication(medicamento.id!);
+          } catch (e) {
+            debugPrint('⚠️ Dashboard: Erro ao cancelar notificações - $e');
+            // Não é crítico, continuar mesmo se falhar
+          }
+        }
+        
+        // Remover estado de sincronização
         if (mounted) {
-          if (!isCurrentlyTaken) {
-            FeedbackSnackbar.success(
-              context, 
-              '${medicamento.nome} marcado como tomado!',
+          setState(() {
+            _syncingMedicamentos[medicamentoId] = false;
+          });
+        }
+        
+        // Adicionar à lista de ações recentes
+        if (!isCurrentlyTaken) {
+          _addRecentAction(medicamento, DateTime.now(), true);
+          
+          if (mounted) {
+            UndoSnackbar.show(
+              context,
+              message: '${medicamento.nome} marcado como tomado!',
               onUndo: () => _confirmarMedicamento(medicamento),
+              duration: const Duration(seconds: 15),
             );
-          } else {
+          }
+        } else {
+          _addRecentAction(medicamento, DateTime.now(), false);
+          if (mounted) {
             FeedbackSnackbar.info(context, '${medicamento.nome} desmarcado');
           }
         }
       }
     } catch (e) {
-      // Reverter mudança se falhou
-      setState(() {
-        _statusMedicamentos[medicamento.id!] = isCurrentlyTaken;
-        if (!isCurrentlyTaken) {
-          _medicamentosTomados--;
-          _medicamentosPendentes.add(medicamento);
-        } else {
-          _medicamentosTomados++;
-          _medicamentosPendentes.removeWhere((m) => m.id == medicamento.id);
+      debugPrint('❌ Dashboard: Erro ao confirmar medicamento ${medicamento.nome} - $e');
+      
+      // Remover estados de loading/sincronização
+      if (mounted) {
+        setState(() {
+          _loadingMedicamentos[medicamentoId] = false;
+          _syncingMedicamentos[medicamentoId] = false;
+        });
+      }
+      
+      // Tentar determinar se é erro de rede ou outro
+      bool isNetworkError = false;
+      try {
+        final stillOffline = !(await OfflineCacheService.isOnline());
+        if (stillOffline) {
+          isNetworkError = true;
         }
+      } catch (_) {
+        // Se não conseguir verificar, assumir erro de rede
+        isNetworkError = true;
+      }
+      
+      if (isNetworkError) {
+        // Se está offline, tentar salvar como pendente
+        try {
+          await OfflineCacheService.addPendingAction({
+            'type': 'toggle_medicamento',
+            'medicamento_id': medicamentoId,
+            'concluido': !isCurrentlyTaken,
+            'data': DateTime.now().toIso8601String(),
+          });
+          
+          if (mounted) {
+            FeedbackSnackbar.info(context, 'Salvo offline. Será sincronizado quando conectar.');
+          }
+        } catch (saveError) {
+          debugPrint('❌ Dashboard: Erro ao salvar ação offline - $saveError');
+          // Reverter mudança se não conseguir salvar offline
+          if (mounted) {
+            setState(() {
+              _statusMedicamentos[medicamentoId] = isCurrentlyTaken;
+              if (!isCurrentlyTaken) {
+                _medicamentosTomados--;
+                _medicamentosPendentes.add(medicamento);
+              } else {
+                _medicamentosTomados++;
+                _medicamentosPendentes.removeWhere((m) => m.id == medicamento.id);
+              }
+              _temAtraso = _medicamentosPendentes.isNotEmpty;
+              _mensagemStatus = _temAtraso 
+                  ? 'Você tem ${_medicamentosPendentes.length} medicamento(s) pendente(s).'
+                  : 'Você tomou tudo hoje.';
+            });
+            
+            FeedbackSnackbar.error(
+              context,
+              'Erro ao salvar. Verifique sua conexão.',
+              onRetry: () => _confirmarMedicamento(medicamento),
+            );
+          }
+        }
+      } else {
+        // Erro não relacionado a rede, reverter mudança
+        if (mounted) {
+          setState(() {
+            _statusMedicamentos[medicamentoId] = isCurrentlyTaken;
+            if (!isCurrentlyTaken) {
+              _medicamentosTomados--;
+              _medicamentosPendentes.add(medicamento);
+            } else {
+              _medicamentosTomados++;
+              _medicamentosPendentes.removeWhere((m) => m.id == medicamento.id);
+            }
+            _temAtraso = _medicamentosPendentes.isNotEmpty;
+            _mensagemStatus = _temAtraso 
+                ? 'Você tem ${_medicamentosPendentes.length} medicamento(s) pendente(s).'
+                : 'Você tomou tudo hoje.';
+          });
+          
+          FeedbackSnackbar.error(
+            context, 
+            'Erro ao atualizar medicamento: ${e.toString()}',
+            onRetry: () => _confirmarMedicamento(medicamento),
+          );
+        }
+      }
+    }
+  }
+
+  void _addRecentAction(Medicamento medicamento, DateTime timestamp, bool isConfirmed) {
+    try {
+      if (medicamento.id == null || medicamento.id! <= 0) {
+        debugPrint('⚠️ Dashboard: Tentativa de adicionar ação recente com ID inválido');
+        return;
+      }
+      
+      if (medicamento.nome.isEmpty) {
+        debugPrint('⚠️ Dashboard: Tentativa de adicionar ação recente sem nome');
+        return;
+      }
+      
+      setState(() {
+        _recentActions.insert(0, MedicationAction(
+          medicationId: medicamento.id!,
+          medicationName: medicamento.nome,
+          timestamp: timestamp,
+          isConfirmed: isConfirmed,
+          onUndo: () {
+            try {
+              _confirmarMedicamento(medicamento);
+            } catch (e) {
+              debugPrint('❌ Dashboard: Erro ao desfazer ação recente - $e');
+              if (mounted) {
+                FeedbackSnackbar.error(context, 'Erro ao desfazer ação');
+              }
+            }
+          },
+        ));
+        
+        // Manter apenas as últimas 10 ações
+        if (_recentActions.length > 10) {
+          _recentActions = _recentActions.take(10).toList();
+        }
+      });
+    } catch (e) {
+      debugPrint('❌ Dashboard: Erro ao adicionar ação recente - $e');
+    }
+  }
+
+  Future<void> _confirmarMedicamentosBatch(List<Medicamento> medicamentos) async {
+    if (medicamentos.isEmpty) {
+      debugPrint('⚠️ Dashboard: Tentativa de confirmar lote vazio');
+      return;
+    }
+    
+    // Validar medicamentos antes de processar
+    final validMedicamentos = medicamentos.where((m) => 
+      m.id != null && 
+      m.id! > 0 && 
+      !(_statusMedicamentos[m.id] ?? false)
+    ).toList();
+    
+    if (validMedicamentos.isEmpty) {
+      debugPrint('⚠️ Dashboard: Nenhum medicamento válido para confirmar');
+      if (mounted) {
+        FeedbackSnackbar.warning(context, 'Todos os medicamentos selecionados já foram confirmados');
+      }
+      setState(() => _isSelectionMode = false);
+      return;
+    }
+    
+    final timestamp = DateTime.now();
+    final List<Medicamento> confirmedMedicamentos = [];
+    final List<Medicamento> failedMedicamentos = [];
+    
+    try {
+      for (final medicamento in validMedicamentos) {
+        try {
+          if (medicamento.id == null || medicamento.id! <= 0) {
+            debugPrint('⚠️ Dashboard: Medicamento com ID inválido: ${medicamento.nome}');
+            failedMedicamentos.add(medicamento);
+            continue;
+          }
+          
+          // Atualizar UI otimisticamente
+          setState(() {
+            _statusMedicamentos[medicamento.id!] = true;
+            _medicamentosTomados++;
+            _medicamentosPendentes.removeWhere((m) => m.id == medicamento.id);
+          });
+          
+          // Salvar no backend
+          if (!_isOffline) {
+            try {
+              final medicamentoService = getIt<MedicamentoService>();
+              await medicamentoService.toggleConcluido(
+                medicamento.id!,
+                true,
+                timestamp,
+              );
+              
+              // Cancelar notificações (não crítico se falhar)
+              try {
+                await NotificationService.confirmMedication(medicamento.id!);
+              } catch (e) {
+                debugPrint('⚠️ Dashboard: Erro ao cancelar notificações - $e');
+                // Continuar mesmo se falhar
+              }
+              
+              _addRecentAction(medicamento, timestamp, true);
+              confirmedMedicamentos.add(medicamento);
+            } catch (e) {
+              debugPrint('❌ Dashboard: Erro ao confirmar ${medicamento.nome} - $e');
+              // Reverter mudança de UI
+              setState(() {
+                _statusMedicamentos[medicamento.id!] = false;
+                _medicamentosTomados--;
+                if (!_medicamentosPendentes.any((m) => m.id == medicamento.id)) {
+                  _medicamentosPendentes.add(medicamento);
+                }
+              });
+              failedMedicamentos.add(medicamento);
+            }
+          } else {
+            // Modo offline
+            try {
+              await OfflineCacheService.addPendingAction({
+                'type': 'toggle_medicamento',
+                'medicamento_id': medicamento.id,
+                'concluido': true,
+                'data': timestamp.toIso8601String(),
+              });
+              confirmedMedicamentos.add(medicamento);
+            } catch (e) {
+              debugPrint('❌ Dashboard: Erro ao salvar ação offline - $e');
+              // Reverter mudança de UI
+              setState(() {
+                _statusMedicamentos[medicamento.id!] = false;
+                _medicamentosTomados--;
+                if (!_medicamentosPendentes.any((m) => m.id == medicamento.id)) {
+                  _medicamentosPendentes.add(medicamento);
+                }
+              });
+              failedMedicamentos.add(medicamento);
+            }
+          }
+        } catch (e) {
+          debugPrint('❌ Dashboard: Erro inesperado ao processar ${medicamento.nome} - $e');
+          failedMedicamentos.add(medicamento);
+        }
+      }
+      
+      // Atualizar estado final
+      setState(() {
         _temAtraso = _medicamentosPendentes.isNotEmpty;
         _mensagemStatus = _temAtraso 
             ? 'Você tem ${_medicamentosPendentes.length} medicamento(s) pendente(s).'
             : 'Você tomou tudo hoje.';
+        _isSelectionMode = false;
       });
       
+      // Mostrar feedback apropriado
+      if (mounted) {
+        if (failedMedicamentos.isNotEmpty && confirmedMedicamentos.isNotEmpty) {
+          // Parcialmente sucesso
+          FeedbackSnackbar.warning(
+            context,
+            '${confirmedMedicamentos.length} confirmado(s), ${failedMedicamentos.length} falhou(ram)',
+          );
+        } else if (failedMedicamentos.isNotEmpty) {
+          // Todos falharam
+          FeedbackSnackbar.error(
+            context,
+            'Erro ao confirmar medicamentos. Tente novamente.',
+            onRetry: () => _confirmarMedicamentosBatch(validMedicamentos),
+          );
+          return;
+        }
+        
+        if (confirmedMedicamentos.isNotEmpty) {
+          UndoSnackbar.show(
+            context,
+            message: '${confirmedMedicamentos.length} medicamento(s) confirmado(s) com sucesso!',
+            onUndo: () {
+              try {
+                // Desfazer todos os confirmados
+                for (final med in confirmedMedicamentos) {
+                  if (med.id != null && _statusMedicamentos[med.id] == true) {
+                    _confirmarMedicamento(med);
+                  }
+                }
+              } catch (e) {
+                debugPrint('❌ Dashboard: Erro ao desfazer lote - $e');
+                if (mounted) {
+                  FeedbackSnackbar.error(context, 'Erro ao desfazer ações');
+                }
+              }
+            },
+            duration: const Duration(seconds: 15),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Dashboard: Erro crítico ao confirmar lote - $e');
       if (mounted) {
         FeedbackSnackbar.error(
-          context, 
-          'Erro ao atualizar medicamento',
-          onRetry: () => _confirmarMedicamento(medicamento),
+          context,
+          'Erro ao confirmar medicamentos em lote. Tente novamente.',
+          onRetry: () => _confirmarMedicamentosBatch(validMedicamentos),
         );
       }
     }
@@ -534,24 +932,34 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                           ),
                         ),
                       ),
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                          child: _buildSemaforoStatus()
-                              .animate()
-                              .fadeIn(duration: 400.ms)
-                              .slideY(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOut),
+                      // ✅ Empty State Contextual: Se não há medicamentos, mostrar guia
+                      if (_totalMedicamentos == 0 && _rotinas.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: _buildEmptyStateContextual(),
+                          ),
+                        )
+                      else ...[
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                            child: _buildSemaforoStatus()
+                                .animate()
+                                .fadeIn(duration: 400.ms)
+                                .slideY(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOut),
+                          ),
                         ),
-                      ),
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                          child: _buildProximoMedicamento()
-                              .animate()
-                              .fadeIn(duration: 400.ms, delay: 100.ms)
-                              .slideY(begin: 0.1, end: 0, duration: 400.ms, delay: 100.ms, curve: Curves.easeOut),
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                            child: _buildProximoMedicamento()
+                                .animate()
+                                .fadeIn(duration: 400.ms, delay: 100.ms)
+                                .slideY(begin: 0.1, end: 0, duration: 400.ms, delay: 100.ms, curve: Curves.easeOut),
+                          ),
                         ),
-                      ),
                       if (_medicamentosPendentes.isNotEmpty)
                         SliverToBoxAdapter(
                           child: Padding(
@@ -560,6 +968,18 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                 .animate()
                                 .fadeIn(duration: 400.ms, delay: 200.ms)
                                 .slideY(begin: 0.1, end: 0, duration: 400.ms, delay: 200.ms, curve: Curves.easeOut),
+                          ),
+                        ),
+                      if (_recentActions.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                            child: RecentActionsPanel(
+                              actions: _recentActions,
+                            )
+                                .animate()
+                                .fadeIn(duration: 400.ms, delay: 250.ms)
+                                .slideY(begin: 0.1, end: 0, duration: 400.ms, delay: 250.ms, curve: Curves.easeOut),
                           ),
                         ),
                       SliverToBoxAdapter(
@@ -571,17 +991,40 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                               .slideY(begin: 0.1, end: 0, duration: 400.ms, delay: 300.ms, curve: Curves.easeOut),
                         ),
                       ),
+                      ],
                       SliverToBoxAdapter(
                         child: SizedBox(height: AppSpacing.bottomNavBarPadding),
                       ),
                     ],
                   ),
                 ),
-              if (userId.isNotEmpty && !_isLoading && _errorMessage == null)
+              if (userId.isNotEmpty && !_isLoading && _errorMessage == null) ...[
                 VoiceInterfaceWidget(
                   userId: userId,
                   showAsFloatingButton: true,
                 ),
+                Positioned(
+                  bottom: 80,
+                  right: 24,
+                  child: QuickActionFAB(
+                    onMedicationTap: () {
+                      // Navegar para tela de adicionar medicamento rápido
+                      // TODO: Implementar navegação
+                      FeedbackSnackbar.info(context, 'Funcionalidade em desenvolvimento');
+                    },
+                    onVitalSignTap: () {
+                      // Navegar para tela de registrar sinal vital
+                      // TODO: Implementar navegação
+                      FeedbackSnackbar.info(context, 'Funcionalidade em desenvolvimento');
+                    },
+                    onEventTap: () {
+                      // Navegar para tela de registrar evento
+                      // TODO: Implementar navegação
+                      FeedbackSnackbar.info(context, 'Funcionalidade em desenvolvimento');
+                    },
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -803,6 +1246,10 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
   }
 
   Widget _buildMedicamentosPendentes() {
+    if (_medicamentosPendentes.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return CareMindCard(
       variant: CardVariant.solid,
       child: Column(
@@ -823,59 +1270,35 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              Text(
-                'Medicamentos Pendentes',
-                style: AppTextStyles.leagueSpartan(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+              Expanded(
+                child: Text(
+                  'Medicamentos Pendentes',
+                  style: AppTextStyles.leagueSpartan(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
+              if (!_isSelectionMode && _medicamentosPendentes.length > 1)
+                IconButton(
+                  onPressed: () => setState(() => _isSelectionMode = true),
+                  icon: const Icon(Icons.checklist),
+                  color: AppColors.primary,
+                  tooltip: 'Seleção múltipla',
+                ),
             ],
           ),
           const SizedBox(height: 16),
-          ...(_medicamentosPendentes.take(3).map((med) {
-            final isLoading = _loadingMedicamentos[med.id] ?? false;
-            final isConfirmed = _statusMedicamentos[med.id] ?? false;
-            
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          med.nome,
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        if (med.dosagem != null)
-                          Text(
-                            med.dosagem!,
-                            style: AppTextStyles.leagueSpartan(
-                              fontSize: 14,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  ConfirmMedicationButton(
-                    isConfirmed: isConfirmed,
-                    isLoading: isLoading,
-                    onConfirm: () => _confirmarMedicamento(med),
-                    onUndo: () => _confirmarMedicamento(med),
-                    medicationName: med.nome,
-                  ),
-                ],
-              ),
-            );
-          })).toList(),
+          BatchMedicationSelector(
+            medications: _medicamentosPendentes,
+            statusMedicamentos: _statusMedicamentos,
+            loadingMedicamentos: _loadingMedicamentos,
+            onConfirmSingle: _confirmarMedicamento,
+            onConfirmBatch: _confirmarMedicamentosBatch,
+            isSelectionMode: _isSelectionMode,
+            onToggleSelectionMode: () => setState(() => _isSelectionMode = false),
+          ),
         ],
       ),
     );
@@ -986,6 +1409,61 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  /// ✅ Empty State Contextual para usuário sem medicamentos
+  Widget _buildEmptyStateContextual() {
+    final supabaseService = getIt<SupabaseService>();
+    final user = supabaseService.currentUser;
+    
+    return FutureBuilder<bool>(
+      future: user != null ? OnboardingService.hasFirstMedicamento(user.id) : Future.value(false),
+      builder: (context, snapshot) {
+        final hasFirstMedicamento = snapshot.data ?? false;
+        
+        // Se já cadastrou antes mas deletou tudo, mostrar mensagem diferente
+        if (hasFirstMedicamento) {
+          return CareMindEmptyState(
+            icon: Icons.medication_liquid,
+            title: 'Nenhum medicamento cadastrado',
+            message: 'Você não tem medicamentos cadastrados no momento.\nQue tal adicionar um novo?',
+            actionLabel: 'Adicionar Medicamento',
+            onAction: () {
+              // Navegar para tela de medicamentos
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const GestaoMedicamentosScreen(),
+                ),
+              );
+            },
+          );
+        }
+        
+        // Primeiro acesso - mensagem mais guiada
+        return CareMindEmptyState(
+          icon: Icons.medication_liquid,
+          title: 'Que tal cadastrar seu primeiro medicamento?',
+          message: 'Comece a cuidar da sua saúde cadastrando seus medicamentos e horários.',
+          actionLabel: 'Adicionar Primeiro Medicamento',
+          iconColor: AppColors.primary,
+          onAction: () async {
+            // Marcar que viu o empty state
+            if (user != null) {
+              await OnboardingService.markFirstMedicamento(user.id);
+            }
+            
+            // Navegar para tela de medicamentos
+            if (mounted) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const GestaoMedicamentosScreen(),
+                ),
+              );
+            }
+          },
+        );
+      },
     );
   }
 }

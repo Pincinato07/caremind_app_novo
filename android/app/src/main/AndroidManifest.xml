@@ -4,6 +4,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- Android 12+ (API 31+): SCHEDULE_EXACT_ALARM para agendar notificações exatas -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <!-- Android 13+ (API 33+): USE_EXACT_ALARM para usar alarmes exatos -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
     <!-- Vibração para notificações -->
     <uses-permission android:name="android.permission.VIBRATE"/>
     <!-- Wake up device para notificações -->
@@ -14,6 +16,12 @@
     <!-- Permissões para Firebase Cloud Messaging (FCM) -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE"/>
+    
+    <!-- Permissões para Localização GPS (Emergência SOS) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Android 10+ (API 29+): ACCESS_BACKGROUND_LOCATION para localização em background (opcional) -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
     
     <application
         android:label="Caremind"

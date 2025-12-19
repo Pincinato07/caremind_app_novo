@@ -18,6 +18,7 @@ class SupabaseService {
     required String password,
     required String nome,
     required String tipo,
+    String? telefone,
     bool lgpdConsent = false,
   }) async {
     try {
@@ -27,9 +28,41 @@ class SupabaseService {
         data: {
           'full_name': nome,
           'account_type': tipo,
+          'phone': telefone,
           'data_sharing_consent': lgpdConsent,
         },
       );
+
+      // Se o usuário foi criado com sucesso, criar perfil e enviar email de boas-vindas
+      if (response.user != null) {
+        final userId = response.user!.id;
+        
+        // Criar perfil na tabela perfis
+        try {
+          await _client.from('perfis').upsert({
+            'user_id': userId,
+            'nome': nome,
+            'tipo': tipo,
+            'telefone': telefone,
+            'data_sharing_consent': lgpdConsent,
+            'terms_accepted_at': DateTime.now().toIso8601String(),
+          }, onConflict: 'user_id');
+        } catch (profileError) {
+          // Log do erro mas não bloqueia o registro
+          print('Erro ao criar perfil (não bloqueante): $profileError');
+        }
+
+        // Enviar email de boas-vindas (não bloqueante)
+        try {
+          await _client.functions.invoke('send-welcome-email', body: {
+            'user_id': userId,
+            'account_type': tipo,
+          });
+        } catch (emailError) {
+          // Log do erro mas não bloqueia o registro
+          print('Erro ao enviar email de boas-vindas (não bloqueante): $emailError');
+        }
+      }
 
       return response;
     } catch (error) {

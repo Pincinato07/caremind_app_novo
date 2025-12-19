@@ -1,12 +1,15 @@
 import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/supabase_service.dart';
+import '../../services/onboarding_service.dart';
 import '../../widgets/wave_background.dart';
 import '../shared/main_navigator_screen.dart';
+import '../onboarding/onboarding_contextual_screen.dart';
 import '../../core/injection/injection.dart';
 
 enum AuthMode { login, register }
@@ -35,7 +38,9 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
   final _passwordFormKey = GlobalKey<FormState>();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  String _selectedAccountType = 'pessoal';
+  final _step3FormKey = GlobalKey<FormState>();
+  final _phoneController = TextEditingController();
+  String _selectedAccountType = 'individual';
   bool _termsAccepted = false;
   bool _dataSharingAccepted = false;
   bool _isRegistering = false;
@@ -54,6 +59,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -101,12 +107,75 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
           final perfil = await supabaseService.getProfile(response.user!.id);
           
           if (perfil != null && mounted) {
-            // Navigate to main screen with profile
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
-              (_) => false,
-            );
+            try {
+              // ✅ Verificar se é primeiro acesso e mostrar onboarding contextual
+              final isFirstAccess = await OnboardingService.isFirstAccess(perfil.id);
+              final shouldShowOnboarding = await OnboardingService.shouldShowOnboarding(perfil.id);
+              
+              if (isFirstAccess && shouldShowOnboarding) {
+                // Marcar primeiro acesso (com tratamento de erro)
+                try {
+                  await OnboardingService.markFirstAccess(perfil.id);
+                } catch (e) {
+                  debugPrint('⚠️ Erro ao marcar primeiro acesso: $e');
+                  // Continua mesmo se falhar
+                }
+                
+                // Mostrar onboarding contextual
+                String? action;
+                try {
+                  action = await Navigator.push<String>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => OnboardingContextualScreen(perfil: perfil),
+                    ),
+                  );
+                } catch (e) {
+                  debugPrint('⚠️ Erro ao mostrar onboarding: $e');
+                  // Se falhar, continua sem onboarding
+                }
+                
+                // Navegar para tela principal
+                if (mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
+                    (_) => false,
+                  );
+                  
+                  // Se usuário escolheu uma ação, navegar para ela
+                  if (action == 'add_medicamento' && mounted) {
+                    Future.delayed(const Duration(milliseconds: 500), () {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Navegue até Medicamentos para adicionar seu primeiro medicamento'),
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
+                      }
+                    });
+                  }
+                }
+              } else {
+                // Navegar direto para tela principal (usuário retornando)
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
+                  (_) => false,
+                );
+              }
+            } catch (e) {
+              debugPrint('⚠️ Erro no fluxo de onboarding: $e');
+              // Em caso de erro, navega direto para tela principal
+              if (mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
+                  (_) => false,
+                );
+              }
+            }
           } else {
             _showSnack('Erro ao carregar perfil. Tente novamente.');
           }
@@ -282,6 +351,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
       final email = _emailController.text.trim();
       final password = _passwordController.text;
       final confirm = _confirmPasswordController.text;
+      final phone = _phoneController.text.trim();
 
       if (name.isEmpty || !email.contains('@')) {
         _showSnack('Preencha corretamente nome e e-mail.');
@@ -291,6 +361,11 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
       if (password.length < 6 || password != confirm) {
         _showSnack('Verifique as senhas.');
         setState(() => _registerStep = 1);
+        return;
+      }
+      if (phone.isEmpty) {
+        _showSnack('O telefone é obrigatório.');
+        setState(() => _registerStep = 2);
         return;
       }
       if (!_termsAccepted) {
@@ -305,16 +380,9 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         password: password,
         nome: name,
         tipo: _selectedAccountType,
+        telefone: phone,
         lgpdConsent: _dataSharingAccepted,
       );
-
-      // Salvar terms_accepted_at após criar perfil
-      if (response.user != null) {
-        await supabaseService.updateProfile(
-          userId: response.user!.id,
-          termsAcceptedAt: DateTime.now(),
-        );
-      }
 
       if (!mounted) return;
 
@@ -322,11 +390,59 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         await Future.delayed(const Duration(milliseconds: 500));
         final perfil = await supabaseService.getProfile(response.user!.id);
         if (perfil != null && mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
-            (_) => false,
-          );
+          try {
+            // ✅ Verificar se é primeiro acesso e mostrar onboarding contextual
+            final isFirstAccess = await OnboardingService.isFirstAccess(perfil.id);
+            final shouldShowOnboarding = await OnboardingService.shouldShowOnboarding(perfil.id);
+            
+            if (isFirstAccess && shouldShowOnboarding) {
+              // Marcar primeiro acesso (com tratamento de erro)
+              try {
+                await OnboardingService.markFirstAccess(perfil.id);
+              } catch (e) {
+                debugPrint('⚠️ Erro ao marcar primeiro acesso: $e');
+              }
+              
+              // Mostrar onboarding contextual
+              String? action;
+              try {
+                action = await Navigator.push<String>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => OnboardingContextualScreen(perfil: perfil),
+                  ),
+                );
+              } catch (e) {
+                debugPrint('⚠️ Erro ao mostrar onboarding: $e');
+              }
+              
+              // Navegar para tela principal
+              if (mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
+                  (_) => false,
+                );
+              }
+            } else {
+              // Navegar direto para tela principal
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
+                (_) => false,
+              );
+            }
+          } catch (e) {
+            debugPrint('⚠️ Erro no fluxo de onboarding (signup): $e');
+            // Em caso de erro, navega direto para tela principal
+            if (mounted) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
+                (_) => false,
+              );
+            }
+          }
         } else {
           _showSnack('Erro ao carregar perfil. Tente login.');
           setState(() => _mode = AuthMode.login);
@@ -359,6 +475,17 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
       if (!_passwordFormKey.currentState!.validate()) {
         return;
       }
+    } else if (_registerStep == 2) {
+      // Step 3: Validate phone and terms
+      if (!_step3FormKey.currentState!.validate()) {
+        return;
+      }
+      if (!_termsAccepted) {
+        _showSnack('Aceite os termos para continuar.');
+        return;
+      }
+      // Don't advance from step 3, user must submit
+      return;
     }
     
     // If validation passes, advance to next step
@@ -667,41 +794,53 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
   }
 
   Widget _buildStep3() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Tipo de conta',
-          style: GoogleFonts.leagueSpartan(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+    return Form(
+      key: _step3FormKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _glowField(
+            controller: _phoneController,
+            hint: 'Telefone (obrigatório)',
+            keyboardType: TextInputType.phone,
+            validator: (v) {
+              if (v?.trim().isEmpty == true) return 'Telefone é obrigatório';
+              return null;
+            },
           ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildAccountTypeOption(
-                value: 'pessoal',
-                icon: Icons.person,
-                title: 'Pessoal',
-                subtitle: 'Uso individual',
-              ),
+          const SizedBox(height: 16),
+          Text(
+            'Tipo de conta',
+            style: GoogleFonts.leagueSpartan(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildAccountTypeOption(
-                value: 'profissional',
-                icon: Icons.work,
-                title: 'Profissional',
-                subtitle: 'Para psicólogos',
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildAccountTypeOption(
+                  value: 'individual',
+                  icon: Icons.person,
+                  title: 'Individual',
+                  subtitle: 'Uso pessoal',
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        Row(
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildAccountTypeOption(
+                  value: 'familiar',
+                  icon: Icons.people,
+                  title: 'Familiar',
+                  subtitle: 'Acompanhar idosos',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Checkbox(
@@ -740,10 +879,10 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 20),
-        // Checkbox de compartilhamento de dados (opcional)
-        Row(
+          ),
+          const SizedBox(height: 20),
+          // Checkbox de compartilhamento de dados (opcional)
+          Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Checkbox(
@@ -765,22 +904,27 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            Expanded(child: _outlineButton(label: 'Voltar', onPressed: _previousPage)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _primaryButton(
-                label: 'Cadastrar',
-                onPressed: _termsAccepted ? _handleSignUp : null,
-                isLoading: _isRegistering,
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(child: _outlineButton(label: 'Voltar', onPressed: _previousPage)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _primaryButton(
+                  label: 'Cadastrar',
+                  onPressed: (_termsAccepted && !_isRegistering) ? () {
+                    if (_step3FormKey.currentState?.validate() ?? false) {
+                      _handleSignUp();
+                    }
+                  } : null,
+                  isLoading: _isRegistering,
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 

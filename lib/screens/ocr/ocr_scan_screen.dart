@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:get_it/get_it.dart';
 import '../../services/ocr_service.dart';
+import '../../services/ocr_offline_service.dart';
+import '../../services/offline_cache_service.dart';
 import '../../services/supabase_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/caremind_card.dart';
@@ -55,9 +57,6 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
 
   Future<void> _processImage(File imageFile) async {
     try {
-      final supabaseService = GetIt.I<SupabaseService>();
-      final ocrService = OcrService(supabaseService.client);
-      
       // Obter userId - pode ser do idoso selecionado ou do usuário atual
       final familiarState = GetIt.I<FamiliarState>();
       final String userId;
@@ -67,12 +66,67 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
         userId = familiarState.idosoSelecionado!.id;
       } else {
         // Usuário próprio
+        final supabaseService = GetIt.I<SupabaseService>();
         final currentUser = supabaseService.currentUser;
         if (currentUser == null) {
           throw Exception('Usuário não autenticado');
         }
         userId = currentUser.id;
       }
+
+      // Verificar se está online
+      final isOnline = await OfflineCacheService.isOnline();
+
+      if (!isOnline) {
+        // Offline: salvar localmente para processar depois
+        debugPrint('📴 OCR: Offline, salvando imagem localmente');
+        
+        await OcrOfflineService.saveImageForLater(
+          imageFile: imageFile,
+          userId: userId,
+        );
+
+        if (!mounted) return;
+
+        // Mostrar mensagem de sucesso
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.cloud_upload, color: Colors.white),
+                SizedBox(width: AppSpacing.small),
+                Expanded(
+                  child: Text(
+                    'Imagem salva! Será processada automaticamente quando voltar online.',
+                    style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.warning,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppBorderRadius.medium),
+            ),
+          ),
+        );
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        // Voltar para tela anterior após um breve delay
+        await Future.delayed(const Duration(seconds: 1));
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+        return;
+      }
+
+      // Online: processar normalmente
+      final supabaseService = GetIt.I<SupabaseService>();
+      final ocrService = OcrService(supabaseService.client);
 
       // Fazer upload e registrar
       final ocrId = await ocrService.uploadImageAndRegister(
@@ -94,7 +148,7 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = e.toString();
+        _errorMessage = 'Erro ao processar imagem: ${e.toString()}';
       });
     }
   }

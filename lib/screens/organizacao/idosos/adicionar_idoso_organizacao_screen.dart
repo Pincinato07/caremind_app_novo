@@ -57,7 +57,7 @@ class _AdicionarIdosoOrganizacaoScreenState
     setState(() => _isLoading = true);
 
     try {
-      await _idosoService.adicionarIdoso(
+      final resultado = await _idosoService.adicionarIdoso(
         organizacaoId: widget.organizacaoId,
         nome: _nomeController.text.trim(),
         telefone: _telefoneController.text.trim().isEmpty
@@ -76,20 +76,63 @@ class _AdicionarIdosoOrganizacaoScreenState
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Idoso adicionado com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context, true);
+        // Verificar se retornou duplicado
+        if (resultado.containsKey('duplicado')) {
+          final duplicado = resultado['duplicado'] as Map<String, dynamic>;
+          final nomeOrg = duplicado['organizacao_nome'] as String? ?? 'uma organização';
+          
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Idoso Já Cadastrado'),
+              content: Text(
+                'Este idoso já está cadastrado no sistema na organização "$nomeOrg".\n\n'
+                'Verifique os dados ou entre em contato com o administrador.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Idoso adicionado com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, true);
+        }
       }
     } catch (e) {
       if (mounted) {
+        final errorMessage = e.toString();
+        String mensagemUsuario = 'Erro ao adicionar idoso';
+        
+        // Tratar diferentes tipos de erro
+        if (errorMessage.contains('já existe') || errorMessage.contains('duplicado') || errorMessage.contains('Já existe')) {
+          // Já tratado no código acima, mas garantir que não mostre erro genérico
+          return;
+        } else if (errorMessage.contains('conexão') || errorMessage.contains('internet') || errorMessage.contains('network')) {
+          mensagemUsuario = 'Erro de conexão. Verifique sua internet e tente novamente.';
+        } else if (errorMessage.contains('não encontrada') || errorMessage.contains('sem permissão')) {
+          mensagemUsuario = 'Organização não encontrada ou você não tem permissão para adicionar idosos.';
+        } else if (errorMessage.contains('não autenticado') || errorMessage.contains('Token')) {
+          mensagemUsuario = 'Sua sessão expirou. Faça login novamente.';
+        } else {
+          // Extrair mensagem do erro
+          final match = RegExp(r'Exception:\s*(.+?)(?:\n|$)').firstMatch(errorMessage);
+          mensagemUsuario = match?.group(1)?.trim() ?? 'Erro ao adicionar idoso. Tente novamente.';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao adicionar idoso: $e'),
+            content: Text(mensagemUsuario),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }

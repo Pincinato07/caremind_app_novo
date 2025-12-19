@@ -472,13 +472,68 @@ class _PerfilScreenState extends State<PerfilScreen> {
                                 ],
                               ),
                               child: ClipOval(
-                                child: _fotoUrl != null || _fotoLocal != null
-                                    ? Image(
-                                        image: _fotoLocal != null
-                                            ? FileImage(_fotoLocal!)
-                                            : NetworkImage(_fotoUrl!) as ImageProvider,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
+                                child: Hero(
+                                  tag: 'profile_image_${_perfil?.id ?? 'default'}',
+                                  child: Builder(
+                                    builder: (context) {
+                                      try {
+                                        if (_fotoUrl != null && _fotoUrl!.isNotEmpty) {
+                                          return Image.network(
+                                            _fotoUrl!,
+                                            fit: BoxFit.cover,
+                                            loadingBuilder: (context, child, loadingProgress) {
+                                              if (loadingProgress == null) return child;
+                                              return Container(
+                                                color: Colors.white.withValues(alpha: 0.2),
+                                                child: const Center(
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            errorBuilder: (context, error, stackTrace) {
+                                              debugPrint('⚠️ Erro ao carregar foto de perfil: $error');
+                                              return Container(
+                                                color: Colors.white.withValues(alpha: 0.2),
+                                                child: const Icon(
+                                                  Icons.person_rounded,
+                                                  size: 60,
+                                                  color: Colors.white,
+                                                ),
+                                              );
+                                            },
+                                          );
+                                        } else if (_fotoLocal != null) {
+                                          try {
+                                            return Image.file(
+                                              _fotoLocal!,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                debugPrint('⚠️ Erro ao carregar foto local: $error');
+                                                return Container(
+                                                  color: Colors.white.withValues(alpha: 0.2),
+                                                  child: const Icon(
+                                                    Icons.person_rounded,
+                                                    size: 60,
+                                                    color: Colors.white,
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          } catch (e) {
+                                            debugPrint('⚠️ Erro ao processar foto local: $e');
+                                            return Container(
+                                              color: Colors.white.withValues(alpha: 0.2),
+                                              child: const Icon(
+                                                Icons.person_rounded,
+                                                size: 60,
+                                                color: Colors.white,
+                                              ),
+                                            );
+                                          }
+                                        } else {
                                           return Container(
                                             color: Colors.white.withValues(alpha: 0.2),
                                             child: const Icon(
@@ -487,16 +542,22 @@ class _PerfilScreenState extends State<PerfilScreen> {
                                               color: Colors.white,
                                             ),
                                           );
-                                        },
-                                      )
-                                    : Container(
-                                        color: Colors.white.withValues(alpha: 0.2),
-                                        child: const Icon(
-                                          Icons.person_rounded,
-                                          size: 60,
-                                          color: Colors.white,
-                                        ),
-                                      ),
+                                        }
+                                      } catch (e, stackTrace) {
+                                        debugPrint('❌ Erro ao construir imagem de perfil: $e');
+                                        debugPrint('Stack trace: $stackTrace');
+                                        return Container(
+                                          color: Colors.white.withValues(alpha: 0.2),
+                                          child: const Icon(
+                                            Icons.person_rounded,
+                                            size: 60,
+                                            color: Colors.white,
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ),
                               ),
                             ),
                             Positioned(

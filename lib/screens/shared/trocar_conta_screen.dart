@@ -264,26 +264,64 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                                             width: isCurrent ? 2 : 1,
                                           ),
                                         ),
-                                        child: account.fotoUrl != null &&
-                                                account.fotoUrl!.isNotEmpty
-                                            ? ClipOval(
-                                                child: Image.network(
-                                                  account.fotoUrl!,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) {
-                                                    return Icon(
-                                                      Icons.person,
-                                                      color: Colors.white,
-                                                      size: 28,
-                                                    );
-                                                  },
+                                        child: Builder(
+                                          builder: (context) {
+                                            try {
+                                              if (account.fotoUrl != null && account.fotoUrl!.isNotEmpty) {
+                                                return ClipOval(
+                                                  child: Hero(
+                                                    tag: 'profile_image_${account.userId ?? 'unknown'}',
+                                                    child: Image.network(
+                                                      account.fotoUrl!,
+                                                      fit: BoxFit.cover,
+                                                      loadingBuilder: (context, child, loadingProgress) {
+                                                        if (loadingProgress == null) return child;
+                                                        return const Center(
+                                                          child: SizedBox(
+                                                            width: 20,
+                                                            height: 20,
+                                                            child: CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                              color: Colors.white,
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
+                                                      errorBuilder: (context, error, stackTrace) {
+                                                        debugPrint('⚠️ Erro ao carregar foto da conta: $error');
+                                                        return Icon(
+                                                          Icons.person,
+                                                          color: Colors.white,
+                                                          size: 28,
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                );
+                                              } else {
+                                                return Hero(
+                                                  tag: 'profile_image_${account.userId ?? 'unknown'}',
+                                                  child: Icon(
+                                                    Icons.person,
+                                                    color: Colors.white,
+                                                    size: 28,
+                                                  ),
+                                                );
+                                              }
+                                            } catch (e, stackTrace) {
+                                              debugPrint('❌ Erro ao construir avatar da conta: $e');
+                                              debugPrint('Stack trace: $stackTrace');
+                                              return Hero(
+                                                tag: 'profile_image_${account.userId ?? 'unknown'}',
+                                                child: Icon(
+                                                  Icons.person,
+                                                  color: Colors.white,
+                                                  size: 28,
                                                 ),
-                                              )
-                                            : Icon(
-                                                Icons.person,
-                                                color: Colors.white,
-                                                size: 28,
-                                              ),
+                                              );
+                                            }
+                                          },
+                                        ),
                                       ),
                                       const SizedBox(width: 16),
                                       // Informações

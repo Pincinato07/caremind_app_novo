@@ -63,8 +63,10 @@ class PremiumGuard extends StatelessWidget {
       onTap: () => _showPremiumModal(context),
       child: Stack(
         children: [
+          // ✅ Melhorado: Opacidade menos agressiva (0.6 ao invés de 0.4)
+          // Evita parecer que a tela está "quebrada"
           Opacity(
-            opacity: 0.4,
+            opacity: 0.6,
             child: IgnorePointer(
               child: child,
             ),
@@ -76,8 +78,8 @@ class PremiumGuard extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Colors.black.withValues(alpha: 0.1),
-                    Colors.black.withValues(alpha: 0.05),
+                    Colors.black.withValues(alpha: 0.08),
+                    Colors.black.withValues(alpha: 0.03),
                   ],
                 ),
               ),
@@ -135,7 +137,7 @@ class PremiumGuard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'Toque para desbloquear',
+                'Toque para ver e desbloquear',
                 style: AppTextStyles.bodySmall.copyWith(
                   color: Colors.white.withValues(alpha: 0.9),
                 ),

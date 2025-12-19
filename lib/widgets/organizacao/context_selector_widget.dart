@@ -49,7 +49,7 @@ class ContextSelectorWidget extends ConsumerWidget {
               child: Text(
                 organizacaoState.isModoOrganizacao
                     ? 'Modo Organização: ${organizacaoState.organizacaoAtual?.nome ?? ""}'
-                    : 'Modo Pessoal/Familiar',
+                    : 'Modo Individual',
                 style: TextStyle(
                   color: organizacaoState.isModoOrganizacao
                       ? Colors.blue.shade700
@@ -121,7 +121,7 @@ class _ContextSelectorSheet extends ConsumerWidget {
               Icons.person,
               color: !isModoOrganizacao ? Colors.green : Colors.grey,
             ),
-            title: const Text('Modo Pessoal/Familiar'),
+            title: const Text('Modo Individual'),
             subtitle: const Text('Ver seus próprios dados e idosos familiares'),
             selected: !isModoOrganizacao,
             onTap: () {

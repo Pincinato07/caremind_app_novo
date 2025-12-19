@@ -5,6 +5,9 @@ import 'notification_service.dart';
 class FCMTokenService {
   final SupabaseClient _client;
   String? _currentToken;
+  
+  // Callback para notificar erros ao usuário
+  Function(String message)? onSyncError;
 
   FCMTokenService(this._client);
 
@@ -39,6 +42,9 @@ class FCMTokenService {
       });
     } catch (e) {
       debugPrint('❌ FCMTokenService: Erro ao inicializar - ${e.toString()}');
+      onSyncError?.call(
+        'Erro ao configurar notificações push. Você pode não receber alertas de medicamento.',
+      );
     }
   }
 
@@ -113,6 +119,9 @@ class FCMTokenService {
       }
     } catch (e) {
       debugPrint('❌ FCMTokenService: Erro ao sincronizar token - ${e.toString()}');
+      onSyncError?.call(
+        'Erro ao sincronizar notificações com o servidor. Você pode não receber alertas de medicamento. Verifique sua conexão.',
+      );
     }
   }
 

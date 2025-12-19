@@ -57,6 +57,11 @@
 		<array>
 			<string>remote-notification</string>
 		</array>
+		<!-- Permissões para Localização GPS (Emergência SOS) -->
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>Precisamos da sua localização para enviar alertas de emergência precisos aos seus familiares em caso de SOS.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>Precisamos da sua localização para enviar alertas de emergência precisos aos seus familiares em caso de SOS.</string>
 		<!-- Deep Link para callbacks OAuth (Alexa, etc) -->
 		<key>CFBundleURLTypes</key>
 		<array>

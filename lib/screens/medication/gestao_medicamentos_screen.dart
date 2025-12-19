@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
@@ -313,23 +314,36 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
   }
 
   /// Mostra diálogo com opções: Formulário ou OCR
+  /// ✅ MELHORADO: Mostra opções primeiro, depois bloqueia se necessário
   Future<void> _showAddMedicamentoOptions() async {
-    final subscriptionService = getIt<SubscriptionService>();
-    await subscriptionService.getPermissions();
-    
-    final quantidadeAtual = _medicamentos.length;
-    final podeAdicionar = await subscriptionService.canAddMedicine(quantidadeAtual);
-    
-    if (!podeAdicionar && mounted) {
-      showModalBottomSheet(
-        context: context,
-        backgroundColor: Colors.transparent,
-        builder: (_) => const PremiumSalesModal(),
-      );
-      return;
-    }
-
-    final option = await showModalBottomSheet<String>(
+    try {
+      final subscriptionService = getIt<SubscriptionService>();
+      
+      // Verificar permissões com tratamento de erro
+      try {
+        await subscriptionService.getPermissions();
+      } catch (e) {
+        debugPrint('⚠️ Erro ao verificar permissões: $e');
+        // Continua mesmo se falhar verificação de permissões
+      }
+      
+      final quantidadeAtual = _medicamentos.length;
+      bool podeAdicionar = true; // Default: permite adicionar
+      
+      // Verificar limite com tratamento de erro
+      try {
+        podeAdicionar = await subscriptionService.canAddMedicine(quantidadeAtual);
+      } catch (e) {
+        debugPrint('⚠️ Erro ao verificar limite de medicamentos: $e');
+        // Em caso de erro, assume que pode adicionar para não bloquear usuário
+        podeAdicionar = true;
+      }
+      
+      // ✅ SEMPRE mostrar opções primeiro, mesmo se excedeu limite
+      // O usuário pode ver que existe opção gratuita (formulário)
+      String? option;
+      try {
+        option = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
@@ -494,22 +508,69 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
       ),
     );
 
-    if (option == null) return;
+      if (option == null) return;
 
-    if (option == 'formulario') {
-      // Abrir formulário padrão
-      final result = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AddEditMedicamentoForm(idosoId: widget.idosoId),
-        ),
-      );
-      if (result == true) {
-        _loadMedicamentos();
+      if (option == 'formulario') {
+        // ✅ Verificar limite APÓS usuário escolher formulário
+        // Se excedeu limite, mostrar modal Premium antes de abrir formulário
+        if (!podeAdicionar && mounted) {
+          try {
+            final shouldContinue = await showModalBottomSheet<bool>(
+              context: context,
+              backgroundColor: Colors.transparent,
+              builder: (_) => const PremiumSalesModal(),
+            );
+            // Se usuário cancelou ou não assinou, não abrir formulário
+            if (shouldContinue != true) return;
+          } catch (e) {
+            debugPrint('⚠️ Erro ao mostrar modal Premium: $e');
+            // Se falhar, permite continuar para não bloquear usuário
+          }
+        }
+        
+        // Abrir formulário padrão (com tratamento de erro)
+        try {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AddEditMedicamentoForm(idosoId: widget.idosoId),
+            ),
+          );
+          if (result == true && mounted) {
+            _loadMedicamentos();
+          }
+        } catch (e) {
+          debugPrint('⚠️ Erro ao abrir formulário: $e');
+          if (mounted) {
+            FeedbackSnackbar.error(
+              context,
+              'Erro ao abrir formulário. Tente novamente.',
+            );
+          }
+        }
+      } else if (option == 'ocr') {
+        // Mostrar opções de câmera ou galeria
+        // PremiumGuard já cuida do bloqueio do OCR
+        try {
+          await _showOcrImageSource();
+        } catch (e) {
+          debugPrint('⚠️ Erro ao mostrar opções OCR: $e');
+          if (mounted) {
+            FeedbackSnackbar.error(
+              context,
+              'Erro ao abrir opções de câmera. Tente novamente.',
+            );
+          }
+        }
       }
-    } else if (option == 'ocr') {
-      // Mostrar opções de câmera ou galeria
-      await _showOcrImageSource();
+    } catch (e) {
+      debugPrint('⚠️ Erro no fluxo de adicionar medicamento: $e');
+      if (mounted) {
+        FeedbackSnackbar.error(
+          context,
+          'Erro ao processar. Tente novamente.',
+        );
+      }
     }
   }
 

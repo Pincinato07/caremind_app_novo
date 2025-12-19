@@ -5,6 +5,7 @@ import '../../idoso/compromissos_screen.dart';
 import '../../idoso/ajuda_screen.dart';
 import '../../../widgets/nav_item.dart';
 import '../../../theme/app_theme.dart';
+import '../../../core/navigation/app_navigation.dart';
 
 /// Shell de navegação para o perfil IDOSO
 /// BottomBar com 4 itens, fontes gigantes, acessibilidade extrema
@@ -47,6 +48,30 @@ class _IdosoNavigationShellState extends State<IdosoNavigationShell> {
           index: _selectedIndex,
           children: _pages,
         ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            Navigator.push(
+              context,
+              AppNavigation.smoothRoute(
+                const AjudaScreen(),
+              ),
+            );
+          },
+          backgroundColor: Colors.red,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.warning_amber_rounded, size: 28),
+          label: const Text(
+            'SOS',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+          elevation: 8,
+          tooltip: 'Botão de Emergência SOS',
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         bottomNavigationBar: Container(
           decoration: BoxDecoration(
             color: AppColors.surface,

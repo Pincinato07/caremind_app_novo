@@ -419,7 +419,7 @@ class _NotificacoesTabState extends State<_NotificacoesTab> {
                                       child: Text(
                                         notificacao.titulo,
                                         style: AppTextStyles.leagueSpartan(
-                                          fontSize: 18,
+                                          fontSize: (MediaQuery.maybeOf(context)?.textScaler ?? const TextScaler.linear(1.0)).scale(18),
                                           fontWeight: FontWeight.w700,
                                           color: Colors.white,
                                         ),
@@ -470,7 +470,7 @@ class _NotificacoesTabState extends State<_NotificacoesTab> {
                                 Text(
                                   notificacao.mensagem,
                                   style: AppTextStyles.leagueSpartan(
-                                    fontSize: 14,
+                                    fontSize: (MediaQuery.maybeOf(context)?.textScaler ?? const TextScaler.linear(1.0)).scale(14),
                                     color: Colors.white.withValues(alpha: 0.9),
                                     height: 1.4,
                                   ),
