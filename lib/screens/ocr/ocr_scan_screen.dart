@@ -7,6 +7,7 @@ import '../../services/ocr_offline_service.dart';
 import '../../services/offline_cache_service.dart';
 import '../../services/supabase_service.dart';
 import '../../theme/app_theme.dart';
+import '../../core/feedback/feedback_service.dart';
 import '../../widgets/caremind_card.dart';
 import '../../widgets/animated_card.dart';
 import '../../widgets/wave_background.dart';
@@ -60,7 +61,7 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
       // Obter userId - pode ser do idoso selecionado ou do usuário atual
       final familiarState = GetIt.I<FamiliarState>();
       final String userId;
-      
+
       if (familiarState.idosoSelecionado != null) {
         // Familiar gerenciando idoso - usar o perfil_id diretamente
         userId = familiarState.idosoSelecionado!.id;
@@ -80,7 +81,7 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
       if (!isOnline) {
         // Offline: salvar localmente para processar depois
         debugPrint('📴 OCR: Offline, salvando imagem localmente');
-        
+
         await OcrOfflineService.saveImageForLater(
           imageFile: imageFile,
           userId: userId,
@@ -89,27 +90,10 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
         if (!mounted) return;
 
         // Mostrar mensagem de sucesso
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.cloud_upload, color: Colors.white),
-                SizedBox(width: AppSpacing.small),
-                Expanded(
-                  child: Text(
-                    'Imagem salva! Será processada automaticamente quando voltar online.',
-                    style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: AppColors.warning,
-            duration: const Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppBorderRadius.medium),
-            ),
-          ),
+        FeedbackService.showInfo(
+          context,
+          'Imagem salva! Será processada automaticamente quando voltar online.',
+          duration: const Duration(seconds: 4),
         );
 
         setState(() {
@@ -236,15 +220,18 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
                             index: 0,
                             child: CareMindCard(
                               variant: CardVariant.glass,
-                              borderColor: AppColors.error.withValues(alpha: 0.5),
+                              borderColor:
+                                  AppColors.error.withValues(alpha: 0.5),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.error_outline, color: AppColors.error),
+                                  const Icon(Icons.error_outline,
+                                      color: AppColors.error),
                                   SizedBox(width: AppSpacing.small + 4),
                                   Expanded(
                                     child: Text(
                                       _errorMessage!,
-                                      style: const TextStyle(color: AppColors.error),
+                                      style: const TextStyle(
+                                          color: AppColors.error),
                                     ),
                                   ),
                                 ],
@@ -262,13 +249,15 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
-                              onPressed: () => _captureImage(ImageSource.camera),
+                              onPressed: () =>
+                                  _captureImage(ImageSource.camera),
                               icon: const Icon(Icons.camera_alt),
                               label: const Text('Tirar Foto'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: AppColors.primary,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
                               ),
                             ),
                           ),
@@ -278,13 +267,16 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
                           SizedBox(
                             width: double.infinity,
                             child: OutlinedButton.icon(
-                              onPressed: () => _captureImage(ImageSource.gallery),
+                              onPressed: () =>
+                                  _captureImage(ImageSource.gallery),
                               icon: const Icon(Icons.photo_library),
                               label: const Text('Escolher da Galeria'),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.white,
-                                side: const BorderSide(color: Colors.white, width: 2),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                side: const BorderSide(
+                                    color: Colors.white, width: 2),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
                               ),
                             ),
                           ),
@@ -298,33 +290,35 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
                           child: CareMindCard(
                             variant: CardVariant.glass,
                             child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.lightbulb_outline,
-                                    color: Colors.amber.shade300,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Dicas para melhor resultado:',
-                                    style: AppTextStyles.titleSmall.copyWith(
-                                      color: Colors.white,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.lightbulb_outline,
+                                      color: Colors.amber.shade300,
+                                      size: 20,
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              _buildTip('Certifique-se que a receita está bem iluminada'),
-                              _buildTip('Evite sombras sobre o documento'),
-                              _buildTip('Mantenha a câmera estável'),
-                              _buildTip('Inclua todo o texto da receita na foto'),
-                            ],
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Dicas para melhor resultado:',
+                                      style: AppTextStyles.titleSmall.copyWith(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                _buildTip(
+                                    'Certifique-se que a receita está bem iluminada'),
+                                _buildTip('Evite sombras sobre o documento'),
+                                _buildTip('Mantenha a câmera estável'),
+                                _buildTip(
+                                    'Inclua todo o texto da receita na foto'),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
                       ],
                     ),
                   ),
@@ -357,4 +351,3 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
     );
   }
 }
-

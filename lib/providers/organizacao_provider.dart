@@ -71,9 +71,11 @@ class OrganizacaoNotifier extends StateNotifier<OrganizacaoState> {
     state = state.copyWith(isLoading: true);
 
     try {
-      final organizacao = await _organizacaoService.obterOrganizacao(organizacaoId);
-      final role = await _organizacaoService.obterRoleOrganizacao(organizacaoId);
-      
+      final organizacao =
+          await _organizacaoService.obterOrganizacao(organizacaoId);
+      final role =
+          await _organizacaoService.obterRoleOrganizacao(organizacaoId);
+
       state = state.copyWith(
         organizacaoAtual: organizacao,
         roleAtual: role,
@@ -115,11 +117,13 @@ class OrganizacaoNotifier extends StateNotifier<OrganizacaoState> {
   }
 
   bool podeConfirmarEventos() {
-    return ['admin', 'medico', 'enfermeiro', 'cuidador'].contains(state.roleAtual);
+    return ['admin', 'medico', 'enfermeiro', 'cuidador']
+        .contains(state.roleAtual);
   }
 
   bool podeGerenciarCompromissos() {
-    return ['admin', 'medico', 'enfermeiro', 'recepcionista'].contains(state.roleAtual);
+    return ['admin', 'medico', 'enfermeiro', 'recepcionista']
+        .contains(state.roleAtual);
   }
 
   /// Atualizar organização atual
@@ -131,6 +135,7 @@ class OrganizacaoNotifier extends StateNotifier<OrganizacaoState> {
 }
 
 /// Provider Riverpod
-final organizacaoProvider = StateNotifierProvider<OrganizacaoNotifier, OrganizacaoState>(
+final organizacaoProvider =
+    StateNotifierProvider<OrganizacaoNotifier, OrganizacaoState>(
   (ref) => OrganizacaoNotifier(),
 );

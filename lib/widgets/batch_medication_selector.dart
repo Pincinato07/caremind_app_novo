@@ -25,7 +25,8 @@ class BatchMedicationSelector extends StatefulWidget {
   });
 
   @override
-  State<BatchMedicationSelector> createState() => _BatchMedicationSelectorState();
+  State<BatchMedicationSelector> createState() =>
+      _BatchMedicationSelectorState();
 }
 
 class _BatchMedicationSelectorState extends State<BatchMedicationSelector> {
@@ -52,10 +53,11 @@ class _BatchMedicationSelectorState extends State<BatchMedicationSelector> {
   void _toggleSelection(int medicationId) {
     try {
       if (medicationId <= 0) {
-        debugPrint('⚠️ BatchMedicationSelector: ID de medicamento inválido: $medicationId');
+        debugPrint(
+            '⚠️ BatchMedicationSelector: ID de medicamento inválido: $medicationId');
         return;
       }
-      
+
       setState(() {
         if (_selectedMedications.contains(medicationId)) {
           _selectedMedications.remove(medicationId);
@@ -73,16 +75,18 @@ class _BatchMedicationSelectorState extends State<BatchMedicationSelector> {
       final selected = widget.medications
           .where((m) => m.id != null && _selectedMedications.contains(m.id))
           .toList();
-      
+
       if (selected.isEmpty) {
-        debugPrint('⚠️ BatchMedicationSelector: Nenhum medicamento selecionado');
+        debugPrint(
+            '⚠️ BatchMedicationSelector: Nenhum medicamento selecionado');
         return;
       }
-      
+
       if (selected.length != _selectedMedications.length) {
-        debugPrint('⚠️ BatchMedicationSelector: Inconsistência entre seleções e medicamentos');
+        debugPrint(
+            '⚠️ BatchMedicationSelector: Inconsistência entre seleções e medicamentos');
       }
-      
+
       widget.onConfirmBatch(selected);
       setState(() {
         _selectedMedications.clear();
@@ -98,8 +102,8 @@ class _BatchMedicationSelectorState extends State<BatchMedicationSelector> {
       setState(() {
         _selectedMedications.clear();
         for (var med in widget.medications) {
-          if (med.id != null && 
-              med.id! > 0 && 
+          if (med.id != null &&
+              med.id! > 0 &&
               !(widget.statusMedicamentos[med.id] ?? false)) {
             _selectedMedications.add(med.id!);
           }
@@ -196,15 +200,16 @@ class _BatchMedicationSelectorState extends State<BatchMedicationSelector> {
               ],
             ),
           ),
-        
+
         if (widget.isSelectionMode) const SizedBox(height: 12),
-        
+
         // Lista de medicamentos
         ...widget.medications.map((med) {
           final isLoading = widget.loadingMedicamentos[med.id] ?? false;
           final isConfirmed = widget.statusMedicamentos[med.id] ?? false;
-          final isSelected = med.id != null && _selectedMedications.contains(med.id);
-          
+          final isSelected =
+              med.id != null && _selectedMedications.contains(med.id);
+
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: GestureDetector(
@@ -222,7 +227,9 @@ class _BatchMedicationSelectorState extends State<BatchMedicationSelector> {
                         ),
                       )
                     : null,
-                padding: widget.isSelectionMode ? const EdgeInsets.all(8) : EdgeInsets.zero,
+                padding: widget.isSelectionMode
+                    ? const EdgeInsets.all(8)
+                    : EdgeInsets.zero,
                 child: Row(
                   children: [
                     if (widget.isSelectionMode && !isConfirmed)
@@ -271,7 +278,7 @@ class _BatchMedicationSelectorState extends State<BatchMedicationSelector> {
             ),
           );
         }).toList(),
-        
+
         // Botão de confirmação em lote
         if (widget.isSelectionMode && _selectedMedications.isNotEmpty)
           Padding(
@@ -303,4 +310,3 @@ class _BatchMedicationSelectorState extends State<BatchMedicationSelector> {
     );
   }
 }
-

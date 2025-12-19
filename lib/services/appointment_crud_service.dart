@@ -40,21 +40,19 @@ class AppointmentCRUDService extends ChangeNotifier {
           .eq('perfil_id', perfil.id)
           .order('data_hora', ascending: true);
 
-      _appointments = (response as List)
-          .map((json) => Compromisso.fromMap(json))
-          .toList();
+      _appointments =
+          (response as List).map((json) => Compromisso.fromMap(json)).toList();
 
-      await AccessibilityService.speak(
-        _appointments.isEmpty 
-            ? 'Nenhum compromisso encontrado.'
-            : 'Carregados ${_appointments.length} compromissos.'
-      );
+      await AccessibilityService.speak(_appointments.isEmpty
+          ? 'Nenhum compromisso encontrado.'
+          : 'Carregados ${_appointments.length} compromissos.');
 
       notifyListeners();
       return _appointments;
     } catch (e) {
       _setError(e.toString());
-      await AccessibilityService.speak('Erro ao carregar compromissos: ${e.toString()}');
+      await AccessibilityService.speak(
+          'Erro ao carregar compromissos: ${e.toString()}');
       return [];
     } finally {
       _setLoading(false);
@@ -105,13 +103,15 @@ class AppointmentCRUDService extends ChangeNotifier {
       _appointments.add(newAppointment);
       _appointments.sort((a, b) => a.dataHora.compareTo(b.dataHora));
 
-      await AccessibilityService.speak('Compromisso $titulo adicionado com sucesso!');
+      await AccessibilityService.speak(
+          'Compromisso $titulo adicionado com sucesso!');
 
       notifyListeners();
       return newAppointment;
     } catch (e) {
       _setError(e.toString());
-      await AccessibilityService.speak('Erro ao adicionar compromisso: ${e.toString()}');
+      await AccessibilityService.speak(
+          'Erro ao adicionar compromisso: ${e.toString()}');
       return null;
     } finally {
       _setLoading(false);
@@ -135,7 +135,7 @@ class AppointmentCRUDService extends ChangeNotifier {
       if (appointmentIndex == -1) {
         throw const ValidationException(message: 'Compromisso não encontrado');
       }
-      
+
       await AccessibilityService.speak('Atualizando compromisso...');
 
       final updateData = <String, dynamic>{
@@ -144,10 +144,12 @@ class AppointmentCRUDService extends ChangeNotifier {
 
       if (titulo != null) updateData['titulo'] = titulo.trim();
       if (descricao != null) updateData['descricao'] = descricao.trim();
-      if (dataHora != null) updateData['data_hora'] = dataHora.toIso8601String();
+      if (dataHora != null)
+        updateData['data_hora'] = dataHora.toIso8601String();
       if (local != null) updateData['local'] = local.trim();
       if (tipo != null) updateData['tipo'] = tipo;
-      if (lembreteMinutos != null) updateData['lembrete_minutos'] = lembreteMinutos;
+      if (lembreteMinutos != null)
+        updateData['lembrete_minutos'] = lembreteMinutos;
 
       final response = await _supabaseService.client
           .from('compromissos')
@@ -166,7 +168,8 @@ class AppointmentCRUDService extends ChangeNotifier {
       return true;
     } catch (e) {
       _setError(e.toString());
-      await AccessibilityService.speak('Erro ao atualizar compromisso: ${e.toString()}');
+      await AccessibilityService.speak(
+          'Erro ao atualizar compromisso: ${e.toString()}');
       return false;
     } finally {
       _setLoading(false);
@@ -180,25 +183,26 @@ class AppointmentCRUDService extends ChangeNotifier {
     try {
       final appointment = _appointments.firstWhere(
         (a) => a.id == id,
-        orElse: () => throw const ValidationException(message: 'Compromisso não encontrado'),
+        orElse: () => throw const ValidationException(
+            message: 'Compromisso não encontrado'),
       );
 
-      await AccessibilityService.speak('Excluindo compromisso: ${appointment.titulo}');
+      await AccessibilityService.speak(
+          'Excluindo compromisso: ${appointment.titulo}');
 
-      await _supabaseService.client
-          .from('compromissos')
-          .delete()
-          .eq('id', id);
+      await _supabaseService.client.from('compromissos').delete().eq('id', id);
 
       _appointments.removeWhere((a) => a.id == id);
 
-      await AccessibilityService.speak('Compromisso ${appointment.titulo} excluído com sucesso!');
+      await AccessibilityService.speak(
+          'Compromisso ${appointment.titulo} excluído com sucesso!');
 
       notifyListeners();
       return true;
     } catch (e) {
       _setError(e.toString());
-      await AccessibilityService.speak('Erro ao excluir compromisso: ${e.toString()}');
+      await AccessibilityService.speak(
+          'Erro ao excluir compromisso: ${e.toString()}');
       return false;
     } finally {
       _setLoading(false);
@@ -215,11 +219,9 @@ class AppointmentCRUDService extends ChangeNotifier {
           (appointment.descricao?.toLowerCase().contains(searchTerm) ?? false);
     }).toList();
 
-    AccessibilityService.speak(
-      results.isEmpty 
-          ? 'Nenhum compromisso encontrado para: $term'
-          : 'Encontrados ${results.length} compromissos para: $term'
-    );
+    AccessibilityService.speak(results.isEmpty
+        ? 'Nenhum compromisso encontrado para: $term'
+        : 'Encontrados ${results.length} compromissos para: $term');
 
     return results;
   }
@@ -229,7 +231,8 @@ class AppointmentCRUDService extends ChangeNotifier {
     final today = DateTime(now.year, now.month, now.day);
 
     return _appointments.where((a) {
-      final appointmentDate = DateTime(a.dataHora.year, a.dataHora.month, a.dataHora.day);
+      final appointmentDate =
+          DateTime(a.dataHora.year, a.dataHora.month, a.dataHora.day);
       return appointmentDate.isAtSameMomentAs(today);
     }).toList();
   }
@@ -271,14 +274,25 @@ class AppointmentCRUDService extends ChangeNotifier {
     final year = dateTime.year;
     final hour = dateTime.hour;
     final minute = dateTime.minute;
-    
+
     final monthNames = [
-      'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
-      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+      'janeiro',
+      'fevereiro',
+      'março',
+      'abril',
+      'maio',
+      'junho',
+      'julho',
+      'agosto',
+      'setembro',
+      'outubro',
+      'novembro',
+      'dezembro'
     ];
-    
-    final timeStr = '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
-    
+
+    final timeStr =
+        '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+
     return '$day de ${monthNames[month - 1]} de $year às $timeStr';
   }
 

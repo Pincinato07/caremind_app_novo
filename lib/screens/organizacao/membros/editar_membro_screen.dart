@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../services/membro_organizacao_service.dart';
 import '../../../core/injection/injection.dart';
+import '../../../core/feedback/feedback_service.dart';
+import '../../../core/errors/error_handler.dart';
 
 /// Tela para editar membro da organização
 class EditarMembroScreen extends StatefulWidget {
@@ -22,7 +24,8 @@ class EditarMembroScreen extends StatefulWidget {
 }
 
 class _EditarMembroScreenState extends State<EditarMembroScreen> {
-  final MembroOrganizacaoService _membroService = getIt<MembroOrganizacaoService>();
+  final MembroOrganizacaoService _membroService =
+      getIt<MembroOrganizacaoService>();
   String _roleSelecionado = 'cuidador';
   bool _ativo = true;
   bool _isLoading = false;
@@ -57,22 +60,12 @@ class _EditarMembroScreenState extends State<EditarMembroScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Membro atualizado com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        FeedbackService.showSuccess(context, 'Membro atualizado com sucesso!');
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao atualizar membro: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        FeedbackService.showError(context, ErrorHandler.toAppException(e));
       }
     } finally {
       if (mounted) {
@@ -199,18 +192,17 @@ class _EditarMembroScreenState extends State<EditarMembroScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final precisaRedirecionar = await _membroService.removerMembro(widget.membroId);
+      final precisaRedirecionar =
+          await _membroService.removerMembro(widget.membroId);
 
       if (mounted) {
         if (precisaRedirecionar) {
           // Usuário foi removido e não é membro de nenhuma organização
           // Redirecionar para Dashboard Individual
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Você foi removido da organização. Redirecionando...'),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 2),
-            ),
+          FeedbackService.showWarning(
+            context,
+            'Você foi removido da organização. Redirecionando...',
+            duration: const Duration(seconds: 2),
           );
 
           // Aguardar um pouco para mostrar a mensagem
@@ -225,39 +217,15 @@ class _EditarMembroScreenState extends State<EditarMembroScreen> {
           }
         } else {
           // Apenas outro membro foi removido, voltar para lista
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Membro removido com sucesso!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          FeedbackService.showSuccess(context, 'Membro removido com sucesso!');
           Navigator.pop(context, true);
         }
       }
     } catch (e) {
       if (mounted) {
-        final errorMessage = e.toString();
-        String mensagemUsuario = 'Erro ao remover membro';
-        
-        // Tratar diferentes tipos de erro
-        if (errorMessage.contains('conexão') || errorMessage.contains('internet') || errorMessage.contains('network')) {
-          mensagemUsuario = 'Erro de conexão. Verifique sua internet e tente novamente.';
-        } else if (errorMessage.contains('não encontrado') || errorMessage.contains('sem permissão')) {
-          mensagemUsuario = 'Membro não encontrado ou você não tem permissão para removê-lo.';
-        } else if (errorMessage.contains('não autenticado') || errorMessage.contains('Token')) {
-          mensagemUsuario = 'Sua sessão expirou. Faça login novamente.';
-        } else {
-          // Extrair mensagem do erro
-          final match = RegExp(r'Exception:\s*(.+?)(?:\n|$)').firstMatch(errorMessage);
-          mensagemUsuario = match?.group(1)?.trim() ?? 'Erro ao remover membro. Tente novamente.';
-        }
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(mensagemUsuario),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
+        FeedbackService.showError(
+          context,
+          ErrorHandler.toAppException(e),
         );
       }
     } finally {
@@ -284,4 +252,3 @@ class _EditarMembroScreenState extends State<EditarMembroScreen> {
     }
   }
 }
-

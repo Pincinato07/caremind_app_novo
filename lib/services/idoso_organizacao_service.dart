@@ -1,8 +1,13 @@
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'organizacao_service.dart';
+import '../core/errors/result.dart';
+import '../core/errors/app_exception.dart';
+import '../core/errors/error_handler.dart';
 
 /// Serviço para gerenciar idosos da organização
+///
+/// REFATORADO: Usa Result<T> em vez de throw Exception, erros estruturados do backend
 class IdosoOrganizacaoService {
   IdosoOrganizacaoService();
 
@@ -15,7 +20,8 @@ class IdosoOrganizacaoService {
 
       final response = await Supabase.instance.client
           .from('idosos_organizacao')
-          .select('*, perfil:perfis(nome, telefone, data_nascimento, is_virtual)')
+          .select(
+              '*, perfil:perfis(nome, telefone, data_nascimento, is_virtual)')
           .eq('organizacao_id', organizacaoId)
           .order('created_at', ascending: false);
 
@@ -24,7 +30,8 @@ class IdosoOrganizacaoService {
       }
 
       return (response as List)
-          .map((json) => IdosoOrganizacao.fromJson(json as Map<String, dynamic>))
+          .map(
+              (json) => IdosoOrganizacao.fromJson(json as Map<String, dynamic>))
           .toList();
     } on PostgrestException catch (e) {
       if (e.code == 'PGRST301' || e.code == 'PGRST116') {
@@ -32,7 +39,8 @@ class IdosoOrganizacaoService {
       }
       throw Exception('Erro ao buscar idosos: ${e.message}');
     } on SocketException {
-      throw Exception('Erro de conexão. Verifique sua internet e tente novamente.');
+      throw Exception(
+          'Erro de conexão. Verifique sua internet e tente novamente.');
     } catch (e) {
       throw Exception('Erro ao listar idosos: ${e.toString()}');
     }
@@ -53,8 +61,10 @@ class IdosoOrganizacaoService {
       // VALIDAÇÃO DE DUPLICIDADE: Verificar se já existe idoso com mesmo nome + data_nascimento
       if (dataNascimento != null) {
         final nomeNormalizado = nome.trim().toLowerCase();
-        final dataFormatada = dataNascimento.toIso8601String().split('T')[0]; // Apenas data, sem hora
-        
+        final dataFormatada = dataNascimento
+            .toIso8601String()
+            .split('T')[0]; // Apenas data, sem hora
+
         final duplicadosResponse = await Supabase.instance.client
             .from('perfis')
             .select('''
@@ -67,12 +77,12 @@ class IdosoOrganizacaoService {
             .eq('tipo', 'idoso')
             .ilike('nome', nomeNormalizado)
             .eq('data_nascimento', dataFormatada);
-        
+
         if (duplicadosResponse.isNotEmpty) {
           // Verificar se algum está em uma organização
           for (final idoso in duplicadosResponse) {
             String? orgId = idoso['organizacao_id'] as String?;
-            
+
             // Se não tem organizacao_id direto, verificar via idosos_organizacao
             if (orgId == null && idoso['idosos_organizacao'] != null) {
               final idososOrg = idoso['idosos_organizacao'] as List;
@@ -80,7 +90,7 @@ class IdosoOrganizacaoService {
                 orgId = idososOrg[0]['organizacao_id'] as String?;
               }
             }
-            
+
             if (orgId != null) {
               // Buscar nome da organização
               final orgResponse = await Supabase.instance.client
@@ -88,9 +98,10 @@ class IdosoOrganizacaoService {
                   .select('nome')
                   .eq('id', orgId)
                   .maybeSingle();
-              
-              final nomeOrg = orgResponse?['nome'] as String? ?? 'uma organização';
-              
+
+              final nomeOrg =
+                  orgResponse?['nome'] as String? ?? 'uma organização';
+
               return {
                 'duplicado': {
                   'id': idoso['id'],
@@ -104,10 +115,10 @@ class IdosoOrganizacaoService {
           }
         }
       }
-      
+
       // Criar perfil virtual
       final perfilId = DateTime.now().millisecondsSinceEpoch.toString();
-      
+
       await Supabase.instance.client
           .from('perfis')
           .insert({
@@ -133,12 +144,11 @@ class IdosoOrganizacaoService {
             'setor': setor,
             'observacoes': observacoes,
           })
-          .select('*, perfil:perfis(nome, telefone, data_nascimento, is_virtual)')
+          .select(
+              '*, perfil:perfis(nome, telefone, data_nascimento, is_virtual)')
           .single();
 
-      return {
-        'idoso': IdosoOrganizacao.fromJson(idosoOrgResponse as Map<String, dynamic>)
-      };
+      return {'idoso': IdosoOrganizacao.fromJson(idosoOrgResponse)};
     } on PostgrestException catch (e) {
       if (e.code == '23505') {
         throw Exception('Já existe um idoso com estes dados nesta organização');
@@ -147,7 +157,8 @@ class IdosoOrganizacaoService {
       }
       throw Exception('Erro ao adicionar idoso: ${e.message}');
     } on SocketException {
-      throw Exception('Erro de conexão. Verifique sua internet e tente novamente.');
+      throw Exception(
+          'Erro de conexão. Verifique sua internet e tente novamente.');
     } catch (e) {
       final errorMsg = e.toString();
       if (errorMsg.contains('duplicado') || errorMsg.contains('já existe')) {
@@ -234,7 +245,8 @@ class IdosoOrganizacaoService {
       // Buscar idoso atualizado
       final idosoAtualizadoResponse = await Supabase.instance.client
           .from('idosos_organizacao')
-          .select('*, perfil:perfis(nome, telefone, data_nascimento, is_virtual)')
+          .select(
+              '*, perfil:perfis(nome, telefone, data_nascimento, is_virtual)')
           .eq('id', idosoId)
           .single();
 
@@ -245,7 +257,9 @@ class IdosoOrganizacaoService {
   }
 
   /// Reivindicar perfil virtual (claim profile)
-  Future<Map<String, dynamic>> claimProfile({
+  ///
+  /// REFATORADO: Retorna Result<T>, processa erros estruturados do backend
+  Future<Result<Map<String, dynamic>>> claimProfile({
     required String perfilId,
     required String action, // 'convert' ou 'link_family'
     String? codigoVinculacao,
@@ -255,7 +269,7 @@ class IdosoOrganizacaoService {
         'perfil_id': perfilId,
         'action': action,
       };
-      
+
       if (codigoVinculacao != null) {
         body['codigo_vinculacao'] = codigoVinculacao;
       }
@@ -265,48 +279,49 @@ class IdosoOrganizacaoService {
         body: body,
       );
 
-      if (response.status != 200) {
-        final error = response.data as Map<String, dynamic>?;
-        final errorMessage = error?['error'] ?? error?['message'] ?? 'Erro ao reivindicar perfil';
-        
-        // Verificar se é erro de bloqueio
-        if (response.status == 429 || errorMessage.toString().contains('bloqueado')) {
-          final bloqueioData = error;
-          throw Exception(
-            'BLOQUEADO:${bloqueioData?['message'] ?? errorMessage}\n'
-            'MINUTOS:${bloqueioData?['minutos_restantes'] ?? 15}'
-          );
-        }
-        
-        throw Exception(errorMessage);
+      // Sucesso
+      if (response.status == 200) {
+        return Success(response.data as Map<String, dynamic>);
       }
 
-      return response.data;
-    } on SocketException {
-      throw Exception('Erro de conexão. Verifique sua internet e tente novamente.');
-    } catch (e) {
-      // Verificar se é erro de função do Supabase
-      if (e.toString().contains('FunctionException') || e.toString().contains('status: 429')) {
-        // Tentar extrair dados do erro
-        try {
-          final errorStr = e.toString();
-          if (errorStr.contains('429') || errorStr.contains('bloqueado')) {
-            final bloqueioMatch = RegExp(r'MINUTOS:(\d+)').firstMatch(errorStr);
-            final minutos = bloqueioMatch?.group(1) ?? '15';
-            throw Exception(
-              'BLOQUEADO:Você excedeu o limite de tentativas. Tente novamente em $minutos minutos.\n'
-              'MINUTOS:$minutos'
-            );
-          }
-        } catch (_) {
-          // Continuar com tratamento padrão
+      // Erro estruturado do backend
+      if (response.data is Map<String, dynamic>) {
+        final errorData = response.data as Map<String, dynamic>;
+        final exception = ErrorHandler.fromStructuredError(errorData);
+        return Failure(exception);
+      }
+
+      // Erro sem estrutura (fallback)
+      return Failure(UnknownException(
+        message: 'Erro ao reivindicar perfil',
+        code: response.status.toString(),
+        originalError: response.data,
+      ));
+    } on SocketException catch (e) {
+      return Failure(NetworkException(
+        message: 'Erro de conexão. Verifique sua internet e tente novamente.',
+        originalError: e,
+      ));
+    } on FunctionException catch (e) {
+      // FunctionException do Supabase
+      try {
+        // Tentar parsear como JSON estruturado
+        if (e.details != null && e.details is Map) {
+          final errorData = e.details as Map<String, dynamic>;
+          final exception = ErrorHandler.fromStructuredError(errorData);
+          return Failure(exception);
         }
+      } catch (_) {
+        // Fallback para mensagem genérica
       }
-      final errorMsg = e.toString();
-      if (errorMsg.contains('BLOQUEADO:')) {
-        rethrow;
-      }
-      throw Exception('Erro ao reivindicar perfil: $e');
+
+      return Failure(DatabaseException(
+        message: 'Erro ao reivindicar perfil: ${e.toString()}',
+        code: e.status.toString(),
+        originalError: e,
+      ));
+    } catch (e) {
+      return Failure(ErrorHandler.toAppException(e));
     }
   }
 
@@ -352,4 +367,3 @@ class IdosoOrganizacaoService {
     }
   }
 }
-

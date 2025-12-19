@@ -8,7 +8,7 @@ class RelatoriosService {
   RelatoriosService(this._client);
 
   /// Busca histórico de eventos usando a Edge Function relatorios-historico
-  /// 
+  ///
   /// [perfilId] - ID do perfil para buscar histórico
   /// [dataInicio] - Data de início no formato ISO (YYYY-MM-DD)
   /// [dataFim] - Data de fim no formato ISO (YYYY-MM-DD)
@@ -50,7 +50,7 @@ class RelatoriosService {
             final errorMsg = data['error'] as String? ?? 'Erro desconhecido';
             throw Exception(errorMsg);
           }
-          
+
           // Retornar os dados
           return data;
         }
@@ -76,12 +76,12 @@ class RelatoriosService {
   }
 
   /// Busca alertas recentes
-  /// 
+  ///
   /// [perfilId] - ID do perfil (familiar ou individual)
-  /// 
+  ///
   /// Se for familiar: busca eventos dos idosos vinculados
   /// Se for individual: busca eventos do próprio perfil
-  /// 
+  ///
   /// Retorna lista de eventos críticos ou recentes
   Future<List<Map<String, dynamic>>> getAlertasRecentes(String perfilId) async {
     try {
@@ -108,7 +108,7 @@ class RelatoriosService {
             .select('id')
             .eq('user_id', perfilId)
             .maybeSingle();
-        
+
         final targetPerfilId = perfilResponse?['id'] as String? ?? perfilId;
         perfisIdsParaBuscar.add(targetPerfilId);
       }
@@ -155,4 +155,3 @@ class RelatoriosService {
     }
   }
 }
-

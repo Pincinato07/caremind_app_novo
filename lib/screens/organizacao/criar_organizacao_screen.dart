@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/organizacao_service.dart';
 import '../../core/injection/injection.dart';
+import '../../core/feedback/feedback_service.dart';
 import '../../theme/app_theme.dart';
 
 /// Tela para criar nova organização
@@ -34,43 +35,32 @@ class _CriarOrganizacaoScreenState extends State<CriarOrganizacaoScreen> {
 
     setState(() => _isLoading = true);
 
-    try {
-      await _organizacaoService.criarOrganizacao(
-        nome: _nomeController.text.trim(),
-        cnpj: _cnpjController.text.trim().isEmpty
-            ? null
-            : _cnpjController.text.trim(),
-        telefone: _telefoneController.text.trim().isEmpty
-            ? null
-            : _telefoneController.text.trim(),
-        email: _emailController.text.trim().isEmpty
-            ? null
-            : _emailController.text.trim(),
-      );
+    final result = await _organizacaoService.criarOrganizacao(
+      nome: _nomeController.text.trim(),
+      cnpj: _cnpjController.text.trim().isEmpty
+          ? null
+          : _cnpjController.text.trim(),
+      telefone: _telefoneController.text.trim().isEmpty
+          ? null
+          : _telefoneController.text.trim(),
+      email: _emailController.text.trim().isEmpty
+          ? null
+          : _emailController.text.trim(),
+    );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Organização criada com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+    if (!mounted) return;
+
+    result.when(
+      success: (_) {
+        FeedbackService.showSuccess(context, 'Organização criada com sucesso!');
         Navigator.pop(context, true);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao criar organização: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+      },
+      failure: (exception) {
+        FeedbackService.showError(context, exception);
+      },
+    );
+
+    setState(() => _isLoading = false);
   }
 
   @override
@@ -115,7 +105,10 @@ class _CriarOrganizacaoScreenState extends State<CriarOrganizacaoScreen> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [AppColors.primary, AppColors.primaryLight],
+                              colors: [
+                                AppColors.primary,
+                                AppColors.primaryLight
+                              ],
                             ),
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -364,4 +357,3 @@ class _CriarOrganizacaoScreenState extends State<CriarOrganizacaoScreen> {
     );
   }
 }
-

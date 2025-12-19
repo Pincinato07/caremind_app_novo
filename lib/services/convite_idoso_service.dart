@@ -1,8 +1,9 @@
-import 'dart:async';
+import 'dart:async' hide TimeoutException;
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/errors/error_handler.dart';
 import '../core/errors/app_exception.dart';
+import '../core/errors/result.dart';
 
 /// Resultado do processamento de um convite
 class ConviteResultado {
@@ -61,9 +62,7 @@ class ConviteIdosoService {
       ).hasMatch(tokenOuCodigo);
 
       // Buscar convite
-      var query = _client
-          .from('convites_idosos')
-          .select('''
+      var query = _client.from('convites_idosos').select('''
             id,
             id_idoso,
             codigo_convite,
@@ -102,7 +101,8 @@ class ConviteIdosoService {
         }
       } catch (e) {
         debugPrint('Erro ao parsear data de expiração: $e');
-        return ConviteResultado.erro('Erro ao validar data de expiração do convite.');
+        return ConviteResultado.erro(
+            'Erro ao validar data de expiração do convite.');
       }
 
       // Extrair dados do perfil
@@ -133,7 +133,8 @@ class ConviteIdosoService {
   }
 
   /// Marca um convite como usado após o login bem-sucedido
-  Future<void> marcarConviteComoUsado(String tokenOuCodigo, String userId) async {
+  Future<void> marcarConviteComoUsado(
+      String tokenOuCodigo, String userId) async {
     try {
       final isToken = RegExp(
         r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
@@ -141,23 +142,17 @@ class ConviteIdosoService {
       ).hasMatch(tokenOuCodigo);
 
       if (isToken) {
-        await _client
-            .from('convites_idosos')
-            .update({
-              'usado': true,
-              'usado_em': DateTime.now().toIso8601String(),
-              'usado_por': userId,
-            })
-            .eq('token', tokenOuCodigo);
+        await _client.from('convites_idosos').update({
+          'usado': true,
+          'usado_em': DateTime.now().toIso8601String(),
+          'usado_por': userId,
+        }).eq('token', tokenOuCodigo);
       } else {
-        await _client
-            .from('convites_idosos')
-            .update({
-              'usado': true,
-              'usado_em': DateTime.now().toIso8601String(),
-              'usado_por': userId,
-            })
-            .eq('codigo_convite', tokenOuCodigo.toUpperCase());
+        await _client.from('convites_idosos').update({
+          'usado': true,
+          'usado_em': DateTime.now().toIso8601String(),
+          'usado_por': userId,
+        }).eq('codigo_convite', tokenOuCodigo.toUpperCase());
       }
     } catch (error) {
       debugPrint('Erro ao marcar convite como usado: $error');
@@ -172,37 +167,35 @@ class ConviteIdosoService {
   }
 
   /// Gera um novo convite de login para um idoso
-  /// Retorna os dados do convite gerado (código, token, link)
-  /// 
-  /// Lança [AppException] em caso de erro
-  Future<ConviteData> gerarConvite(String idIdoso) async {
+  Future<Result<ConviteData>> gerarConvite(String idIdoso) async {
     try {
-      // Validação de entrada
       if (idIdoso.isEmpty) {
-        throw Exception('ID do idoso não pode ser vazio');
+        return Failure(ValidationException(
+          message: 'ID do idoso não pode ser vazio',
+        ));
       }
 
-      // Verificar se o cliente está autenticado
       final session = _client.auth.currentSession;
       if (session == null) {
-        throw Exception('Usuário não autenticado. Faça login novamente.');
+        return Failure(AuthenticationException(
+          message: 'Usuário não autenticado. Faça login novamente.',
+        ));
       }
 
       final response = await _client.functions.invoke(
         'gerar-convite-idoso',
-        body: {
-          'id_idoso': idIdoso,
-        },
+        body: {'id_idoso': idIdoso},
       ).timeout(
         const Duration(seconds: 30),
         onTimeout: () {
-          throw Exception('Tempo de espera excedido. Verifique sua conexão e tente novamente.');
+          throw TimeoutException(message: 'Tempo excedido ao gerar convite');
         },
       );
 
       // Verificar status da resposta
       if (response.status != 200) {
-        final errorMessage = 'Erro ao gerar convite (status ${response.status})';
+        final errorMessage =
+            'Erro ao gerar convite (status ${response.status})';
         throw Exception(errorMessage);
       }
 
@@ -216,10 +209,11 @@ class ConviteIdosoService {
       }
 
       final data = response.data as Map<String, dynamic>;
-      
+
       // Verificar se há erro na resposta
       if (data.containsKey('error')) {
-        final errorMsg = data['error'] as String? ?? 'Erro desconhecido ao gerar convite';
+        final errorMsg =
+            data['error'] as String? ?? 'Erro desconhecido ao gerar convite';
         throw Exception(errorMsg);
       }
 
@@ -231,44 +225,70 @@ class ConviteIdosoService {
       // Extrair dados do convite
       final conviteData = data['convite'] as Map<String, dynamic>?;
       if (conviteData == null) {
-        throw Exception('Dados do convite não encontrados na resposta. Tente novamente.');
+        throw Exception(
+            'Dados do convite não encontrados na resposta. Tente novamente.');
       }
 
       // Validar campos obrigatórios antes de criar o objeto
-      final requiredFields = ['id', 'codigo_convite', 'token', 'link_completo', 'expira_em', 'id_idoso'];
+      final requiredFields = [
+        'id',
+        'codigo_convite',
+        'token',
+        'link_completo',
+        'expira_em',
+        'id_idoso'
+      ];
       for (final field in requiredFields) {
         if (!conviteData.containsKey(field) || conviteData[field] == null) {
-          throw Exception('Campo obrigatório "$field" não encontrado na resposta do convite');
+          throw Exception(
+              'Campo obrigatório "$field" não encontrado na resposta do convite');
         }
       }
 
-      return ConviteData.fromJson(conviteData);
-    } on TimeoutException {
+      return Success(ConviteData.fromJson(conviteData));
+    } on TimeoutException catch (e) {
       debugPrint('Timeout ao gerar convite para idoso: $idIdoso');
-      throw Exception('Tempo de espera excedido. Verifique sua conexão e tente novamente.');
-    } on AppException {
-      // Re-lançar AppException sem modificação
-      rethrow;
+      return Failure(TimeoutException(
+        message:
+            'Tempo de espera excedido. Verifique sua conexão e tente novamente.',
+        originalError: e,
+      ));
+    } on AppException catch (e) {
+      return Failure(e);
     } catch (error) {
+      // Tratar timeout do Future.timeout
+      if (error.toString().contains('Tempo excedido')) {
+        return Failure(TimeoutException(
+          message:
+              'Tempo de espera excedido. Verifique sua conexão e tente novamente.',
+          originalError: error,
+        ));
+      }
       debugPrint('Erro ao gerar convite para idoso $idIdoso: $error');
       final appException = ErrorHandler.toAppException(error);
-      
+
       // Mensagens mais amigáveis para erros comuns
-      if (appException.message.contains('permission') || 
+      String errorMessage;
+      if (appException.message.contains('permission') ||
           appException.message.contains('permissão') ||
           appException.message.contains('403')) {
-        throw Exception('Você não tem permissão para gerar convite para este idoso.');
-      } else if (appException.message.contains('not found') || 
-                 appException.message.contains('não encontrado') ||
-                 appException.message.contains('404')) {
-        throw Exception('Idoso não encontrado. Verifique se o idoso ainda existe.');
-      } else if (appException.message.contains('network') || 
-                 appException.message.contains('conexão') ||
-                 appException.message.contains('connection')) {
-        throw Exception('Erro de conexão. Verifique sua internet e tente novamente.');
+        errorMessage =
+            'Você não tem permissão para gerar convite para este idoso.';
+      } else if (appException.message.contains('not found') ||
+          appException.message.contains('não encontrado') ||
+          appException.message.contains('404')) {
+        errorMessage =
+            'Idoso não encontrado. Verifique se o idoso ainda existe.';
+      } else if (appException.message.contains('network') ||
+          appException.message.contains('conexão') ||
+          appException.message.contains('connection')) {
+        errorMessage =
+            'Erro de conexão. Verifique sua internet e tente novamente.';
+      } else {
+        errorMessage = appException.message;
       }
-      
-      throw appException;
+
+      return Failure(UnknownException(message: errorMessage));
     }
   }
 }
@@ -317,7 +337,8 @@ class ConviteData {
 
       for (final entry in requiredFields.entries) {
         if (entry.value == null) {
-          throw FormatException('Campo obrigatório "${entry.key}" está nulo no JSON do convite');
+          throw FormatException(
+              'Campo obrigatório "${entry.key}" está nulo no JSON do convite');
         }
       }
 
@@ -325,14 +346,18 @@ class ConviteData {
       if (json['id'] is! String) {
         throw FormatException('Campo "id" deve ser uma String');
       }
-      if (json['codigo_convite'] is! String || (json['codigo_convite'] as String).isEmpty) {
-        throw FormatException('Campo "codigo_convite" deve ser uma String não vazia');
+      if (json['codigo_convite'] is! String ||
+          (json['codigo_convite'] as String).isEmpty) {
+        throw FormatException(
+            'Campo "codigo_convite" deve ser uma String não vazia');
       }
       if (json['token'] is! String || (json['token'] as String).isEmpty) {
         throw FormatException('Campo "token" deve ser uma String não vazia');
       }
-      if (json['link_completo'] is! String || (json['link_completo'] as String).isEmpty) {
-        throw FormatException('Campo "link_completo" deve ser uma String não vazia');
+      if (json['link_completo'] is! String ||
+          (json['link_completo'] as String).isEmpty) {
+        throw FormatException(
+            'Campo "link_completo" deve ser uma String não vazia');
       }
 
       // Validar formato do link
@@ -345,7 +370,8 @@ class ConviteData {
       try {
         DateTime.parse(json['expira_em'] as String);
       } catch (e) {
-        throw FormatException('Campo "expira_em" não é uma data válida: ${json['expira_em']}');
+        throw FormatException(
+            'Campo "expira_em" não é uma data válida: ${json['expira_em']}');
       }
 
       return ConviteData(
@@ -360,7 +386,8 @@ class ConviteData {
         criadoPor: json['criado_por'] as String? ?? '',
         usado: json['usado'] as bool? ?? false,
         usadoEm: json['usado_em'] as String?,
-        createdAt: json['created_at'] as String? ?? DateTime.now().toIso8601String(),
+        createdAt:
+            json['created_at'] as String? ?? DateTime.now().toIso8601String(),
       );
     } on FormatException catch (e) {
       debugPrint('Erro ao fazer parse do JSON do convite: $e');
@@ -371,4 +398,3 @@ class ConviteData {
     }
   }
 }
-

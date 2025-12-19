@@ -48,7 +48,7 @@ class _ErrorWidgetWithRetryState extends State<ErrorWidgetWithRetry> {
 
   Future<void> _handleRetry() async {
     if (_isRetrying) return;
-    
+
     setState(() {
       _isRetrying = true;
       _retryCount++;
@@ -65,30 +65,30 @@ class _ErrorWidgetWithRetryState extends State<ErrorWidgetWithRetry> {
 
   String _getFriendlyMessage(String message) {
     final lowerMessage = message.toLowerCase();
-    
-    if (lowerMessage.contains('network') || 
+
+    if (lowerMessage.contains('network') ||
         lowerMessage.contains('conexão') ||
         lowerMessage.contains('internet') ||
         lowerMessage.contains('socketexception')) {
       return 'Sem conexão com a internet';
     }
-    
+
     if (lowerMessage.contains('timeout') || lowerMessage.contains('tempo')) {
       return 'A conexão demorou muito. Tente novamente';
     }
-    
+
     if (lowerMessage.contains('401') || lowerMessage.contains('unauthorized')) {
       return 'Sua sessão expirou. Faça login novamente';
     }
-    
+
     if (lowerMessage.contains('403') || lowerMessage.contains('forbidden')) {
       return 'Você não tem permissão para acessar isso';
     }
-    
+
     if (lowerMessage.contains('404') || lowerMessage.contains('not found')) {
       return 'Conteúdo não encontrado';
     }
-    
+
     if (lowerMessage.contains('500') || lowerMessage.contains('server')) {
       return 'Nossos servidores estão com problemas. Tente em alguns minutos';
     }
@@ -98,21 +98,21 @@ class _ErrorWidgetWithRetryState extends State<ErrorWidgetWithRetry> {
 
   IconData _getErrorIcon(String message) {
     final lowerMessage = message.toLowerCase();
-    
-    if (lowerMessage.contains('network') || 
+
+    if (lowerMessage.contains('network') ||
         lowerMessage.contains('conexão') ||
         lowerMessage.contains('internet')) {
       return Icons.wifi_off_rounded;
     }
-    
+
     if (lowerMessage.contains('timeout')) {
       return Icons.hourglass_empty_rounded;
     }
-    
+
     if (lowerMessage.contains('401') || lowerMessage.contains('403')) {
       return Icons.lock_outline_rounded;
     }
-    
+
     return Icons.error_outline_rounded;
   }
 
@@ -204,7 +204,7 @@ class InlineErrorWidget extends StatelessWidget {
 
   String _getFriendlyMessage(String message) {
     final lowerMessage = message.toLowerCase();
-    
+
     if (lowerMessage.contains('network') || lowerMessage.contains('conexão')) {
       return 'Sem conexão';
     }
@@ -252,4 +252,3 @@ class InlineErrorWidget extends StatelessWidget {
     );
   }
 }
-

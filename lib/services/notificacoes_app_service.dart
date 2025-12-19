@@ -5,7 +5,7 @@ import '../models/notificacao_app.dart';
 import '../core/errors/error_handler.dart';
 
 /// Service para gerenciar notificações do app (tabela notificacoes_app)
-/// 
+///
 /// Responsável por:
 /// - Buscar notificações do usuário
 /// - Marcar como lida
@@ -13,18 +13,18 @@ import '../core/errors/error_handler.dart';
 /// - Escutar novas notificações em tempo real
 class NotificacoesAppService {
   final SupabaseClient _client;
-  
+
   // Stream controller para notificações em tempo real
-  final StreamController<List<NotificacaoApp>> _notificacoesController = 
+  final StreamController<List<NotificacaoApp>> _notificacoesController =
       StreamController<List<NotificacaoApp>>.broadcast();
-  
+
   // Stream controller para contagem de não lidas
-  final StreamController<int> _countController = 
+  final StreamController<int> _countController =
       StreamController<int>.broadcast();
-  
+
   // Subscription do realtime
   RealtimeChannel? _realtimeChannel;
-  
+
   // Cache local
   List<NotificacaoApp> _cache = [];
   int _countNaoLidas = 0;
@@ -32,14 +32,15 @@ class NotificacoesAppService {
   NotificacoesAppService(this._client);
 
   /// Stream de notificações (para usar com StreamBuilder)
-  Stream<List<NotificacaoApp>> get notificacoesStream => _notificacoesController.stream;
-  
+  Stream<List<NotificacaoApp>> get notificacoesStream =>
+      _notificacoesController.stream;
+
   /// Stream de contagem de não lidas
   Stream<int> get countNaoLidasStream => _countController.stream;
-  
+
   /// Contagem atual de não lidas
   int get countNaoLidas => _countNaoLidas;
-  
+
   /// Lista de notificações em cache
   List<NotificacaoApp> get notificacoes => _cache;
 
@@ -59,7 +60,7 @@ class NotificacoesAppService {
   /// Configurar listener de realtime para novas notificações
   void _setupRealtimeListener(String perfilId) {
     _realtimeChannel?.unsubscribe();
-    
+
     _realtimeChannel = _client
         .channel('notificacoes_app_$perfilId')
         .onPostgresChanges(
@@ -96,11 +97,11 @@ class NotificacoesAppService {
   void _handleNovaNotificacao(Map<String, dynamic> data) {
     try {
       final notificacao = NotificacaoApp.fromMap(data);
-      
+
       // Adicionar no início da lista
       _cache.insert(0, notificacao);
       _notificacoesController.add(_cache);
-      
+
       // Atualizar contagem
       if (!notificacao.lida) {
         _countNaoLidas++;
@@ -115,14 +116,14 @@ class NotificacoesAppService {
   void _handleNotificacaoAtualizada(Map<String, dynamic> data) {
     try {
       final notificacao = NotificacaoApp.fromMap(data);
-      
+
       // Atualizar no cache
       final index = _cache.indexWhere((n) => n.id == notificacao.id);
       if (index != -1) {
         final antiga = _cache[index];
         _cache[index] = notificacao;
         _notificacoesController.add(_cache);
-        
+
         // Atualizar contagem se mudou status de lida
         if (!antiga.lida && notificacao.lida) {
           _countNaoLidas = (_countNaoLidas - 1).clamp(0, 9999);
@@ -205,7 +206,7 @@ class NotificacoesAppService {
             dataLeitura: DateTime.now(),
           );
           _notificacoesController.add(_cache);
-          
+
           _countNaoLidas = (_countNaoLidas - 1).clamp(0, 9999);
           _countController.add(_countNaoLidas);
         }
@@ -225,12 +226,14 @@ class NotificacoesAppService {
       final count = (response as int?) ?? 0;
 
       // Atualizar cache local
-      _cache = _cache.map((n) => n.copyWith(
-        lida: true,
-        dataLeitura: DateTime.now(),
-      )).toList();
+      _cache = _cache
+          .map((n) => n.copyWith(
+                lida: true,
+                dataLeitura: DateTime.now(),
+              ))
+          .toList();
       _notificacoesController.add(_cache);
-      
+
       _countNaoLidas = 0;
       _countController.add(_countNaoLidas);
 
@@ -256,4 +259,3 @@ class NotificacoesAppService {
     await initialize();
   }
 }
-

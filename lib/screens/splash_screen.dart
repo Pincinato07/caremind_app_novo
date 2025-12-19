@@ -18,14 +18,14 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
-  
+
   String _loadingStatus = 'Inicializando...';
   double _progress = 0.0;
 
   @override
   void initState() {
     super.initState();
-    
+
     // Configurar animações
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1500),
@@ -71,31 +71,31 @@ class _SplashScreenState extends State<SplashScreen>
     try {
       // Progresso: 10% - Inicializando serviços
       await _updateProgress('Carregando serviços...', 0.1);
-      
+
       // Nota: configureDependencies já foi chamado no main.dart
       // Aqui apenas verificamos se está tudo certo
       await Future.delayed(const Duration(milliseconds: 300));
 
       // Progresso: 30% - Verificando autenticação
       await _updateProgress('Verificando autenticação...', 0.3);
-      
+
       final supabaseService = getIt<SupabaseService>();
-      
+
       // O Supabase Flutter restaura automaticamente a sessão ao inicializar
       // Aguardar um pouco para garantir que a sessão seja restaurada
       await Future.delayed(const Duration(milliseconds: 300));
-      
+
       // Verificar se há uma sessão ativa e um usuário logado
       // O Supabase mantém a sessão automaticamente usando armazenamento seguro
       final user = supabaseService.currentUser;
-      
+
       await Future.delayed(const Duration(milliseconds: 300));
 
       if (user == null) {
         // Progresso: 70% - Usuário não autenticado
         await _updateProgress('Preparando tela de login...', 0.7);
         await Future.delayed(const Duration(milliseconds: 500));
-        
+
         // Progresso: 100% - Redirecionar para onboarding
         await _updateProgress('Finalizando...', 1.0);
         await Future.delayed(const Duration(milliseconds: 300));
@@ -103,24 +103,28 @@ class _SplashScreenState extends State<SplashScreen>
         if (mounted) {
           Navigator.of(context).pushReplacement(
             PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) => const OnboardingScreen(),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  const OnboardingScreen(),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
                 // Fade out da splash enquanto fade in do onboarding
-                final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+                final fadeAnimation =
+                    Tween<double>(begin: 0.0, end: 1.0).animate(
                   CurvedAnimation(
                     parent: animation,
                     curve: const Interval(0.3, 1.0, curve: Curves.easeInOut),
                   ),
                 );
-                
+
                 // Scale suave para o onboarding
-                final scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+                final scaleAnimation =
+                    Tween<double>(begin: 0.95, end: 1.0).animate(
                   CurvedAnimation(
                     parent: animation,
                     curve: const Interval(0.3, 1.0, curve: Curves.easeOutCubic),
                   ),
                 );
-                
+
                 return FadeTransition(
                   opacity: fadeAnimation,
                   child: ScaleTransition(
@@ -139,7 +143,7 @@ class _SplashScreenState extends State<SplashScreen>
 
       // Progresso: 50% - Carregando perfil
       await _updateProgress('Carregando perfil...', 0.5);
-      
+
       try {
         final perfil = await supabaseService.getProfile(user.id);
         await Future.delayed(const Duration(milliseconds: 400));
@@ -148,7 +152,7 @@ class _SplashScreenState extends State<SplashScreen>
           // Progresso: 70% - Perfil não encontrado, redirecionar para cadastro
           await _updateProgress('Perfil não encontrado...', 0.7);
           await Future.delayed(const Duration(milliseconds: 500));
-          
+
           // Progresso: 100%
           await _updateProgress('Finalizando...', 1.0);
           await Future.delayed(const Duration(milliseconds: 300));
@@ -156,24 +160,29 @@ class _SplashScreenState extends State<SplashScreen>
           if (mounted) {
             Navigator.of(context).pushReplacement(
               PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) => const OnboardingScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    const OnboardingScreen(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
                   // Fade out da splash enquanto fade in do onboarding
-                  final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+                  final fadeAnimation =
+                      Tween<double>(begin: 0.0, end: 1.0).animate(
                     CurvedAnimation(
                       parent: animation,
                       curve: const Interval(0.3, 1.0, curve: Curves.easeInOut),
                     ),
                   );
-                  
+
                   // Scale suave para o onboarding
-                  final scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+                  final scaleAnimation =
+                      Tween<double>(begin: 0.95, end: 1.0).animate(
                     CurvedAnimation(
                       parent: animation,
-                      curve: const Interval(0.3, 1.0, curve: Curves.easeOutCubic),
+                      curve:
+                          const Interval(0.3, 1.0, curve: Curves.easeOutCubic),
                     ),
                   );
-                  
+
                   return FadeTransition(
                     opacity: fadeAnimation,
                     child: ScaleTransition(
@@ -214,27 +223,32 @@ class _SplashScreenState extends State<SplashScreen>
         debugPrint('❌ Erro ao carregar perfil: $profileError');
         // Em caso de erro no perfil, tentar redirecionar para onboarding
         if (mounted) {
-          await _updateProgress('Erro ao carregar perfil. Redirecionando...', 0.8);
+          await _updateProgress(
+              'Erro ao carregar perfil. Redirecionando...', 0.8);
           await Future.delayed(const Duration(milliseconds: 500));
-          
+
           Navigator.of(context).pushReplacement(
             PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) => const OnboardingScreen(),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  const OnboardingScreen(),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                final fadeAnimation =
+                    Tween<double>(begin: 0.0, end: 1.0).animate(
                   CurvedAnimation(
                     parent: animation,
                     curve: const Interval(0.3, 1.0, curve: Curves.easeInOut),
                   ),
                 );
-                
-                final scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+
+                final scaleAnimation =
+                    Tween<double>(begin: 0.95, end: 1.0).animate(
                   CurvedAnimation(
                     parent: animation,
                     curve: const Interval(0.3, 1.0, curve: Curves.easeOutCubic),
                   ),
                 );
-                
+
                 return FadeTransition(
                   opacity: fadeAnimation,
                   child: ScaleTransition(
@@ -252,12 +266,12 @@ class _SplashScreenState extends State<SplashScreen>
       }
     } catch (e) {
       debugPrint('❌ Erro na inicialização: $e');
-      
+
       // Em caso de erro, redirecionar para login
       if (mounted) {
         await _updateProgress('Erro ao carregar. Redirecionando...', 0.8);
         await Future.delayed(const Duration(milliseconds: 500));
-        
+
         Navigator.of(context).pushReplacementNamed('/');
       }
     }
@@ -268,7 +282,7 @@ class _SplashScreenState extends State<SplashScreen>
     final screenSize = MediaQuery.of(context).size;
     final screenHeight = screenSize.height;
     final isSmallScreen = screenHeight < 700;
-    
+
     return AppScaffoldWithWaves(
       body: SafeArea(
         child: Center(
@@ -280,7 +294,9 @@ class _SplashScreenState extends State<SplashScreen>
                 physics: const NeverScrollableScrollPhysics(),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    minHeight: screenHeight - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
+                    minHeight: screenHeight -
+                        MediaQuery.of(context).padding.top -
+                        MediaQuery.of(context).padding.bottom,
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -292,20 +308,22 @@ class _SplashScreenState extends State<SplashScreen>
                         Image.asset(
                           'assets/images/caremind.png',
                           width: screenSize.width * (isSmallScreen ? 0.3 : 0.4),
-                          height: screenSize.width * (isSmallScreen ? 0.3 : 0.4),
+                          height:
+                              screenSize.width * (isSmallScreen ? 0.3 : 0.4),
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
                             // Fallback se a imagem não existir
                             return Icon(
                               Icons.favorite_rounded,
-                              size: screenSize.width * (isSmallScreen ? 0.25 : 0.3),
+                              size: screenSize.width *
+                                  (isSmallScreen ? 0.25 : 0.3),
                               color: Colors.white,
                             );
                           },
                         ),
-                        
+
                         SizedBox(height: isSmallScreen ? 24 : 32),
-                        
+
                         // Nome do app
                         Text(
                           'CareMind',
@@ -324,9 +342,9 @@ class _SplashScreenState extends State<SplashScreen>
                             ],
                           ),
                         ),
-                        
+
                         SizedBox(height: isSmallScreen ? 4 : 8),
-                        
+
                         // Slogan
                         Text(
                           'Cuidando de quem você ama',
@@ -337,9 +355,9 @@ class _SplashScreenState extends State<SplashScreen>
                             letterSpacing: 0.5,
                           ),
                         ),
-                        
+
                         SizedBox(height: isSmallScreen ? 32 : 48),
-                        
+
                         // Barra de progresso
                         Container(
                           width: screenSize.width * 0.7,
@@ -366,9 +384,9 @@ class _SplashScreenState extends State<SplashScreen>
                             ),
                           ),
                         ),
-                        
+
                         SizedBox(height: isSmallScreen ? 16 : 20),
-                        
+
                         // Status de carregamento
                         Text(
                           _loadingStatus,
@@ -381,9 +399,9 @@ class _SplashScreenState extends State<SplashScreen>
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        
+
                         SizedBox(height: isSmallScreen ? 20 : 24),
-                        
+
                         // Indicador de carregamento
                         SizedBox(
                           width: isSmallScreen ? 28 : 32,
@@ -406,6 +424,4 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
   }
-
 }
-

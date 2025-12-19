@@ -40,21 +40,19 @@ class MedicationCRUDService extends ChangeNotifier {
           .eq('perfil_id', perfil.id)
           .order('created_at', ascending: false);
 
-      _medications = (response as List)
-          .map((json) => Medicamento.fromMap(json))
-          .toList();
+      _medications =
+          (response as List).map((json) => Medicamento.fromMap(json)).toList();
 
-      await AccessibilityService.speak(
-        _medications.isEmpty 
-            ? 'Nenhum medicamento encontrado.'
-            : 'Carregados ${_medications.length} medicamentos.'
-      );
+      await AccessibilityService.speak(_medications.isEmpty
+          ? 'Nenhum medicamento encontrado.'
+          : 'Carregados ${_medications.length} medicamentos.');
 
       notifyListeners();
       return _medications;
     } catch (e) {
       _setError(e.toString());
-      await AccessibilityService.speak('Erro ao carregar medicamentos: ${e.toString()}');
+      await AccessibilityService.speak(
+          'Erro ao carregar medicamentos: ${e.toString()}');
       return [];
     } finally {
       _setLoading(false);
@@ -102,13 +100,15 @@ class MedicationCRUDService extends ChangeNotifier {
       final newMedication = Medicamento.fromMap(response);
       _medications.insert(0, newMedication);
 
-      await AccessibilityService.speak('Medicamento $nome adicionado com sucesso!');
+      await AccessibilityService.speak(
+          'Medicamento $nome adicionado com sucesso!');
 
       notifyListeners();
       return newMedication;
     } catch (e) {
       _setError(e.toString());
-      await AccessibilityService.speak('Erro ao adicionar medicamento: ${e.toString()}');
+      await AccessibilityService.speak(
+          'Erro ao adicionar medicamento: ${e.toString()}');
       return null;
     } finally {
       _setLoading(false);
@@ -131,7 +131,7 @@ class MedicationCRUDService extends ChangeNotifier {
       if (medicationIndex == -1) {
         throw const ValidationException(message: 'Medicamento não encontrado');
       }
-      
+
       await AccessibilityService.speak('Atualizando medicamento...');
 
       final updateData = <String, dynamic>{};
@@ -158,7 +158,8 @@ class MedicationCRUDService extends ChangeNotifier {
       return true;
     } catch (e) {
       _setError(e.toString());
-      await AccessibilityService.speak('Erro ao atualizar medicamento: ${e.toString()}');
+      await AccessibilityService.speak(
+          'Erro ao atualizar medicamento: ${e.toString()}');
       return false;
     } finally {
       _setLoading(false);
@@ -172,25 +173,26 @@ class MedicationCRUDService extends ChangeNotifier {
     try {
       final medication = _medications.firstWhere(
         (m) => m.id == id,
-        orElse: () => throw const ValidationException(message: 'Medicamento não encontrado'),
+        orElse: () => throw const ValidationException(
+            message: 'Medicamento não encontrado'),
       );
 
-      await AccessibilityService.speak('Excluindo medicamento: ${medication.nome}...');
+      await AccessibilityService.speak(
+          'Excluindo medicamento: ${medication.nome}...');
 
-      await _supabaseService.client
-          .from('medicamentos')
-          .delete()
-          .eq('id', id);
+      await _supabaseService.client.from('medicamentos').delete().eq('id', id);
 
       _medications.removeWhere((m) => m.id == id);
 
-      await AccessibilityService.speak('Medicamento ${medication.nome} excluído com sucesso!');
+      await AccessibilityService.speak(
+          'Medicamento ${medication.nome} excluído com sucesso!');
 
       notifyListeners();
       return true;
     } catch (e) {
       _setError(e.toString());
-      await AccessibilityService.speak('Erro ao excluir medicamento: ${e.toString()}');
+      await AccessibilityService.speak(
+          'Erro ao excluir medicamento: ${e.toString()}');
       return false;
     } finally {
       _setLoading(false);
@@ -207,11 +209,9 @@ class MedicationCRUDService extends ChangeNotifier {
           (medication.via?.toLowerCase().contains(searchTerm) ?? false);
     }).toList();
 
-    AccessibilityService.speak(
-      results.isEmpty 
-          ? 'Nenhum medicamento encontrado para: $term'
-          : 'Encontrados ${results.length} medicamentos para: $term'
-    );
+    AccessibilityService.speak(results.isEmpty
+        ? 'Nenhum medicamento encontrado para: $term'
+        : 'Encontrados ${results.length} medicamentos para: $term');
 
     return results;
   }
@@ -237,17 +237,18 @@ class MedicationCRUDService extends ChangeNotifier {
 
   Future<void> announceMedicationList([List<Medicamento>? medications]) {
     final list = medications ?? _medications;
-    
+
     if (list.isEmpty) {
       return AccessibilityService.speak('Nenhum medicamento na lista.');
     }
 
     final message = StringBuffer();
     message.writeln('Lista de medicamentos:');
-    
+
     for (int i = 0; i < list.length; i++) {
       final med = list[i];
-      message.writeln('${i + 1}. ${med.nome}${med.dosagem != null ? ', ${med.dosagem}' : ''}');
+      message.writeln(
+          '${i + 1}. ${med.nome}${med.dosagem != null ? ', ${med.dosagem}' : ''}');
     }
 
     return AccessibilityService.speak(message.toString().trim());

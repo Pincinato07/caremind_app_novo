@@ -38,7 +38,8 @@ class _ProcessarConviteScreenState extends State<ProcessarConviteScreen> {
       final conviteService = getIt<ConviteIdosoService>();
 
       // Validar convite
-      final resultado = await conviteService.processarConvite(widget.tokenOuCodigo);
+      final resultado =
+          await conviteService.processarConvite(widget.tokenOuCodigo);
 
       if (!mounted) return;
 
@@ -54,7 +55,8 @@ class _ProcessarConviteScreenState extends State<ProcessarConviteScreen> {
       if (resultado.emailIdoso == null) {
         setState(() {
           _isProcessing = false;
-          _error = 'Email do idoso não encontrado. Entre em contato com o familiar.';
+          _error =
+              'Email do idoso não encontrado. Entre em contato com o familiar.';
         });
         return;
       }
@@ -63,7 +65,8 @@ class _ProcessarConviteScreenState extends State<ProcessarConviteScreen> {
       final currentUser = supabase.auth.currentUser;
       if (currentUser != null) {
         // Se já está logado, verificar se é o idoso correto
-        final perfil = await getIt<SupabaseService>().getProfile(currentUser.id);
+        final perfil =
+            await getIt<SupabaseService>().getProfile(currentUser.id);
         if (perfil?.id == resultado.idIdoso) {
           // Já é o idoso correto - buscar perfil e navegar
           final supabaseService = getIt<SupabaseService>();
@@ -113,7 +116,8 @@ class _ProcessarConviteScreenState extends State<ProcessarConviteScreen> {
       if (emailIdoso == null) {
         setState(() {
           _isProcessing = false;
-          _error = 'Email do idoso não encontrado. Entre em contato com o familiar.';
+          _error =
+              'Email do idoso não encontrado. Entre em contato com o familiar.';
         });
         return;
       }
@@ -121,7 +125,8 @@ class _ProcessarConviteScreenState extends State<ProcessarConviteScreen> {
       // Mostrar mensagem informando que precisa da senha
       setState(() {
         _isProcessing = false;
-        _error = 'Para fazer login, você precisa da senha criada pelo familiar. Entre em contato com ele para obter a senha.';
+        _error =
+            'Para fazer login, você precisa da senha criada pelo familiar. Entre em contato com ele para obter a senha.';
         _resultado = resultado;
       });
     } catch (e) {
@@ -207,99 +212,101 @@ class _ProcessarConviteScreenState extends State<ProcessarConviteScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
-                    if (_isProcessing) ...[
-                      const CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Processando convite...',
-                        style: AppTextStyles.titleLarge.copyWith(
-                          color: Colors.white,
+                      if (_isProcessing) ...[
+                        const CircularProgressIndicator(
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(AppColors.primary),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Aguarde enquanto validamos seu convite.',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: Colors.white70,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ] else if (_error != null) ...[
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: AppColors.error,
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Erro ao Processar Convite',
-                        style: AppTextStyles.titleLarge.copyWith(
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.error.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.error.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Text(
-                          _error!,
-                          style: AppTextStyles.bodyMedium.copyWith(
+                        const SizedBox(height: 24),
+                        Text(
+                          'Processando convite...',
+                          style: AppTextStyles.titleLarge.copyWith(
                             color: Colors.white,
                           ),
                           textAlign: TextAlign.center,
                         ),
-                      ),
-                      if (_resultado != null && _resultado!.emailIdoso != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Aguarde enquanto validamos seu convite.',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: Colors.white70,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ] else if (_error != null) ...[
+                        Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: AppColors.error,
+                        ),
                         const SizedBox(height: 24),
-                        _buildLoginForm(),
-                      ] else ...[
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
-                              vertical: 16,
+                        Text(
+                          'Erro ao Processar Convite',
+                          style: AppTextStyles.titleLarge.copyWith(
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.error.withValues(alpha: 0.3),
                             ),
                           ),
-                          child: const Text('Voltar'),
+                          child: Text(
+                            _error!,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: Colors.white,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        if (_resultado != null &&
+                            _resultado!.emailIdoso != null) ...[
+                          const SizedBox(height: 24),
+                          _buildLoginForm(),
+                        ] else ...[
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 16,
+                              ),
+                            ),
+                            child: const Text('Voltar'),
+                          ),
+                        ],
+                      ] else if (_successMessage != null) ...[
+                        Icon(
+                          Icons.check_circle,
+                          size: 64,
+                          color: AppColors.success,
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Convite Válido!',
+                          style: AppTextStyles.titleLarge.copyWith(
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _successMessage!,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: Colors.white70,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ],
-                    ] else if (_successMessage != null) ...[
-                      Icon(
-                        Icons.check_circle,
-                        size: 64,
-                        color: AppColors.success,
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Convite Válido!',
-                        style: AppTextStyles.titleLarge.copyWith(
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _successMessage!,
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: Colors.white70,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
                     ],
                   ),
                 ),
@@ -347,11 +354,13 @@ class _ProcessarConviteScreenState extends State<ProcessarConviteScreen> {
                 fillColor: Colors.white.withValues(alpha: 0.1),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                  borderSide:
+                      BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                  borderSide:
+                      BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -405,4 +414,3 @@ class _ProcessarConviteScreenState extends State<ProcessarConviteScreen> {
     );
   }
 }
-

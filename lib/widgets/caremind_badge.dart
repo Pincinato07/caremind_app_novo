@@ -30,7 +30,7 @@ class CareMindBadge extends StatelessWidget {
 
   Color get _backgroundColor {
     if (outlined) return Colors.transparent;
-    
+
     switch (type) {
       case BadgeType.success:
         return AppColors.success;
@@ -75,10 +75,11 @@ class CareMindBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: padding ?? const EdgeInsets.symmetric(
-        horizontal: AppSpacing.small,
-        vertical: 4,
-      ),
+      padding: padding ??
+          const EdgeInsets.symmetric(
+            horizontal: AppSpacing.small,
+            vertical: 4,
+          ),
       decoration: BoxDecoration(
         color: _backgroundColor,
         borderRadius: BorderRadius.circular(20),
@@ -97,4 +98,3 @@ class CareMindBadge extends StatelessWidget {
     );
   }
 }
-

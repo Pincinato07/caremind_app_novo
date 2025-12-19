@@ -37,7 +37,7 @@ class UnifiedNavigationWrapper extends StatelessWidget {
   Widget? _buildBottomNav(BuildContext context) {
     // Idoso pode ter navegação simplificada ou nenhuma dependendo do design
     // Por ora, manteremos para todos, mas condicional no futuro
-    
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -176,4 +176,3 @@ class _BadgeConfig {
     required this.color,
   });
 }
-

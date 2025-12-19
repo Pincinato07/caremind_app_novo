@@ -8,7 +8,7 @@ import 'supabase_service.dart';
 import 'package:get_it/get_it.dart';
 
 /// Serviço para gerenciar imagens OCR offline
-/// 
+///
 /// **Funcionalidades:**
 /// - Salva imagens localmente quando offline
 /// - Processa automaticamente quando volta online
@@ -31,7 +31,7 @@ class OcrOfflineService {
       // 1. Obter diretório de documentos do app
       final appDir = await getApplicationDocumentsDirectory();
       final imagesDir = Directory('${appDir.path}/$_pendingImagesDir');
-      
+
       // 2. Criar diretório se não existir
       if (!await imagesDir.exists()) {
         await imagesDir.create(recursive: true);
@@ -41,12 +41,12 @@ class OcrOfflineService {
       // 3. Gerar ID único para esta ação
       final actionId = _uuid.v4();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      
+
       // 4. Copiar imagem para diretório local com nome único
       final fileName = '${userId}_${timestamp}_$actionId.jpg';
       final localPath = '${imagesDir.path}/$fileName';
       await imageFile.copy(localPath);
-      
+
       debugPrint('💾 Imagem salva localmente: $localPath');
 
       // 5. Salvar metadados na fila Hive
@@ -74,21 +74,23 @@ class OcrOfflineService {
   static Future<int> processPendingImages() async {
     try {
       final pending = await OfflineCacheService.getPendingActions();
-      final ocrActions = pending.where((a) => 
-        a['type'] == 'ocr_upload' && 
-        (a['synced'] == false || a['synced'] == null)
-      ).toList();
+      final ocrActions = pending
+          .where((a) =>
+              a['type'] == 'ocr_upload' &&
+              (a['synced'] == false || a['synced'] == null))
+          .toList();
 
       if (ocrActions.isEmpty) {
         debugPrint('✅ Nenhuma imagem OCR pendente');
         return 0;
       }
 
-      debugPrint('🔄 Processando ${ocrActions.length} imagens OCR pendentes...');
+      debugPrint(
+          '🔄 Processando ${ocrActions.length} imagens OCR pendentes...');
 
       final supabaseService = GetIt.I<SupabaseService>();
       final ocrService = OcrService(supabaseService.client);
-      
+
       int processed = 0;
       int failed = 0;
       final List<Map<String, dynamic>> toUpdate = [];
@@ -142,9 +144,9 @@ class OcrOfflineService {
           failed++;
           final actionId = action['action_id'] as String;
           final retryCount = (action['retry_count'] as int?) ?? 0;
-          
+
           debugPrint('❌ Erro ao processar imagem $actionId: $e');
-          
+
           // Se exceder 3 tentativas, marcar como falha permanente
           if (retryCount >= 3) {
             debugPrint('⚠️ Máximo de tentativas excedido para $actionId');
@@ -169,7 +171,8 @@ class OcrOfflineService {
       // Atualizar ações no cache
       await _updatePendingActions(ocrActions, toUpdate);
 
-      debugPrint('✅ Processamento concluído: $processed sucessos, $failed falhas');
+      debugPrint(
+          '✅ Processamento concluído: $processed sucessos, $failed falhas');
       return processed;
     } catch (e) {
       debugPrint('❌ Erro ao processar imagens pendentes: $e');
@@ -184,7 +187,7 @@ class OcrOfflineService {
   ) async {
     try {
       final allPending = await OfflineCacheService.getPendingActions();
-      
+
       // Criar mapa de ações atualizadas por action_id
       final updatedMap = <String, Map<String, dynamic>>{};
       for (final updated in updatedActions) {
@@ -204,9 +207,11 @@ class OcrOfflineService {
       }).toList();
 
       // Remover ações marcadas como sincronizadas (mas manter as que falharam permanentemente)
-      final filteredList = updatedList.where((a) => 
-        a['synced'] != true || (a['failed'] == true && a['synced'] == true)
-      ).toList();
+      final filteredList = updatedList
+          .where((a) =>
+              a['synced'] != true ||
+              (a['failed'] == true && a['synced'] == true))
+          .toList();
 
       // Salvar lista atualizada
       await OfflineCacheService.replacePendingActions(filteredList);
@@ -219,21 +224,23 @@ class OcrOfflineService {
   static Future<int> getPendingImagesCount() async {
     try {
       final pending = await OfflineCacheService.getPendingActions();
-      return pending.where((a) => 
-        a['type'] == 'ocr_upload' && 
-        (a['synced'] == false || a['synced'] == null)
-      ).length;
+      return pending
+          .where((a) =>
+              a['type'] == 'ocr_upload' &&
+              (a['synced'] == false || a['synced'] == null))
+          .length;
     } catch (e) {
       return 0;
     }
   }
 
   /// Limpar imagens antigas do diretório local
-  static Future<void> cleanupOldImages({Duration maxAge = const Duration(days: 7)}) async {
+  static Future<void> cleanupOldImages(
+      {Duration maxAge = const Duration(days: 7)}) async {
     try {
       final appDir = await getApplicationDocumentsDirectory();
       final imagesDir = Directory('${appDir.path}/$_pendingImagesDir');
-      
+
       if (!await imagesDir.exists()) return;
 
       final now = DateTime.now();
@@ -243,7 +250,7 @@ class OcrOfflineService {
         if (entity is File) {
           final stat = await entity.stat();
           final age = now.difference(stat.modified);
-          
+
           if (age > maxAge) {
             await entity.delete();
             deleted++;
@@ -259,4 +266,3 @@ class OcrOfflineService {
     }
   }
 }
-

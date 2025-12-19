@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import '../../theme/app_theme.dart';
 import '../../core/injection/injection.dart';
 import '../../services/supabase_service.dart';
@@ -13,12 +12,14 @@ class PremiumSalesModal extends StatefulWidget {
     this.onSubscribeTapped,
   });
 
-  static Future<void> show(BuildContext context, {VoidCallback? onSubscribeTapped}) {
+  static Future<void> show(BuildContext context,
+      {VoidCallback? onSubscribeTapped}) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => PremiumSalesModal(onSubscribeTapped: onSubscribeTapped),
+      builder: (context) =>
+          PremiumSalesModal(onSubscribeTapped: onSubscribeTapped),
     );
   }
 
@@ -42,7 +43,8 @@ class _PremiumSalesModalState extends State<PremiumSalesModal> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Usuário não autenticado. Faça login para continuar.'),
+              content:
+                  Text('Usuário não autenticado. Faça login para continuar.'),
               backgroundColor: Colors.red,
             ),
           );
@@ -66,14 +68,14 @@ class _PremiumSalesModalState extends State<PremiumSalesModal> {
         debugPrint('⚠️ Erro ao buscar plano Premium: $e');
         // Continua com fallback
       }
-      
+
       // Fallback: ID do plano Premium (ed8ea704-3720-4670-9e63-1b75c3251307)
       planoId ??= 'ed8ea704-3720-4670-9e63-1b75c3251307';
 
       // ✅ Melhorado: Adicionar deep link de retorno para preservar contexto
       // Após pagamento, usuário retorna ao app automaticamente
       final returnUrl = 'caremind://premium/success?user_id=${user.id}';
-      
+
       // Chama a Edge Function correta (com tratamento de erro)
       try {
         final response = await supabase.functions.invoke(
@@ -89,15 +91,15 @@ class _PremiumSalesModalState extends State<PremiumSalesModal> {
         // Verificar se houve erro (status != 200)
         if (response.status != 200) {
           final errorData = response.data as Map<String, dynamic>?;
-          final errorMessage = errorData?['error'] as String? ?? 
-                             errorData?['message'] as String? ??
-                             'Erro ao criar checkout';
+          final errorMessage = errorData?['error'] as String? ??
+              errorData?['message'] as String? ??
+              'Erro ao criar checkout';
           throw Exception(errorMessage);
         }
 
         final responseData = response.data as Map<String, dynamic>?;
         final url = responseData?['url'] as String?;
-        
+
         if (url == null || url.isEmpty) {
           throw Exception('URL de checkout não retornada. Tente novamente.');
         }
@@ -117,7 +119,7 @@ class _PremiumSalesModalState extends State<PremiumSalesModal> {
         if (mounted) {
           // Fecha o modal
           Navigator.pop(context);
-          
+
           // Abre o navegador com o link de pagamento (com tratamento de erro)
           try {
             if (await canLaunchUrl(uri)) {
@@ -127,7 +129,8 @@ class _PremiumSalesModalState extends State<PremiumSalesModal> {
             }
           } catch (e) {
             debugPrint('⚠️ Erro ao abrir URL: $e');
-            throw Exception('Não foi possível abrir o navegador. Verifique as configurações do dispositivo.');
+            throw Exception(
+                'Não foi possível abrir o navegador. Verifique as configurações do dispositivo.');
           }
 
           // Callback customizado (se fornecido)
@@ -146,18 +149,24 @@ class _PremiumSalesModalState extends State<PremiumSalesModal> {
         }
       } catch (e) {
         debugPrint('⚠️ Erro ao chamar Edge Function: $e');
-        throw Exception('Erro de conexão. Verifique sua internet e tente novamente.');
+        throw Exception(
+            'Erro de conexão. Verifique sua internet e tente novamente.');
       }
     } catch (e) {
       if (mounted) {
         String errorMessage = 'Erro ao criar checkout';
-        
-        if (e.toString().contains('network') || e.toString().contains('connection')) {
-          errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
-        } else if (e.toString().contains('autenticado') || e.toString().contains('auth')) {
+
+        if (e.toString().contains('network') ||
+            e.toString().contains('connection')) {
+          errorMessage =
+              'Erro de conexão. Verifique sua internet e tente novamente.';
+        } else if (e.toString().contains('autenticado') ||
+            e.toString().contains('auth')) {
           errorMessage = 'Sessão expirada. Faça login novamente.';
-        } else if (e.toString().contains('checkout') || e.toString().contains('pagamento')) {
-          errorMessage = 'Erro ao processar pagamento. Tente novamente em alguns instantes.';
+        } else if (e.toString().contains('checkout') ||
+            e.toString().contains('pagamento')) {
+          errorMessage =
+              'Erro ao processar pagamento. Tente novamente em alguns instantes.';
         } else {
           errorMessage = 'Erro: ${e.toString().replaceAll('Exception: ', '')}';
         }

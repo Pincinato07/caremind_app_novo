@@ -49,7 +49,7 @@ class _AccessibilityWrapperState extends State<AccessibilityWrapper> {
 
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(
-            textScaleFactor: fontScale,
+            textScaler: TextScaler.linear(fontScale),
           ),
           child: _HighContrastWrapper(
             enabled: highContrast,
@@ -84,27 +84,25 @@ class _HighContrastWrapper extends StatelessWidget {
     return ColorFiltered(
       colorFilter: const ColorFilter.matrix(<double>[
         // Aumentar contraste e saturação
-        1.5, 0, 0, 0, 0,  // Red channel
-        0, 1.5, 0, 0, 0,  // Green channel
-        0, 0, 1.5, 0, 0,  // Blue channel
-        0, 0, 0, 1, 0,    // Alpha channel
+        1.5, 0, 0, 0, 0, // Red channel
+        0, 1.5, 0, 0, 0, // Green channel
+        0, 0, 1.5, 0, 0, // Blue channel
+        0, 0, 0, 1, 0, // Alpha channel
       ]),
       child: Theme(
         data: Theme.of(context).copyWith(
           brightness: Brightness.dark,
           colorScheme: Theme.of(context).colorScheme.copyWith(
-            // Cores de alto contraste (WCAG AAA)
-            primary: Colors.white,
-            onPrimary: Colors.black,
-            secondary: Colors.white,
-            onSecondary: Colors.black,
-            surface: Colors.black,
-            onSurface: Colors.white,
-            background: Colors.black,
-            onBackground: Colors.white,
-            error: Colors.red.shade900,
-            onError: Colors.white,
-          ),
+                // Cores de alto contraste (WCAG AAA)
+                primary: Colors.white,
+                onPrimary: Colors.black,
+                secondary: Colors.white,
+                onSecondary: Colors.black,
+                surface: Colors.black,
+                onSurface: Colors.white,
+                error: Colors.red.shade900,
+                onError: Colors.white,
+              ),
           scaffoldBackgroundColor: Colors.black,
           cardColor: const Color(0xFF1A1A1A),
           dividerColor: Colors.white,
@@ -133,4 +131,3 @@ class _HighContrastWrapper extends StatelessWidget {
     );
   }
 }
-

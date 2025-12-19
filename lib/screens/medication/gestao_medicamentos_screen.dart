@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
@@ -32,7 +31,8 @@ import 'add_edit_medicamento_form.dart';
 
 class GestaoMedicamentosScreen extends StatefulWidget {
   final String? idosoId; // Para familiar gerenciar medicamentos do idoso
-  final bool embedded; // Se true, não mostra AppScaffoldWithWaves nem SliverAppBar
+  final bool
+      embedded; // Se true, não mostra AppScaffoldWithWaves nem SliverAppBar
 
   const GestaoMedicamentosScreen({
     super.key,
@@ -41,7 +41,8 @@ class GestaoMedicamentosScreen extends StatefulWidget {
   });
 
   @override
-  State<GestaoMedicamentosScreen> createState() => _GestaoMedicamentosScreenState();
+  State<GestaoMedicamentosScreen> createState() =>
+      _GestaoMedicamentosScreenState();
 }
 
 class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
@@ -57,10 +58,10 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
     super.initState();
     _loadUserProfile();
     _loadMedicamentos();
-    
+
     final familiarState = getIt<FamiliarState>();
     familiarState.addListener(_onFamiliarStateChanged);
-    
+
     AccessibilityService.initialize();
     _listenToConnectivity();
   }
@@ -70,7 +71,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
       if (mounted) {
         final wasOffline = _isOffline;
         setState(() => _isOffline = !isOnline);
-        
+
         if (wasOffline && isOnline) {
           _loadMedicamentos();
           if (mounted) {
@@ -145,24 +146,38 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
       final medicamentoService = getIt<MedicamentoService>();
       final familiarState = getIt<FamiliarState>();
       final user = supabaseService.currentUser;
-      
+
       if (user != null) {
-        final targetId = widget.idosoId ?? 
-            (familiarState.hasIdosos && familiarState.idosoSelecionado != null 
-                ? familiarState.idosoSelecionado!.id 
+        final targetId = widget.idosoId ??
+            (familiarState.hasIdosos && familiarState.idosoSelecionado != null
+                ? familiarState.idosoSelecionado!.id
                 : user.id);
-        
+
         if (isOnline) {
-          final medicamentos = await medicamentoService.getMedicamentos(targetId);
-          
+          final medicamentosResult =
+              await medicamentoService.getMedicamentos(targetId);
+
+          // Extrair dados do Result
+          final medicamentos = medicamentosResult.when(
+            success: (data) => data,
+            failure: (exception) {
+              throw exception;
+            },
+          );
+
           // Salvar no cache offline
           await OfflineCacheService.cacheMedicamentos(targetId, medicamentos);
-          
+
           Map<int, bool> status = {};
           if (medicamentos.isNotEmpty) {
-            final medIds = medicamentos.where((m) => m.id != null).map((m) => m.id!).toList();
+            final medIds = medicamentos
+                .where((m) => m.id != null)
+                .map((m) => m.id!)
+                .toList();
             if (medIds.isNotEmpty) {
-              status = await HistoricoEventosService.checkMedicamentosConcluidosHoje(targetId, medIds);
+              status =
+                  await HistoricoEventosService.checkMedicamentosConcluidosHoje(
+                      targetId, medIds);
             }
           }
 
@@ -199,17 +214,19 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
 
   Future<void> _loadFromCache(String userId) async {
     try {
-      final cachedMedicamentos = await OfflineCacheService.getCachedMedicamentos(userId);
-      
+      final cachedMedicamentos =
+          await OfflineCacheService.getCachedMedicamentos(userId);
+
       if (cachedMedicamentos.isNotEmpty) {
         setState(() {
           _medicamentos = cachedMedicamentos;
           _isLoading = false;
           _isOffline = true;
         });
-        
+
         if (mounted) {
-          FeedbackSnackbar.warning(context, 'Usando dados salvos (modo offline)');
+          FeedbackSnackbar.warning(
+              context, 'Usando dados salvos (modo offline)');
         }
       } else {
         setState(() {
@@ -229,13 +246,13 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
     try {
       final medicamentoService = getIt<MedicamentoService>();
       final supabaseService = getIt<SupabaseService>();
-      
+
       // Determinar o perfil_id do idoso (não do familiar)
       final user = supabaseService.currentUser;
       if (user == null) return;
-      
+
       // Se for familiar gerenciando idoso, usar o id do idoso; senão usar o user.id
-      
+
       final bool estaConcluido = _isConcluido(medicamento);
       final bool novoEstado = !estaConcluido;
 
@@ -250,14 +267,15 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
         novoEstado,
         DateTime.now(), // data prevista
       );
-      
+
       // Não precisamos recarregar tudo, pois já atualizamos o estado local
       // Apenas se houver erro reverteríamos, mas o catch cuida disso (embora aqui não revertamos explicitamente na UI,
       // uma recarga futura corrigiria). Para UX perfeita, poderíamos reverter no catch.
     } catch (error) {
-       // Reverter estado em caso de erro
+      // Reverter estado em caso de erro
       setState(() {
-        _statusMedicamentos[medicamento.id!] = !_statusMedicamentos[medicamento.id!]!;
+        _statusMedicamentos[medicamento.id!] =
+            !_statusMedicamentos[medicamento.id!]!;
       });
 
       final errorMessage = error is AppException
@@ -272,7 +290,8 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmar exclusão'),
-        content: Text('Deseja realmente excluir o medicamento "${medicamento.nome}"?'),
+        content: Text(
+            'Deseja realmente excluir o medicamento "${medicamento.nome}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -315,7 +334,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
   Future<void> _showAddMedicamentoOptions() async {
     try {
       final subscriptionService = getIt<SubscriptionService>();
-      
+
       // Verificar permissões com tratamento de erro
       try {
         await subscriptionService.getPermissions();
@@ -323,19 +342,20 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
         debugPrint('⚠️ Erro ao verificar permissões: $e');
         // Continua mesmo se falhar verificação de permissões
       }
-      
+
       final quantidadeAtual = _medicamentos.length;
       bool podeAdicionar = true; // Default: permite adicionar
-      
+
       // Verificar limite com tratamento de erro
       try {
-        podeAdicionar = await subscriptionService.canAddMedicine(quantidadeAtual);
+        podeAdicionar =
+            await subscriptionService.canAddMedicine(quantidadeAtual);
       } catch (e) {
         debugPrint('⚠️ Erro ao verificar limite de medicamentos: $e');
         // Em caso de erro, assume que pode adicionar para não bloquear usuário
         podeAdicionar = true;
       }
-      
+
       // ✅ SEMPRE mostrar opções primeiro, mesmo se excedeu limite
       // O usuário pode ver que existe opção gratuita (formulário)
       String? option;
@@ -350,7 +370,8 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                 end: Alignment.bottomRight,
                 colors: [Color(0xFFA8B8FF), Color(0xFF9B7EFF)],
               ),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: SafeArea(
               child: Padding(
@@ -406,7 +427,8 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                                     'Preencher manualmente',
                                     style: AppTextStyles.leagueSpartan(
                                       fontSize: 14,
-                                      color: Colors.white.withValues(alpha: 0.9),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.9),
                                     ),
                                   ),
                                 ],
@@ -431,7 +453,8 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                         child: CareMindCard(
                           variant: CardVariant.glass,
                           onTap: () async {
-                            final subscriptionService = getIt<SubscriptionService>();
+                            final subscriptionService =
+                                getIt<SubscriptionService>();
                             await subscriptionService.getPermissions();
                             if (subscriptionService.canUseOCR && mounted) {
                               Navigator.pop(context, 'ocr');
@@ -470,7 +493,8 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                                       'Ler receita com inteligência artificial',
                                       style: AppTextStyles.leagueSpartan(
                                         fontSize: 14,
-                                        color: Colors.white.withValues(alpha: 0.9),
+                                        color:
+                                            Colors.white.withValues(alpha: 0.9),
                                       ),
                                     ),
                                   ],
@@ -534,13 +558,14 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
             // Se falhar, permite continuar para não bloquear usuário
           }
         }
-        
+
         // Abrir formulário padrão (com tratamento de erro)
         try {
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AddEditMedicamentoForm(idosoId: widget.idosoId),
+              builder: (context) =>
+                  AddEditMedicamentoForm(idosoId: widget.idosoId),
             ),
           );
           if (result == true && mounted) {
@@ -618,52 +643,52 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     onTap: () => Navigator.pop(context, ImageSource.camera),
                     padding: AppSpacing.paddingLarge,
                     child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.25),
-                          borderRadius: AppBorderRadius.mediumAll,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.25),
+                            borderRadius: AppBorderRadius.mediumAll,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 28,
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.camera_alt,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Tirar Foto',
+                                style: AppTextStyles.leagueSpartan(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Abrir a câmera',
+                                style: AppTextStyles.leagueSpartan(
+                                  fontSize: 14,
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
                           color: Colors.white,
-                          size: 28,
+                          size: 18,
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Tirar Foto',
-                              style: AppTextStyles.leagueSpartan(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Abrir a câmera',
-                              style: AppTextStyles.leagueSpartan(
-                                fontSize: 14,
-                                color: Colors.white.withValues(alpha: 0.9),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
                 SizedBox(height: AppSpacing.small + 4),
                 // Opção: Galeria
                 AnimatedCard(
@@ -673,52 +698,52 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     onTap: () => Navigator.pop(context, ImageSource.gallery),
                     padding: AppSpacing.paddingLarge,
                     child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.25),
-                          borderRadius: AppBorderRadius.mediumAll,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.25),
+                            borderRadius: AppBorderRadius.mediumAll,
+                          ),
+                          child: const Icon(
+                            Icons.photo_library,
+                            color: Colors.white,
+                            size: 28,
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.photo_library,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Escolher da Galeria',
+                                style: AppTextStyles.leagueSpartan(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Selecionar do dispositivo',
+                                style: AppTextStyles.leagueSpartan(
+                                  fontSize: 14,
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
                           color: Colors.white,
-                          size: 28,
+                          size: 18,
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Escolher da Galeria',
-                              style: AppTextStyles.leagueSpartan(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Selecionar do dispositivo',
-                              style: AppTextStyles.leagueSpartan(
-                                fontSize: 14,
-                                color: Colors.white.withValues(alpha: 0.9),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
                 SizedBox(height: AppSpacing.medium),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
@@ -751,9 +776,11 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
       if (image != null && mounted) {
         // Obter idosoId do FamiliarState se não foi fornecido via widget
         final familiarState = getIt<FamiliarState>();
-        final idosoId = widget.idosoId ?? 
-            (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
-        
+        final idosoId = widget.idosoId ??
+            (familiarState.hasIdosos
+                ? familiarState.idosoSelecionado?.id
+                : null);
+
         // Abrir tela de OCR com a imagem selecionada
         final result = await Navigator.push(
           context,
@@ -773,7 +800,8 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showError('Erro ao ${source == ImageSource.camera ? 'capturar' : 'selecionar'} imagem: $e');
+        _showError(
+            'Erro ao ${source == ImageSource.camera ? 'capturar' : 'selecionar'} imagem: $e');
       }
     }
   }
@@ -782,7 +810,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
   Widget build(BuildContext context) {
     final familiarState = getIt<FamiliarState>();
     final isFamiliar = familiarState.hasIdosos && widget.idosoId == null;
-    
+
     final content = RefreshIndicator(
       onRefresh: _loadMedicamentos,
       color: Colors.white,
@@ -845,7 +873,6 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                 ),
               ],
             ),
-
           SliverToBoxAdapter(
             child: _buildBody(),
           ),
@@ -980,13 +1007,13 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                         fontSize: 16,
                         height: 1.5,
                       ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
       );
     }
 
@@ -1158,12 +1185,15 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
           );
         })),
 
-        SizedBox(height: AppSpacing.bottomNavBarPadding), // Espaço para o FAB e navbar
+        SizedBox(
+            height:
+                AppSpacing.bottomNavBarPadding), // Espaço para o FAB e navbar
       ],
     );
   }
 
-  Widget _buildSummaryItem(String label, String value, Color color, IconData icon) {
+  Widget _buildSummaryItem(
+      String label, String value, Color color, IconData icon) {
     return Column(
       children: [
         Container(
@@ -1237,9 +1267,11 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                   // Outros perfis podem editar
                   // Obter idosoId do FamiliarState se não foi fornecido via widget
                   final familiarState = getIt<FamiliarState>();
-                  final idosoId = widget.idosoId ?? 
-                      (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
-                  
+                  final idosoId = widget.idosoId ??
+                      (familiarState.hasIdosos
+                          ? familiarState.idosoSelecionado?.id
+                          : null);
+
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1272,7 +1304,9 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                         borderRadius: AppBorderRadius.mediumAll,
                         boxShadow: [
                           BoxShadow(
-                            color: (concluido ? Colors.green : AppColors.primary).withValues(alpha: 0.3),
+                            color:
+                                (concluido ? Colors.green : AppColors.primary)
+                                    .withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -1294,13 +1328,17 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: concluido ? Colors.grey.shade600 : Colors.black87,
-                              decoration: concluido ? TextDecoration.lineThrough : null,
+                              color: concluido
+                                  ? Colors.grey.shade600
+                                  : Colors.black87,
+                              decoration:
+                                  concluido ? TextDecoration.lineThrough : null,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: AppColors.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
@@ -1353,7 +1391,9 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                                 color: concluido ? Colors.orange : Colors.green,
                               ),
                               const SizedBox(width: 12),
-                              Text(concluido ? 'Marcar como pendente' : 'Marcar como concluído'),
+                              Text(concluido
+                                  ? 'Marcar como pendente'
+                                  : 'Marcar como concluído'),
                             ],
                           ),
                         ),
@@ -1362,9 +1402,11 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                             value: 'delete',
                             child: Row(
                               children: [
-                                Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                                Icon(Icons.delete_outline,
+                                    size: 20, color: Colors.red),
                                 SizedBox(width: 12),
-                                Text('Excluir', style: TextStyle(color: Colors.red)),
+                                Text('Excluir',
+                                    style: TextStyle(color: Colors.red)),
                               ],
                             ),
                           ),
@@ -1372,9 +1414,9 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // Informações detalhadas
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -1429,9 +1471,9 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                           ),
                         ],
                       ),
-                      
+
                       const SizedBox(height: 12),
-                      
+
                       // Quantidade
                       Row(
                         children: [
@@ -1465,7 +1507,9 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                                   '${medicamento.quantidade ?? 0} unidades',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: (medicamento.quantidade ?? 0) < 10 ? Colors.red.shade600 : Colors.black87,
+                                    color: (medicamento.quantidade ?? 0) < 10
+                                        ? Colors.red.shade600
+                                        : Colors.black87,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -1474,7 +1518,8 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                           ),
                           if ((medicamento.quantidade ?? 0) < 10)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.red.shade100,
                                 borderRadius: BorderRadius.circular(6),
@@ -1493,7 +1538,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     ],
                   ),
                 ),
-                
+
                 // Botão de ação rápida para familiares marcarem como concluído
                 if (_isFamiliar && !concluido) ...[
                   const SizedBox(height: 16),
@@ -1518,11 +1563,13 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                         onTap: () => _toggleConcluido(medicamento),
                         borderRadius: AppBorderRadius.mediumAll,
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 14, horizontal: 16),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.check_circle, color: Colors.white, size: 24),
+                              const Icon(Icons.check_circle,
+                                  color: Colors.white, size: 24),
                               const SizedBox(width: 8),
                               Text(
                                 'Marcar como Tomado',
@@ -1539,7 +1586,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                     ),
                   ),
                 ],
-                
+
                 // Botão para desmarcar (se já estiver concluído e for familiar)
                 if (_isFamiliar && concluido) ...[
                   const SizedBox(height: 16),
@@ -1562,11 +1609,13 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
                         onTap: () => _toggleConcluido(medicamento),
                         borderRadius: AppBorderRadius.mediumAll,
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 14, horizontal: 16),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.undo, color: Colors.white, size: 24),
+                              const Icon(Icons.undo,
+                                  color: Colors.white, size: 24),
                               const SizedBox(width: 8),
                               Text(
                                 'Marcar como Pendente',

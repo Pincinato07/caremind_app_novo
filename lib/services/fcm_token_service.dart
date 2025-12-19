@@ -5,7 +5,7 @@ import 'notification_service.dart';
 class FCMTokenService {
   final SupabaseClient _client;
   String? _currentToken;
-  
+
   // Callback para notificar erros ao usuário
   Function(String message)? onSyncError;
 
@@ -78,7 +78,8 @@ class FCMTokenService {
 
       final perfilId = await _getPerfilId(user.id);
       if (perfilId == null) {
-        debugPrint('⚠️ FCMTokenService: perfil_id não encontrado para user ${user.id}');
+        debugPrint(
+            '⚠️ FCMTokenService: perfil_id não encontrado para user ${user.id}');
         return;
       }
 
@@ -98,8 +99,8 @@ class FCMTokenService {
       if (existingToken != null) {
         await _client
             .from('fcm_tokens')
-            .update({'updated_at': DateTime.now().toIso8601String()})
-            .eq('id', existingToken['id']);
+            .update({'updated_at': DateTime.now().toIso8601String()}).eq(
+                'id', existingToken['id']);
         debugPrint('✅ FCMTokenService: Token atualizado no backend');
       } else {
         await _client
@@ -118,7 +119,8 @@ class FCMTokenService {
         debugPrint('✅ FCMTokenService: Token salvo no backend');
       }
     } catch (e) {
-      debugPrint('❌ FCMTokenService: Erro ao sincronizar token - ${e.toString()}');
+      debugPrint(
+          '❌ FCMTokenService: Erro ao sincronizar token - ${e.toString()}');
       onSyncError?.call(
         'Erro ao sincronizar notificações com o servidor. Você pode não receber alertas de medicamento. Verifique sua conexão.',
       );
@@ -129,10 +131,7 @@ class FCMTokenService {
     try {
       if (_currentToken == null) return;
 
-      await _client
-          .from('fcm_tokens')
-          .delete()
-          .eq('token', _currentToken!);
+      await _client.from('fcm_tokens').delete().eq('token', _currentToken!);
 
       _currentToken = null;
       debugPrint('✅ FCMTokenService: Token removido do backend');

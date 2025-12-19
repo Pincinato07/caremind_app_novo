@@ -8,7 +8,7 @@ import 'supabase_service.dart';
 import 'package:get_it/get_it.dart';
 
 /// Gerenciador centralizado de sincronização offline
-/// 
+///
 /// Responsável por:
 /// - Inicializar listeners de conectividade
 /// - Processar imagens OCR pendentes quando voltar online
@@ -18,7 +18,7 @@ class OfflineSyncManager {
   static StreamSubscription<bool>? _connectivitySubscription;
 
   /// Inicializar gerenciador de sincronização
-  /// 
+  ///
   /// Deve ser chamado após autenticação do usuário
   static Future<void> initialize(String userId) async {
     if (_initialized) {
@@ -52,20 +52,22 @@ class OfflineSyncManager {
     _connectivitySubscription = OfflineCacheService.connectivityStream.listen(
       (isOnline) async {
         if (isOnline) {
-          debugPrint('📡 OfflineSyncManager: Conexão restaurada, processando pendências...');
+          debugPrint(
+              '📡 OfflineSyncManager: Conexão restaurada, processando pendências...');
           await processPendingData(userId);
         } else {
           debugPrint('📴 OfflineSyncManager: Conexão perdida');
         }
       },
       onError: (error) {
-        debugPrint('❌ OfflineSyncManager: Erro no listener de conectividade: $error');
+        debugPrint(
+            '❌ OfflineSyncManager: Erro no listener de conectividade: $error');
       },
     );
   }
 
   /// Processar todos os dados pendentes
-  /// 
+  ///
   /// - Imagens OCR pendentes
   /// - Ações de medicamentos pendentes
   static Future<void> processPendingData(String userId) async {
@@ -75,7 +77,8 @@ class OfflineSyncManager {
       // 1. Processar imagens OCR pendentes
       final ocrProcessed = await OcrOfflineService.processPendingImages();
       if (ocrProcessed > 0) {
-        debugPrint('✅ OfflineSyncManager: $ocrProcessed imagens OCR processadas');
+        debugPrint(
+            '✅ OfflineSyncManager: $ocrProcessed imagens OCR processadas');
       }
 
       // 2. Sincronizar ações de medicamentos pendentes com retry logic
@@ -96,14 +99,14 @@ class OfflineSyncManager {
       debugPrint('❌ OfflineSyncManager: Erro ao processar dados pendentes: $e');
     }
   }
-  
+
   /// Sincronizar ações de medicamentos pendentes
   static Future<void> processPendingActionsWithRetry(String userId) async {
     try {
       final supabaseService = GetIt.I<SupabaseService>();
       final medicamentoService = MedicamentoService(supabaseService.client);
       final syncService = MedicationSyncService(medicamentoService, userId);
-      
+
       // Usar o método de sincronização do MedicationSyncService
       await syncService.syncPendingActions();
       debugPrint('✅ OfflineSyncManager: Ações de medicamentos sincronizadas');
@@ -120,4 +123,3 @@ class OfflineSyncManager {
     debugPrint('🛑 OfflineSyncManager: Desinicializado');
   }
 }
-

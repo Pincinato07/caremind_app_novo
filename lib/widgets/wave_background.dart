@@ -9,7 +9,7 @@ class WaveBackground extends StatefulWidget {
   final List<int> durations;
   final List<double> heightPercentages;
   final String? stateId;
-  
+
   const WaveBackground({
     Key? key,
     this.height = 260,
@@ -46,13 +46,13 @@ class _WaveBackgroundState extends State<WaveBackground>
   void _initAnimations() {
     _controllers = [];
     _animations = [];
-    
+
     for (int i = 0; i < widget.durations.length; i++) {
       final controller = AnimationController(
         vsync: this,
         duration: Duration(milliseconds: widget.durations[i]),
       )..repeat();
-      
+
       _controllers.add(controller);
       _animations.add(
         Tween<double>(begin: 0, end: 2 * pi).animate(controller),
@@ -128,7 +128,7 @@ class WavePainter extends CustomPainter {
 
     final path = Path();
     final baseHeight = size.height * heightPercentages[index];
-    
+
     path.moveTo(0, size.height);
     path.lineTo(0, baseHeight);
 

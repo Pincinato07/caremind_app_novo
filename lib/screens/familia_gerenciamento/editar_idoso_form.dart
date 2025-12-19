@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../../core/injection/injection.dart';
-import '../../core/errors/app_exception.dart';
+import '../../core/feedback/feedback_service.dart';
+import '../../core/errors/error_handler.dart';
 import '../../models/perfil.dart';
 
 class EditarIdosoForm extends StatefulWidget {
@@ -31,18 +32,18 @@ class _EditarIdosoFormState extends State<EditarIdosoForm> {
     if (dateStr == null || dateStr.trim().isEmpty) {
       return null;
     }
-    
+
     try {
       // Formato esperado: YYYY-MM-DD
       final parts = dateStr.trim().split('-');
       if (parts.length != 3) {
         return null;
       }
-      
+
       final year = int.parse(parts[0]);
       final month = int.parse(parts[1]);
       final day = int.parse(parts[2]);
-      
+
       // Retornar no formato DD/MM/YYYY
       return '${day.toString().padLeft(2, '0')}/${month.toString().padLeft(2, '0')}/${year.toString().padLeft(4, '0')}';
     } catch (e) {
@@ -53,7 +54,7 @@ class _EditarIdosoFormState extends State<EditarIdosoForm> {
   void _loadIdosoData() {
     _nomeController.text = widget.idoso.nome ?? '';
     _telefoneController.text = widget.idoso.telefone ?? '';
-    
+
     // Converter data de ISO para formato brasileiro
     final dataFormatada = _convertDateFromISO(widget.idoso.dataNascimento);
     if (dataFormatada != null) {
@@ -90,18 +91,18 @@ class _EditarIdosoFormState extends State<EditarIdosoForm> {
     if (dateStr == null || dateStr.trim().isEmpty) {
       return null;
     }
-    
+
     try {
       // Formato esperado: DD/MM/YYYY
       final parts = dateStr.trim().split('/');
       if (parts.length != 3) {
         return null;
       }
-      
+
       final day = int.parse(parts[0]);
       final month = int.parse(parts[1]);
       final year = int.parse(parts[2]);
-      
+
       // Retornar no formato ISO: YYYY-MM-DD
       return '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
     } catch (e) {
@@ -116,14 +117,14 @@ class _EditarIdosoFormState extends State<EditarIdosoForm> {
 
     try {
       final supabaseService = getIt<SupabaseService>();
-      
+
       // Converter data para formato ISO se fornecida
       final dataNascimentoISO = _convertDateToISO(
         _dataNascimentoController.text.trim().isEmpty
             ? null
             : _dataNascimentoController.text.trim(),
       );
-      
+
       final response = await supabaseService.atualizarIdoso(
         idosoId: widget.idoso.id,
         nome: _nomeController.text.trim(),
@@ -137,31 +138,17 @@ class _EditarIdosoFormState extends State<EditarIdosoForm> {
 
       if (response['success'] == true) {
         Navigator.of(context).pop(true); // Retorna true para indicar sucesso
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Idoso atualizado com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        FeedbackService.showSuccess(context, 'Idoso atualizado com sucesso!');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response['error'] ?? 'Erro ao atualizar idoso'),
-            backgroundColor: Colors.red,
-          ),
+        FeedbackService.showError(
+          context,
+          ErrorHandler.toAppException(
+              Exception(response['error'] ?? 'Erro ao atualizar idoso')),
         );
       }
     } catch (error) {
       if (!mounted) return;
-      final errorMessage = error is AppException
-          ? error.message
-          : 'Erro ao atualizar idoso: ${error.toString()}';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-        ),
-      );
+      FeedbackService.showError(context, ErrorHandler.toAppException(error));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -193,159 +180,162 @@ class _EditarIdosoFormState extends State<EditarIdosoForm> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                // Header
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: colors.primary.withValues(alpha: 0.1),
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: colors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.edit,
+                          color: colors.primary,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Editar Idoso',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colors.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Atualize as informações do idoso',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: colors.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Campo Nome
+                  TextFormField(
+                    controller: _nomeController,
+                    decoration: InputDecoration(
+                      labelText: 'Nome Completo',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
-                        Icons.edit,
-                        color: colors.primary,
-                        size: 24,
-                      ),
+                      filled: true,
+                      fillColor:
+                          colors.surfaceContainerHighest.withValues(alpha: 0.3),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Editar Idoso',
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: colors.primary,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor, insira o nome completo';
+                      }
+                      if (value.length < 3) {
+                        return 'O nome deve ter pelo menos 3 caracteres';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Campo Telefone
+                  TextFormField(
+                    controller: _telefoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: 'Telefone (opcional)',
+                      prefixIcon: const Icon(Icons.phone_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor:
+                          colors.surfaceContainerHighest.withValues(alpha: 0.3),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Campo Data de Nascimento
+                  TextFormField(
+                    controller: _dataNascimentoController,
+                    readOnly: true,
+                    onTap: _selectDate,
+                    decoration: InputDecoration(
+                      labelText: 'Data de Nascimento (opcional)',
+                      prefixIcon: const Icon(Icons.calendar_today_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor:
+                          colors.surfaceContainerHighest.withValues(alpha: 0.3),
+                      hintText: 'DD/MM/AAAA',
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Botões
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () => Navigator.of(context).pop(),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Atualize as informações do idoso',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: colors.onSurfaceVariant,
+                          child: const Text('Cancelar'),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _submitForm,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colors.primary,
+                            foregroundColor: colors.onPrimary,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
-
-                // Campo Nome
-                TextFormField(
-                  controller: _nomeController,
-                  decoration: InputDecoration(
-                    labelText: 'Nome Completo',
-                    prefixIcon: const Icon(Icons.person_outline),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.3),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, insira o nome completo';
-                    }
-                    if (value.length < 3) {
-                      return 'O nome deve ter pelo menos 3 caracteres';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 16),
-
-                // Campo Telefone
-                TextFormField(
-                  controller: _telefoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: 'Telefone (opcional)',
-                    prefixIcon: const Icon(Icons.phone_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.3),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Campo Data de Nascimento
-                TextFormField(
-                  controller: _dataNascimentoController,
-                  readOnly: true,
-                  onTap: _selectDate,
-                  decoration: InputDecoration(
-                    labelText: 'Data de Nascimento (opcional)',
-                    prefixIcon: const Icon(Icons.calendar_today_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.3),
-                    hintText: 'DD/MM/AAAA',
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Botões
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  ),
+                                )
+                              : const Text('Salvar Alterações'),
                         ),
-                        child: const Text('Cancelar'),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _submitForm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: colors.primary,
-                          foregroundColor: colors.onPrimary,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Text('Salvar Alterações'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-      ),
     );
   }
 }
-
-
-

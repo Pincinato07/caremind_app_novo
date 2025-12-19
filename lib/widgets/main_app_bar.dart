@@ -23,7 +23,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     const iconColor = AppColors.textPrimary;
     const iconSize = 28.0;
-    
+
     return AppBar(
       title: title != null
           ? Text(
@@ -102,4 +102,3 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 }
-

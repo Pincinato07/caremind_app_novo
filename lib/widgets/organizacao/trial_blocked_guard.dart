@@ -4,7 +4,6 @@ import '../../providers/organizacao_provider.dart';
 import '../../services/supabase_service.dart';
 import '../../core/injection/injection.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Widget que bloqueia acesso quando trial expira
 /// Similar ao TrialBlockedGuard do site
@@ -64,7 +63,8 @@ class TrialBlockedGuard extends ConsumerWidget {
     return false;
   }
 
-  Widget _buildTrialBanner(BuildContext context, WidgetRef ref, String organizacaoNome) {
+  Widget _buildTrialBanner(
+      BuildContext context, WidgetRef ref, String organizacaoNome) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -108,7 +108,8 @@ class TrialBlockedGuard extends ConsumerWidget {
     );
   }
 
-  Widget _buildBlockedScreen(BuildContext context, WidgetRef ref, String organizacaoNome) {
+  Widget _buildBlockedScreen(
+      BuildContext context, WidgetRef ref, String organizacaoNome) {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -195,10 +196,14 @@ class TrialBlockedGuard extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        _buildBlockedFeature('Você não pode adicionar novos membros'),
-                        _buildBlockedFeature('Você não pode adicionar novos pacientes'),
-                        _buildBlockedFeature('Funcionalidades avançadas estão bloqueadas'),
-                        _buildBlockedFeature('Dados existentes permanecem seguros'),
+                        _buildBlockedFeature(
+                            'Você não pode adicionar novos membros'),
+                        _buildBlockedFeature(
+                            'Você não pode adicionar novos pacientes'),
+                        _buildBlockedFeature(
+                            'Funcionalidades avançadas estão bloqueadas'),
+                        _buildBlockedFeature(
+                            'Dados existentes permanecem seguros'),
                       ],
                     ),
                   ),
@@ -257,13 +262,13 @@ class TrialBlockedGuard extends ConsumerWidget {
   Future<void> _navigateToCheckout(BuildContext context, WidgetRef ref) async {
     final organizacaoState = ref.read(organizacaoProvider);
     final organizacao = organizacaoState.organizacaoAtual;
-    
+
     if (organizacao == null) return;
 
     try {
       final supabase = getIt<SupabaseService>().client;
       final user = supabase.auth.currentUser;
-      
+
       if (user == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -308,7 +313,7 @@ class TrialBlockedGuard extends ConsumerWidget {
 
       final responseData = response.data as Map<String, dynamic>?;
       final url = responseData?['url'] as String?;
-      
+
       if (url == null || url.isEmpty) {
         throw Exception('URL de checkout não retornada');
       }
@@ -332,4 +337,3 @@ class TrialBlockedGuard extends ConsumerWidget {
     }
   }
 }
-

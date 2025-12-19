@@ -36,7 +36,7 @@ class SupabaseService {
       // Se o usuário foi criado com sucesso, criar perfil e enviar email de boas-vindas
       if (response.user != null) {
         final userId = response.user!.id;
-        
+
         // Criar perfil na tabela perfis
         try {
           await _client.from('perfis').upsert({
@@ -60,7 +60,8 @@ class SupabaseService {
           });
         } catch (emailError) {
           // Log do erro mas não bloqueia o registro
-          print('Erro ao enviar email de boas-vindas (não bloqueante): $emailError');
+          print(
+              'Erro ao enviar email de boas-vindas (não bloqueante): $emailError');
         }
       }
 
@@ -159,7 +160,9 @@ class SupabaseService {
         if (data != null && data.containsKey('error')) {
           throw Exception(data['error'] as String);
         }
-        if (data != null && data.containsKey('success') && data['success'] == true) {
+        if (data != null &&
+            data.containsKey('success') &&
+            data['success'] == true) {
           return data;
         }
       }
@@ -193,8 +196,10 @@ class SupabaseService {
           'idosoId': idosoId,
           'nome': nome,
           if (telefone != null && telefone.isNotEmpty) 'telefone': telefone,
-          if (dataNascimento != null && dataNascimento.isNotEmpty) 'data_nascimento': dataNascimento,
-          if (fotoUsuario != null && fotoUsuario.isNotEmpty) 'foto_usuario': fotoUsuario,
+          if (dataNascimento != null && dataNascimento.isNotEmpty)
+            'data_nascimento': dataNascimento,
+          if (fotoUsuario != null && fotoUsuario.isNotEmpty)
+            'foto_usuario': fotoUsuario,
         },
       );
 
@@ -207,7 +212,7 @@ class SupabaseService {
             final errorMsg = data['error'] as String? ?? 'Erro desconhecido';
             throw Exception(errorMsg);
           }
-          
+
           // Verificar se foi bem-sucedido
           if (data.containsKey('success') && data['success'] == true) {
             return data;
@@ -240,7 +245,7 @@ class SupabaseService {
       // Baseado no schema real, a tabela perfis tem:
       // - id (uuid, primary key, referencia auth.users(id))
       // - user_id (uuid, unique, referencia auth.users(id))
-      
+
       // Primeiro, tentar buscar por user_id (campo correto baseado no schema)
       final response = await _client
           .from('perfis')
@@ -251,29 +256,26 @@ class SupabaseService {
       if (response != null) {
         return Perfil.fromMap(response);
       }
-      
+
       // Se não encontrar por user_id, tentar por id (fallback)
-      final fallbackResponse = await _client
-          .from('perfis')
-          .select()
-          .eq('id', userId)
-          .maybeSingle();
+      final fallbackResponse =
+          await _client.from('perfis').select().eq('id', userId).maybeSingle();
 
       if (fallbackResponse != null) {
         return Perfil.fromMap(fallbackResponse);
       }
-      
+
       // Se não encontrar por nenhum dos métodos, tentar usar .or() para compatibilidade
       final orResponse = await _client
           .from('perfis')
           .select()
           .or('user_id.eq.$userId,id.eq.$userId')
           .maybeSingle();
-      
+
       if (orResponse != null) {
         return Perfil.fromMap(orResponse);
       }
-      
+
       return null;
     } catch (error) {
       throw ErrorHandler.toAppException(error);
@@ -307,25 +309,27 @@ class SupabaseService {
       }
       if (telefone != null) updates['telefone'] = telefone;
       if (timezone != null) updates['timezone'] = timezone;
-      if (dataSharingConsent != null) updates['data_sharing_consent'] = dataSharingConsent;
-      if (termsAcceptedAt != null) updates['terms_accepted_at'] = termsAcceptedAt.toIso8601String();
+      if (dataSharingConsent != null)
+        updates['data_sharing_consent'] = dataSharingConsent;
+      if (termsAcceptedAt != null)
+        updates['terms_accepted_at'] = termsAcceptedAt.toIso8601String();
 
       if (updates.isNotEmpty) {
         // Limpar dados antes de atualizar (remove strings vazias)
         final cleanedUpdates = DataCleaner.cleanData(updates);
-        
+
         // Baseado no schema, buscar pelo user_id (campo correto)
         final perfilResponse = await _client
             .from('perfis')
             .select('id')
             .eq('user_id', userId)
             .maybeSingle();
-        
+
         final perfilId = perfilResponse?['id'] as String?;
-        
+
         // Usar o ID do perfil encontrado, senão usar o userId (fallback)
         final targetId = perfilId ?? userId;
-        
+
         await _client.from('perfis').update(cleanedUpdates).eq('id', targetId);
       }
     } catch (error) {
@@ -342,12 +346,12 @@ class SupabaseService {
           .select('id')
           .eq('user_id', familiarId)
           .maybeSingle();
-      
+
       final familiarPerfilId = familiarPerfilResponse?['id'] as String?;
-      
+
       // Usar perfil_id se encontrado, senão usar familiarId (fallback)
       final targetFamiliarId = familiarPerfilId ?? familiarId;
-      
+
       // Buscar vínculos
       final vinculosResponse = await _client
           .from('vinculos_familiares')
@@ -371,10 +375,8 @@ class SupabaseService {
       }
 
       // Buscar perfis dos idosos
-      final perfisResponse = await _client
-          .from('perfis')
-          .select()
-          .inFilter('id', idososIds);
+      final perfisResponse =
+          await _client.from('perfis').select().inFilter('id', idososIds);
 
       if (perfisResponse.isEmpty) {
         return [];
@@ -470,7 +472,7 @@ class SupabaseService {
       // Nota: Para remover o usuário do Auth, seria necessário uma Edge Function
       // Por enquanto, apenas removemos o perfil
       // O vínculo já foi removido acima
-      
+
       // Remover perfil
       await _client.from('perfis').delete().eq('id', idosoId);
     } catch (error) {

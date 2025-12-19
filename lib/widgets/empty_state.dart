@@ -90,4 +90,3 @@ class CareMindEmptyState extends StatelessWidget {
     );
   }
 }
-

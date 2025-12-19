@@ -34,14 +34,14 @@ class _QuickActionFABState extends State<QuickActionFAB>
       vsync: this,
       duration: const Duration(milliseconds: 200),
     );
-    
+
     _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
         curve: Curves.easeOut,
       ),
     );
-    
+
     _rotationAnimation = Tween<double>(begin: 0.0, end: 0.125).animate(
       CurvedAnimation(
         parent: _animationController,
@@ -137,7 +137,7 @@ class _QuickActionFABState extends State<QuickActionFAB>
               index: 3,
             ),
         ],
-        
+
         // FAB principal
         Positioned(
           bottom: 0,
@@ -227,4 +227,3 @@ class _QuickActionFABState extends State<QuickActionFAB>
     );
   }
 }
-

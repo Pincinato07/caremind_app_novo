@@ -15,21 +15,23 @@ class MedicamentoManagementScreen extends StatefulWidget {
   const MedicamentoManagementScreen({super.key});
 
   @override
-  State<MedicamentoManagementScreen> createState() => _MedicamentoManagementScreenState();
+  State<MedicamentoManagementScreen> createState() =>
+      _MedicamentoManagementScreenState();
 }
 
-class _MedicamentoManagementScreenState extends State<MedicamentoManagementScreen> 
-    with TickerProviderStateMixin {
-  final MedicationCRUDService _medicationService = getIt<MedicationCRUDService>();
+class _MedicamentoManagementScreenState
+    extends State<MedicamentoManagementScreen> with TickerProviderStateMixin {
+  final MedicationCRUDService _medicationService =
+      getIt<MedicationCRUDService>();
   final _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final _nomeController = TextEditingController();
   final _dosagemController = TextEditingController();
   final _quantidadeController = TextEditingController();
   final _viaController = TextEditingController();
-  
+
   late TabController _tabController;
-  
+
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isEditing = false;
@@ -44,7 +46,7 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
     _tabController = TabController(length: 2, vsync: this);
     _initializeData();
     AccessibilityService.initialize();
-    
+
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -69,7 +71,7 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
 
   Future<void> _initializeData() async {
     setState(() => _isLoading = true);
-    
+
     try {
       await _medicationService.loadMedications();
       _updateFilteredMedicamentos();
@@ -101,8 +103,9 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
       _showForm = true;
       _isEditing = false;
     });
-    
-    TTSEnhancer.announceNavigation('Formulário para adicionar medicamento', 'Medicamentos');
+
+    TTSEnhancer.announceNavigation(
+        'Formulário para adicionar medicamento', 'Medicamentos');
   }
 
   void _showEditForm(Medicamento medication) {
@@ -112,8 +115,9 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
       _isEditing = true;
       _editingMedicamento = medication;
     });
-    
-    TTSEnhancer.announceNavigation('Editando medicamento: ${medication.nome}', 'Medicamentos');
+
+    TTSEnhancer.announceNavigation(
+        'Editando medicamento: ${medication.nome}', 'Medicamentos');
   }
 
   void _hideForm() {
@@ -122,9 +126,10 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
       _isEditing = false;
       _editingMedicamento = null;
     });
-    
+
     _clearForm();
-    TTSEnhancer.announceNavigation('Voltando para lista de medicamentos', 'Medicamentos');
+    TTSEnhancer.announceNavigation(
+        'Voltando para lista de medicamentos', 'Medicamentos');
   }
 
   void _clearForm() {
@@ -144,7 +149,8 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
 
   Future<void> _saveMedicamento() async {
     if (!_formKey.currentState!.validate()) {
-      await TTSEnhancer.announceValidationError('Por favor, corrija os erros no formulário');
+      await TTSEnhancer.announceValidationError(
+          'Por favor, corrija os erros no formulário');
       return;
     }
 
@@ -159,32 +165,43 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
         final success = await _medicationService.updateMedication(
           id: _editingMedicamento!.id!,
           nome: _nomeController.text.trim(),
-          dosagem: _dosagemController.text.trim().isEmpty ? null : _dosagemController.text.trim(),
+          dosagem: _dosagemController.text.trim().isEmpty
+              ? null
+              : _dosagemController.text.trim(),
           quantidade: quantidade,
-          via: _viaController.text.trim().isEmpty ? null : _viaController.text.trim(),
+          via: _viaController.text.trim().isEmpty
+              ? null
+              : _viaController.text.trim(),
         );
-        
+
         if (success) {
           _hideForm();
           _updateFilteredMedicamentos();
-          await TTSEnhancer.announceCriticalSuccess('Medicamento atualizado com sucesso!');
+          await TTSEnhancer.announceCriticalSuccess(
+              'Medicamento atualizado com sucesso!');
         }
       } else {
         final result = await _medicationService.createMedication(
           nome: _nomeController.text.trim(),
-          dosagem: _dosagemController.text.trim().isEmpty ? null : _dosagemController.text.trim(),
+          dosagem: _dosagemController.text.trim().isEmpty
+              ? null
+              : _dosagemController.text.trim(),
           quantidade: quantidade,
-          via: _viaController.text.trim().isEmpty ? null : _viaController.text.trim(),
+          via: _viaController.text.trim().isEmpty
+              ? null
+              : _viaController.text.trim(),
         );
-        
+
         if (result != null) {
           _hideForm();
           _updateFilteredMedicamentos();
-          await TTSEnhancer.announceCriticalSuccess('Medicamento salvo com sucesso!');
+          await TTSEnhancer.announceCriticalSuccess(
+              'Medicamento salvo com sucesso!');
         }
       }
     } catch (e) {
-      await TTSEnhancer.announceError('Erro ao salvar medicamento: ${e.toString()}');
+      await TTSEnhancer.announceError(
+          'Erro ao salvar medicamento: ${e.toString()}');
     } finally {
       setState(() => _isSaving = false);
     }
@@ -195,44 +212,50 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
     if (!confirmed) return;
 
     try {
-      await TTSEnhancer.announceAction('Excluindo medicamento: ${medication.nome}...');
-      
+      await TTSEnhancer.announceAction(
+          'Excluindo medicamento: ${medication.nome}...');
+
       final success = await _medicationService.deleteMedication(medication.id!);
-      
+
       if (success) {
         _updateFilteredMedicamentos();
-        await TTSEnhancer.announceCriticalSuccess('Medicamento excluído com sucesso!');
+        await TTSEnhancer.announceCriticalSuccess(
+            'Medicamento excluído com sucesso!');
       }
     } catch (e) {
-      await TTSEnhancer.announceError('Erro ao excluir medicamento: ${e.toString()}');
+      await TTSEnhancer.announceError(
+          'Erro ao excluir medicamento: ${e.toString()}');
     }
   }
 
   Future<bool> _showDeleteConfirmation(Medicamento medication) async {
     return await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Semantics(
-          label: 'Confirmar exclusão',
-          child: const Text('Confirmar Exclusão'),
-        ),
-        content: Semantics(
-          label: 'Tem certeza que deseja excluir o medicamento ${medication.nome}?',
-          child: Text('Tem certeza que deseja excluir o medicamento ${medication.nome}?'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Semantics(
+              label: 'Confirmar exclusão',
+              child: const Text('Confirmar Exclusão'),
+            ),
+            content: Semantics(
+              label:
+                  'Tem certeza que deseja excluir o medicamento ${medication.nome}?',
+              child: Text(
+                  'Tem certeza que deseja excluir o medicamento ${medication.nome}?'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Excluir'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Excluir'),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
   }
 
   Future<void> _announceMedicamentoDetails(Medicamento medication) async {
@@ -252,13 +275,13 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
         child: CareMindCard(
           variant: CardVariant.glass,
           padding: AppSpacing.paddingCard,
-        child: AppTextField(
-          controller: _searchController,
-          label: 'Buscar medicamentos',
-          prefixIcon: Icon(Icons.search),
+          child: AppTextField(
+            controller: _searchController,
+            label: 'Buscar medicamentos',
+            prefixIcon: Icon(Icons.search),
+          ),
         ),
       ),
-    ),
     );
   }
 
@@ -272,110 +295,111 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
           variant: CardVariant.glass,
           padding: AppSpacing.paddingCard,
           child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        medication.nome,
-                        style: TextStyle(
-                          fontFamily: 'LeagueSpartan',
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                      if (medication.dosagem != null) ...[
-                        const SizedBox(height: 4),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          medication.dosagem!,
+                          medication.nome,
                           style: TextStyle(
                             fontFamily: 'LeagueSpartan',
-                            fontSize: 14,
-                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
                           ),
                         ),
+                        if (medication.dosagem != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            medication.dosagem!,
+                            style: TextStyle(
+                              fontFamily: 'LeagueSpartan',
+                              fontSize: 14,
+                              color: Colors.white.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 12),
-            
-            if (medication.via != null) ...[
-              Row(
-                children: [
-                  Icon(Icons.medication, size: 16, color: Colors.white.withValues(alpha: 0.7)),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Via: ${medication.via}',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ),
                 ],
               ),
-            ],
-            
-            if (medication.quantidade != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 12),
+              if (medication.via != null) ...[
+                Row(
+                  children: [
+                    Icon(Icons.medication,
+                        size: 16, color: Colors.white.withValues(alpha: 0.7)),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Via: ${medication.via}',
+                      style: TextStyle(
+                        fontFamily: 'LeagueSpartan',
+                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (medication.quantidade != null) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.inventory,
+                        size: 16, color: Colors.white.withValues(alpha: 0.7)),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Quantidade: ${medication.quantidade}',
+                      style: TextStyle(
+                        fontFamily: 'LeagueSpartan',
+                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 16),
               Row(
                 children: [
-                  Icon(Icons.inventory, size: 16, color: Colors.white.withValues(alpha: 0.7)),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Quantidade: ${medication.quantidade}',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.8),
-                    ),
+                  IconButton(
+                    onPressed: () => _announceMedicamentoDetails(medication),
+                    icon: Icon(Icons.volume_up,
+                        color: Colors.white.withValues(alpha: 0.8)),
+                    iconSize: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => _showEditForm(medication),
+                    icon: Icon(Icons.edit,
+                        color: Colors.white.withValues(alpha: 0.8)),
+                    iconSize: 20,
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => _deleteMedicamento(medication),
+                    icon: Icon(Icons.delete,
+                        color: Colors.red.withValues(alpha: 0.8)),
+                    iconSize: 20,
                   ),
                 ],
               ),
             ],
-            
-            const SizedBox(height: 16),
-            
-            Row(
-              children: [
-                IconButton(
-                  onPressed: () => _announceMedicamentoDetails(medication),
-                  icon: Icon(Icons.volume_up, color: Colors.white.withValues(alpha: 0.8)),
-                  iconSize: 20,
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: () => _showEditForm(medication),
-                  icon: Icon(Icons.edit, color: Colors.white.withValues(alpha: 0.8)),
-                  iconSize: 20,
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => _deleteMedicamento(medication),
-                  icon: Icon(Icons.delete, color: Colors.red.withValues(alpha: 0.8)),
-                  iconSize: 20,
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
-    ),
     );
   }
 
   Widget _buildMedicamentoList() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Colors.white));
+      return const Center(
+          child: CircularProgressIndicator(color: Colors.white));
     }
 
     if (_filteredMedicamentos.isEmpty) {
@@ -383,11 +407,15 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.medication_liquid, size: 64, color: Colors.white.withValues(alpha: 0.4)),
+            Icon(Icons.medication_liquid,
+                size: 64, color: Colors.white.withValues(alpha: 0.4)),
             const SizedBox(height: 16),
             Text(
-              _searchTerm.isEmpty ? 'Nenhum medicamento cadastrado' : 'Nenhum medicamento encontrado',
-              style: TextStyle(fontSize: 18, color: Colors.white.withValues(alpha: 0.7)),
+              _searchTerm.isEmpty
+                  ? 'Nenhum medicamento cadastrado'
+                  : 'Nenhum medicamento encontrado',
+              style: TextStyle(
+                  fontSize: 18, color: Colors.white.withValues(alpha: 0.7)),
               textAlign: TextAlign.center,
             ),
             if (_searchTerm.isEmpty) ...[
@@ -400,7 +428,11 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [Icon(Icons.add, size: 18), const SizedBox(width: 8), Text('Adicionar')],
+                  children: [
+                    Icon(Icons.add, size: 18),
+                    const SizedBox(width: 8),
+                    Text('Adicionar')
+                  ],
                 ),
               ),
             ],
@@ -415,12 +447,15 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
           padding: const EdgeInsets.only(bottom: 16),
           child: Row(
             children: [
-              Text('${_filteredMedicamentos.length} medicamento(s)', 
-                   style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.7))),
+              Text('${_filteredMedicamentos.length} medicamento(s)',
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withValues(alpha: 0.7))),
               const Spacer(),
               IconButton(
                 onPressed: _announceMedicamentoList,
-                icon: Icon(Icons.volume_up, color: Colors.white.withValues(alpha: 0.8)),
+                icon: Icon(Icons.volume_up,
+                    color: Colors.white.withValues(alpha: 0.8)),
                 iconSize: 20,
               ),
             ],
@@ -432,7 +467,8 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
           itemCount: _filteredMedicamentos.length,
           itemBuilder: (context, index) {
             return Padding(
-              padding: EdgeInsets.only(bottom: index < _filteredMedicamentos.length - 1 ? 12 : 0),
+              padding: EdgeInsets.only(
+                  bottom: index < _filteredMedicamentos.length - 1 ? 12 : 0),
               child: _buildMedicamentoCard(_filteredMedicamentos[index]),
             );
           },
@@ -447,85 +483,100 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
       child: CareMindCard(
         variant: CardVariant.glass,
         padding: AppSpacing.paddingLarge,
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  _isEditing ? 'Editar Medicamento' : 'Novo Medicamento',
-                  style: TextStyle(fontFamily: 'LeagueSpartan', fontSize: 20, color: Colors.white, fontWeight: FontWeight.w600),
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: _hideForm,
-                  icon: Icon(Icons.close, color: Colors.white.withValues(alpha: 0.8)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            AppTextField(
-              controller: _nomeController,
-              label: 'Nome do Medicamento *',
-              validator: (value) => (value == null || value.trim().isEmpty) ? 'Nome é obrigatório' : null,
-            ),
-            const SizedBox(height: 16),
-            AppTextField(
-              controller: _dosagemController,
-              label: 'Dosagem',
-              hint: 'Ex: 500mg, 1 comprimido',
-            ),
-            const SizedBox(height: 16),
-            AppTextField(
-              controller: _quantidadeController,
-              label: 'Quantidade',
-              hint: 'Ex: 30',
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            AppTextField(
-              controller: _viaController,
-              label: 'Via de Administração',
-              hint: 'Ex: oral, intravenosa, tópica',
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _isSaving ? null : _saveMedicamento,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.withValues(alpha: 0.8),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    ),
-                    child: _isSaving 
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)))
-                        : Text(_isEditing ? 'Atualizar' : 'Adicionar'),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    _isEditing ? 'Editar Medicamento' : 'Novo Medicamento',
+                    style: TextStyle(
+                        fontFamily: 'LeagueSpartan',
+                        fontSize: 20,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600),
                   ),
-                ),
-                if (_isEditing) ...[
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _isSaving ? null : _hideForm,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      ),
-                      child: const Text('Cancelar'),
-                    ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: _hideForm,
+                    icon: Icon(Icons.close,
+                        color: Colors.white.withValues(alpha: 0.8)),
                   ),
                 ],
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 20),
+              AppTextField(
+                controller: _nomeController,
+                label: 'Nome do Medicamento *',
+                validator: (value) => (value == null || value.trim().isEmpty)
+                    ? 'Nome é obrigatório'
+                    : null,
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _dosagemController,
+                label: 'Dosagem',
+                hint: 'Ex: 500mg, 1 comprimido',
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _quantidadeController,
+                label: 'Quantidade',
+                hint: 'Ex: 30',
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _viaController,
+                label: 'Via de Administração',
+                hint: 'Ex: oral, intravenosa, tópica',
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isSaving ? null : _saveMedicamento,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.withValues(alpha: 0.8),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
+                      ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white)))
+                          : Text(_isEditing ? 'Atualizar' : 'Adicionar'),
+                    ),
+                  ),
+                  if (_isEditing) ...[
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _isSaving ? null : _hideForm,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
+                        ),
+                        child: const Text('Cancelar'),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 
@@ -534,13 +585,16 @@ class _MedicamentoManagementScreenState extends State<MedicamentoManagementScree
     return AppScaffoldWithWaves(
       appBar: CareMindAppBar(
         title: 'Meus Medicamentos',
-        leading: !_showForm ? null : IconButton(
-          onPressed: _hideForm,
-          icon: const Icon(Icons.close, color: Colors.white),
-        ),
+        leading: !_showForm
+            ? null
+            : IconButton(
+                onPressed: _hideForm,
+                icon: const Icon(Icons.close, color: Colors.white),
+              ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, AppSpacing.bottomNavBarPadding),
+        padding: const EdgeInsets.fromLTRB(
+            24, 24, 24, AppSpacing.bottomNavBarPadding),
         child: Column(
           children: [
             if (!_showForm) ...[

@@ -1,11 +1,9 @@
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:postgrest/postgrest.dart';
 import 'organizacao_service.dart';
 
 /// Serviço para gerenciar membros da organização
 class MembroOrganizacaoService {
-
   /// Listar membros da organização
   Future<List<MembroOrganizacao>> listarMembros(String organizacaoId) async {
     try {
@@ -20,7 +18,8 @@ class MembroOrganizacaoService {
       }
 
       return (response as List)
-          .map((json) => MembroOrganizacao.fromJson(json as Map<String, dynamic>))
+          .map((json) =>
+              MembroOrganizacao.fromJson(json as Map<String, dynamic>))
           .toList();
     } on PostgrestException catch (e) {
       if (e.code == 'PGRST301' || e.code == 'PGRST116') {
@@ -28,7 +27,8 @@ class MembroOrganizacaoService {
       }
       throw Exception('Erro ao buscar membros: ${e.message}');
     } on SocketException {
-      throw Exception('Erro de conexão. Verifique sua internet e tente novamente.');
+      throw Exception(
+          'Erro de conexão. Verifique sua internet e tente novamente.');
     } catch (e) {
       throw Exception('Erro ao listar membros: ${e.toString()}');
     }
@@ -38,7 +38,8 @@ class MembroOrganizacaoService {
   Future<Map<String, dynamic>> convidarMembro({
     required String organizacaoId,
     required String email,
-    required String role, // 'admin', 'medico', 'enfermeiro', 'cuidador', 'recepcionista'
+    required String
+        role, // 'admin', 'medico', 'enfermeiro', 'cuidador', 'recepcionista'
   }) async {
     try {
       final response = await Supabase.instance.client.functions.invoke(
@@ -69,8 +70,7 @@ class MembroOrganizacaoService {
     try {
       await Supabase.instance.client
           .from('membros_organizacao')
-          .update({'role': role})
-          .eq('id', membroId);
+          .update({'role': role}).eq('id', membroId);
     } catch (e) {
       throw Exception('Erro ao atualizar role: $e');
     }
@@ -84,8 +84,7 @@ class MembroOrganizacaoService {
     try {
       await Supabase.instance.client
           .from('membros_organizacao')
-          .update({'ativo': ativo})
-          .eq('id', membroId);
+          .update({'ativo': ativo}).eq('id', membroId);
     } catch (e) {
       throw Exception('Erro ao atualizar status: $e');
     }
@@ -98,36 +97,36 @@ class MembroOrganizacaoService {
       // Obter user_id atual antes de remover
       final currentUser = Supabase.instance.client.auth.currentUser;
       final currentUserId = currentUser?.id;
-      
+
       // Buscar perfil_id do membro que será removido
       final membroResponse = await Supabase.instance.client
           .from('membros_organizacao')
           .select('perfil_id')
           .eq('id', membroId)
           .single();
-      
+
       final perfilIdRemovido = membroResponse['perfil_id'] as String;
-      
+
       // Verificar se é o próprio usuário que está sendo removido
       if (currentUserId == null) {
         throw Exception('Usuário não autenticado');
       }
-      
+
       final perfilAtualResponse = await Supabase.instance.client
           .from('perfis')
           .select('id')
           .eq('user_id', currentUserId)
           .maybeSingle();
-      
+
       final perfilAtualId = perfilAtualResponse?['id'] as String?;
       final usuarioFoiRemovido = perfilAtualId == perfilIdRemovido;
-      
+
       // Remover membro
       await Supabase.instance.client
           .from('membros_organizacao')
           .delete()
           .eq('id', membroId);
-      
+
       // Se o usuário atual foi removido, verificar se ainda é membro de outra organização
       if (usuarioFoiRemovido && perfilAtualId != null) {
         final outrasOrganizacoes = await Supabase.instance.client
@@ -136,13 +135,13 @@ class MembroOrganizacaoService {
             .eq('perfil_id', perfilAtualId)
             .eq('ativo', true)
             .limit(1);
-        
+
         // Se não é membro de nenhuma organização, precisa redirecionar
         if (outrasOrganizacoes.isEmpty) {
           return true; // Indica que precisa redirecionar
         }
       }
-      
+
       return false; // Não precisa redirecionar
     } on PostgrestException catch (e) {
       if (e.code == 'PGRST301' || e.code == 'PGRST116') {
@@ -150,7 +149,8 @@ class MembroOrganizacaoService {
       }
       throw Exception('Erro ao remover membro: ${e.message}');
     } on SocketException {
-      throw Exception('Erro de conexão. Verifique sua internet e tente novamente.');
+      throw Exception(
+          'Erro de conexão. Verifique sua internet e tente novamente.');
     } catch (e) {
       throw Exception('Erro ao remover membro: ${e.toString()}');
     }
@@ -173,4 +173,3 @@ class MembroOrganizacaoService {
     return ['admin', 'medico', 'enfermeiro', 'recepcionista'].contains(role);
   }
 }
-

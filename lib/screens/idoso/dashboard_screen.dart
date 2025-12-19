@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import '../../theme/app_theme.dart';
 import '../../core/injection/injection.dart';
 import '../../services/supabase_service.dart';
@@ -9,6 +7,8 @@ import '../../services/historico_eventos_service.dart';
 import '../../services/accessibility_service.dart';
 import '../../core/accessibility/voice_navigation_service.dart';
 import '../../core/accessibility/tts_enhancer.dart';
+import '../../core/feedback/feedback_service.dart';
+import '../../core/errors/error_handler.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/caremind_card.dart';
 import '../../widgets/animated_card.dart';
@@ -28,11 +28,13 @@ class IdosoDashboardScreen extends StatefulWidget {
   State<IdosoDashboardScreen> createState() => _IdosoDashboardScreenState();
 }
 
-class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with TickerProviderStateMixin {
+class _IdosoDashboardScreenState extends State<IdosoDashboardScreen>
+    with TickerProviderStateMixin {
   String _userName = 'Usuário';
   bool _isLoading = true;
   Medicamento? _proximoMedicamento;
-  DateTime? _proximoHorarioAgendado; // Novo campo para armazenar o próximo horário agendado
+  DateTime?
+      _proximoHorarioAgendado; // Novo campo para armazenar o próximo horário agendado
   final VoiceNavigationService _voiceNavigation = VoiceNavigationService();
 
   late AnimationController _pulseController;
@@ -61,7 +63,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
     // Leitura automática do título da tela se habilitada
     WidgetsBinding.instance.addPostFrameCallback((_) {
       TTSEnhancer.announceScreenChange(
-        context, 
+        context,
         'Dashboard',
         userName: _userName,
       );
@@ -73,24 +75,39 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
       final supabaseService = getIt<SupabaseService>();
       final medicamentoService = getIt<MedicamentoService>();
       final user = supabaseService.currentUser;
-      
+
       if (user != null) {
         final perfil = await supabaseService.getProfile(user.id);
         if (perfil != null && mounted) {
           // Buscar medicamentos
-          final medicamentos = await medicamentoService.getMedicamentos(user.id);
-          
+          final medicamentosResult =
+              await medicamentoService.getMedicamentos(user.id);
+
+          // Extrair lista de medicamentos do Result
+          final medicamentos = medicamentosResult.when(
+            success: (data) => data,
+            failure: (exception) {
+              debugPrint('Erro ao carregar medicamentos: ${exception.message}');
+              return <Medicamento>[];
+            },
+          );
+
           // Verificar status de hoje
           Map<int, bool> statusMedicamentos = {};
           if (medicamentos.isNotEmpty) {
-            final ids = medicamentos.where((m) => m.id != null).map((m) => m.id!).toList();
-            statusMedicamentos = await HistoricoEventosService.checkMedicamentosConcluidosHoje(user.id, ids);
+            final ids = medicamentos
+                .where((m) => m.id != null)
+                .map((m) => m.id!)
+                .toList();
+            statusMedicamentos =
+                await HistoricoEventosService.checkMedicamentosConcluidosHoje(
+                    user.id, ids);
           }
-          
+
           // Encontrar o próximo medicamento e seu horário agendado
           Medicamento? proximo;
           DateTime? proximoHorario;
-          
+
           final agora = DateTime.now();
           final hoje = DateTime(agora.year, agora.month, agora.day);
 
@@ -99,7 +116,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
             if (statusMedicamentos[med.id] ?? false) continue;
 
             final horariosTd = _extrairHorarios(med); // Extrai TimeOfDay
-            
+
             for (var horarioTd in horariosTd) {
               final horarioAgendado = DateTime(
                 hoje.year,
@@ -111,8 +128,11 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
 
               // Considerar apenas horários no futuro ou que acabaram de passar
               // Para garantir que o idoso sempre veja o "próximo" item, mesmo que um pouco atrasado.
-              if (horarioAgendado.isAfter(agora.subtract(const Duration(minutes: 10)))) { // Tolerância de 10min de atraso para ainda ser "próximo"
-                if (proximoHorario == null || horarioAgendado.isBefore(proximoHorario)) {
+              if (horarioAgendado
+                  .isAfter(agora.subtract(const Duration(minutes: 10)))) {
+                // Tolerância de 10min de atraso para ainda ser "próximo"
+                if (proximoHorario == null ||
+                    horarioAgendado.isBefore(proximoHorario)) {
                   proximo = med;
                   proximoHorario = horarioAgendado;
                 }
@@ -147,12 +167,12 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
       if (frequencia == null || !frequencia.containsKey('horarios')) {
         return [];
       }
-      
+
       final horariosList = frequencia['horarios'] as List?;
       if (horariosList == null || horariosList.isEmpty) {
         return [];
       }
-      
+
       final horarios = <TimeOfDay>[];
       for (var h in horariosList) {
         try {
@@ -166,7 +186,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
           continue;
         }
       }
-      
+
       return horarios;
     } catch (e, stackTrace) {
       debugPrint('❌ Erro ao extrair horários: $e');
@@ -179,25 +199,25 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
     if (timeStr.isEmpty) {
       return null;
     }
-    
+
     try {
       final parts = timeStr.split(':');
       if (parts.length != 2) {
         return null;
       }
-      
+
       final hour = int.tryParse(parts[0]);
       final minute = int.tryParse(parts[1]);
-      
+
       if (hour == null || minute == null) {
         return null;
       }
-      
+
       if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
         debugPrint('⚠️ Horário inválido: $hour:$minute');
         return null;
       }
-      
+
       return TimeOfDay(hour: hour, minute: minute);
     } catch (e) {
       debugPrint('⚠️ Erro ao parsear TimeOfDay de "$timeStr": $e');
@@ -210,12 +230,14 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
 
     // Trava de segurança para evitar marcação muito antecipada
     final agora = DateTime.now();
-    const earlyTakeThresholdMinutes = 120; // 2 horas de antecedência (conforme solicitação)
+    const earlyTakeThresholdMinutes =
+        120; // 2 horas de antecedência (conforme solicitação)
 
-    if (agora.isBefore(_proximoHorarioAgendado!) && 
-        _proximoHorarioAgendado!.difference(agora).inMinutes > earlyTakeThresholdMinutes) {
-      
-      final horaFormatada = '${_proximoHorarioAgendado!.hour.toString().padLeft(2, '0')}:${_proximoHorarioAgendado!.minute.toString().padLeft(2, '0')}';
+    if (agora.isBefore(_proximoHorarioAgendado!) &&
+        _proximoHorarioAgendado!.difference(agora).inMinutes >
+            earlyTakeThresholdMinutes) {
+      final horaFormatada =
+          '${_proximoHorarioAgendado!.hour.toString().padLeft(2, '0')}:${_proximoHorarioAgendado!.minute.toString().padLeft(2, '0')}';
 
       final confirm = await showDialog<bool>(
         context: context,
@@ -228,11 +250,16 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Não', style: TextStyle(color: Colors.red, fontSize: 18)),
+              child: const Text('Não',
+                  style: TextStyle(color: Colors.red, fontSize: 18)),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Sim, estou', style: TextStyle(color: Colors.green, fontSize: 18, fontWeight: FontWeight.bold)),
+              child: const Text('Sim, estou',
+                  style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -250,9 +277,9 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
       final medicamentoService = getIt<MedicamentoService>();
       final supabaseService = getIt<SupabaseService>();
       final user = supabaseService.currentUser;
-      
+
       if (user == null) return;
-      
+
       // Marcar como concluído
       await medicamentoService.toggleConcluido(
         _proximoMedicamento!.id!,
@@ -270,7 +297,8 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
 
       // Anuncia sucesso com TTS avançado
       try {
-        await TTSEnhancer.announceCriticalSuccess('Medicamento marcado como tomado');
+        await TTSEnhancer.announceCriticalSuccess(
+            'Medicamento marcado como tomado');
       } catch (e) {
         // Erro no TTS não deve impedir a operação
         debugPrint('Erro no TTS: $e');
@@ -280,40 +308,27 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
       await _loadUserData();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Medicamento marcado como tomado!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
+        FeedbackService.showSuccess(
+          context,
+          'Medicamento marcado como tomado!',
+          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
       // WCAG: Feedback de erro acessível
       try {
         await AccessibilityService.feedbackNegativo();
-        await AccessibilityService.speak('Erro ao marcar medicamento. Tente novamente.');
+        await AccessibilityService.speak(
+            'Erro ao marcar medicamento. Tente novamente.');
       } catch (ttsError) {
         debugPrint('Erro ao fornecer feedback de erro: $ttsError');
       }
-      
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Erro ao marcar medicamento. Tente novamente.',
-              style: AppTextStyles.leagueSpartan(
-                fontSize: (MediaQuery.maybeOf(context)?.textScaler ?? const TextScaler.linear(1.0)).scale(16),
-              ),
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-            action: SnackBarAction(
-              label: 'Tentar novamente',
-              textColor: Colors.white,
-              onPressed: () => _marcarComoTomado(),
-            ),
-          ),
+        FeedbackService.showError(
+          context,
+          ErrorHandler.toAppException(e),
+          onRetry: () => _marcarComoTomado(),
         );
       }
     }
@@ -353,115 +368,130 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                     displacement: 40,
                     child: CustomScrollView(
                       slivers: [
-                  // Header simplificado com botão de configurações
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
+                        // Header simplificado com botão de configurações
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24.0),
+                            child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'O Próximo Passo',
-                                  style: AppTextStyles.leagueSpartan(
-                                    fontSize: (MediaQuery.maybeOf(context)?.textScaler ?? const TextScaler.linear(1.0)).scale(32),
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                    letterSpacing: -0.5,
-                                  ).copyWith(
-                                    // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
-                                    shadows: [
-                                      Shadow(
-                                        offset: const Offset(0, 2),
-                                        blurRadius: 4,
-                                        color: Colors.black.withValues(alpha: 0.5),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'O Próximo Passo',
+                                        style: AppTextStyles.leagueSpartan(
+                                          fontSize: (MediaQuery.maybeOf(context)
+                                                      ?.textScaler ??
+                                                  const TextScaler.linear(1.0))
+                                              .scale(32),
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                          letterSpacing: -0.5,
+                                        ).copyWith(
+                                          // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                                          shadows: [
+                                            Shadow(
+                                              offset: const Offset(0, 2),
+                                              blurRadius: 4,
+                                              color: Colors.black
+                                                  .withValues(alpha: 0.5),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Olá, $_userName',
+                                        style: AppTextStyles.leagueSpartan(
+                                          fontSize: (MediaQuery.maybeOf(context)
+                                                      ?.textScaler ??
+                                                  const TextScaler.linear(1.0))
+                                              .scale(20),
+                                          color: Colors
+                                              .white, // WCAG: Aumentado opacidade de 0.9 para 1.0
+                                        ).copyWith(
+                                          // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                                          shadows: [
+                                            Shadow(
+                                              offset: const Offset(0, 2),
+                                              blurRadius: 4,
+                                              color: Colors.black
+                                                  .withValues(alpha: 0.5),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Olá, $_userName',
-                                  style: AppTextStyles.leagueSpartan(
-                                    fontSize: (MediaQuery.maybeOf(context)?.textScaler ?? const TextScaler.linear(1.0)).scale(20),
-                                    color: Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
-                                  ).copyWith(
-                                    // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
-                                    shadows: [
-                                      Shadow(
-                                        offset: const Offset(0, 2),
-                                        blurRadius: 4,
-                                        color: Colors.black.withValues(alpha: 0.5),
-                                      ),
-                                    ],
+                                // Botão discreto de configurações
+                                // WCAG 2.5.5: Garantir área mínima de toque de 48x48dp
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.settings_outlined,
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    size: 28,
                                   ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 48,
+                                    minHeight: 48,
+                                  ),
+                                  padding: const EdgeInsets.all(12),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      AppNavigation.smoothRoute(
+                                        const ConfiguracoesScreen(),
+                                      ),
+                                    );
+                                  },
+                                  tooltip: 'Configurações',
                                 ),
                               ],
                             ),
                           ),
-                          // Botão discreto de configurações
-                          // WCAG 2.5.5: Garantir área mínima de toque de 48x48dp
-                          IconButton(
-                            icon: Icon(
-                              Icons.settings_outlined,
-                              color: Colors.white.withValues(alpha: 0.8),
-                              size: 28,
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 48,
-                              minHeight: 48,
-                            ),
-                            padding: const EdgeInsets.all(12),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                AppNavigation.smoothRoute(
-                                  const ConfiguracoesScreen(),
-                                ),
-                              );
-                            },
-                            tooltip: 'Configurações',
+                        ),
+
+                        // Card Principal (Hero) - Próximo Medicamento
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: AppSpacing.large),
+                            child: _buildHeroCard(),
                           ),
-                        ],
-                      ),
+                        ),
+
+                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+                        // Botão SOS Destacado
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: AppSpacing.large),
+                            child: _buildSOSButton(),
+                          ),
+                        ),
+
+                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+                        // Grid de Ação
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: AppSpacing.large),
+                            child: _buildActionGrid(),
+                          ),
+                        ),
+
+                        SliverToBoxAdapter(
+                            child: SizedBox(
+                                height: AppSpacing.bottomNavBarPadding)),
+                      ],
                     ),
                   ),
-
-                  // Card Principal (Hero) - Próximo Medicamento
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
-                      child: _buildHeroCard(),
-                    ),
-                  ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-                  // Botão SOS Destacado
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
-                      child: _buildSOSButton(),
-                    ),
-                  ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-                  // Grid de Ação
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
-                      child: _buildActionGrid(),
-                    ),
-                  ),
-
-                      SliverToBoxAdapter(child: SizedBox(height: AppSpacing.bottomNavBarPadding)),
-                    ],
-                  ),
-                    ),
             // Interface de voz flutuante
             if (userId.isNotEmpty && !_isLoading)
               VoiceInterfaceWidget(
@@ -477,9 +507,9 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
   Widget _buildHeroCard() {
     // WCAG 1.4.4: Respeitar configuração de fonte grande do sistema
     // Tratamento de erro: garantir que textScaler sempre esteja disponível
-    final textScaler = MediaQuery.maybeOf(context)?.textScaler ?? 
-                       const TextScaler.linear(1.0);
-    
+    final textScaler =
+        MediaQuery.maybeOf(context)?.textScaler ?? const TextScaler.linear(1.0);
+
     if (_proximoMedicamento == null) {
       return AnimatedCard(
         index: 0,
@@ -517,7 +547,8 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                 textAlign: TextAlign.center,
                 style: AppTextStyles.leagueSpartan(
                   fontSize: textScaler.scale(18),
-                  color: Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
+                  color:
+                      Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
                 ).copyWith(
                   // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
                   shadows: [
@@ -545,80 +576,34 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
         variant: CardVariant.glass,
         padding: AppSpacing.paddingXLarge,
         child: Column(
-        children: [
-          // Ícone de medicamento
-          Container(
-            padding: AppSpacing.paddingLarge,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.medication_liquid,
-              size: 48,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 24),
-          
-          // Texto "Agora:" ou "Próximo às:"
-          Text(
-            _proximoHorarioAgendado != null && _proximoHorarioAgendado!.isBefore(DateTime.now().add(const Duration(minutes: 10)))
-                ? 'Agora:'
-                : 'Próximo às:',
-            style: AppTextStyles.leagueSpartan(
-              fontSize: textScaler.scale(20),
-              color: Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
-              fontWeight: FontWeight.w500,
-            ).copyWith(
-              // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
-              shadows: [
-                Shadow(
-                  offset: const Offset(0, 2),
-                  blurRadius: 4,
-                  color: Colors.black.withValues(alpha: 0.5),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          
-          // Horário Previsto
-          Text(
-            horaPrevista,
-            style: AppTextStyles.leagueSpartan(
-              fontSize: textScaler.scale(28),
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ).copyWith(
-              // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
-              shadows: [
-                Shadow(
-                  offset: const Offset(0, 2),
-                  blurRadius: 4,
-                  color: Colors.black.withValues(alpha: 0.5),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // Nome do medicamento (TEXTO GIGANTE)
-          GestureDetector(
-            onTap: () {
-              // Text-to-Speech ao tocar no nome
-              AccessibilityService.speak(
-                '${_proximoMedicamento!.nome}, ${_proximoMedicamento!.dosagem ?? 'dosagem não especificada'}',
-              );
-            },
-            child: Text(
-              '${_proximoMedicamento!.nome}',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.leagueSpartan(
-                fontSize: textScaler.scale(36),
-                fontWeight: FontWeight.w700,
+          children: [
+            // Ícone de medicamento
+            Container(
+              padding: AppSpacing.paddingLarge,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.medication_liquid,
+                size: 48,
                 color: Colors.white,
-                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Texto "Agora:" ou "Próximo às:"
+            Text(
+              _proximoHorarioAgendado != null &&
+                      _proximoHorarioAgendado!.isBefore(
+                          DateTime.now().add(const Duration(minutes: 10)))
+                  ? 'Agora:'
+                  : 'Próximo às:',
+              style: AppTextStyles.leagueSpartan(
+                fontSize: textScaler.scale(20),
+                color:
+                    Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
+                fontWeight: FontWeight.w500,
               ).copyWith(
                 // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
                 shadows: [
@@ -630,60 +615,110 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          
-          // Dosagem
-          Text(
-            _proximoMedicamento!.dosagem ?? 'Dosagem não especificada',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.leagueSpartan(
-              fontSize: textScaler.scale(24),
-              color: Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
-              fontWeight: FontWeight.w500,
-            ).copyWith(
-              // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
-              shadows: [
-                Shadow(
-                  offset: const Offset(0, 2),
-                  blurRadius: 4,
-                  color: Colors.black.withValues(alpha: 0.5),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: AppSpacing.xlarge),
-          
-          // Botão GIGANTE "JÁ TOMEI"
-          Semantics(
-            label: 'Botão Já Tomei',
-            hint: 'Toque para marcar o próximo medicamento como tomado',
-            button: true,
-            child: SizedBox(
-              width: double.infinity,
-              height: 80, // Botão gigante para acessibilidade
-              child: ElevatedButton(
-                onPressed: _marcarComoTomado,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: AppBorderRadius.mediumAll,
+            const SizedBox(height: 8),
+
+            // Horário Previsto
+            Text(
+              horaPrevista,
+              style: AppTextStyles.leagueSpartan(
+                fontSize: textScaler.scale(28),
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ).copyWith(
+                // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                shadows: [
+                  Shadow(
+                    offset: const Offset(0, 2),
+                    blurRadius: 4,
+                    color: Colors.black.withValues(alpha: 0.5),
                   ),
-                  elevation: 4,
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Nome do medicamento (TEXTO GIGANTE)
+            GestureDetector(
+              onTap: () {
+                // Text-to-Speech ao tocar no nome
+                AccessibilityService.speak(
+                  '${_proximoMedicamento!.nome}, ${_proximoMedicamento!.dosagem ?? 'dosagem não especificada'}',
+                );
+              },
+              child: Text(
+                '${_proximoMedicamento!.nome}',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.leagueSpartan(
+                  fontSize: textScaler.scale(36),
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ).copyWith(
+                  // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                  shadows: [
+                    Shadow(
+                      offset: const Offset(0, 2),
+                      blurRadius: 4,
+                      color: Colors.black.withValues(alpha: 0.5),
+                    ),
+                  ],
                 ),
-                child: Text(
-                  'JÁ TOMEI',
-                  style: AppTextStyles.leagueSpartan(
-                    fontSize: textScaler.scale(28),
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Dosagem
+            Text(
+              _proximoMedicamento!.dosagem ?? 'Dosagem não especificada',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.leagueSpartan(
+                fontSize: textScaler.scale(24),
+                color:
+                    Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
+                fontWeight: FontWeight.w500,
+              ).copyWith(
+                // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                shadows: [
+                  Shadow(
+                    offset: const Offset(0, 2),
+                    blurRadius: 4,
+                    color: Colors.black.withValues(alpha: 0.5),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: AppSpacing.xlarge),
+
+            // Botão GIGANTE "JÁ TOMEI"
+            Semantics(
+              label: 'Botão Já Tomei',
+              hint: 'Toque para marcar o próximo medicamento como tomado',
+              button: true,
+              child: SizedBox(
+                width: double.infinity,
+                height: 80, // Botão gigante para acessibilidade
+                child: ElevatedButton(
+                  onPressed: _marcarComoTomado,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: AppBorderRadius.mediumAll,
+                    ),
+                    elevation: 4,
+                  ),
+                  child: Text(
+                    'JÁ TOMEI',
+                    style: AppTextStyles.leagueSpartan(
+                      fontSize: textScaler.scale(28),
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.5,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
         ),
       ),
     );
@@ -692,110 +727,113 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
   Widget _buildSOSButton() {
     // WCAG 1.4.4: Respeitar configuração de fonte grande do sistema
     // Tratamento de erro: garantir que textScaler sempre esteja disponível
-    final textScaler = MediaQuery.maybeOf(context)?.textScaler ?? 
-                       const TextScaler.linear(1.0);
-    
+    final textScaler =
+        MediaQuery.maybeOf(context)?.textScaler ?? const TextScaler.linear(1.0);
+
     return Semantics(
       label: 'Botão SOS de Emergência',
-      hint: 'Toque para abrir a tela de emergência e alertar todos os familiares',
+      hint:
+          'Toque para abrir a tela de emergência e alertar todos os familiares',
       button: true,
       child: AnimatedCard(
         index: 2,
         child: CareMindCard(
           variant: CardVariant.glass,
           padding: AppSpacing.paddingLarge,
-        onTap: () async {
-          try {
-            // WCAG: Feedback multissensorial (háptico + sonoro) para ação crítica
+          onTap: () async {
             try {
-              await AccessibilityService.vibrar(duration: 300);
-            } catch (e) {
-              debugPrint('Erro ao vibrar: $e');
-            }
-            
-            try {
-              await AccessibilityService.speak("Abrindo tela de emergência");
-            } catch (e) {
-              debugPrint('Erro ao falar: $e');
-            }
-            
-            if (mounted) {
-              Navigator.push(
-                context,
-                AppNavigation.smoothRoute(
-                  const AjudaScreen(),
-                ),
-              );
-            }
-          } catch (e) {
-            // Erro crítico - garantir que usuário ainda possa acessar a tela
-            debugPrint('Erro ao abrir tela de emergência: $e');
-            if (mounted) {
-              Navigator.push(
-                context,
-                AppNavigation.smoothRoute(
-                  const AjudaScreen(),
-                ),
-              );
-            }
-          }
-        },
-        child: Row(
-          children: [
-            Container(
-              padding: AppSpacing.paddingCard,
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.warning_amber_rounded,
-                size: 32,
-                color: Colors.red,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '🚨 EMERGÊNCIA',
-                    style: AppTextStyles.leagueSpartan(
-                      fontSize: textScaler.scale(20),
-                      fontWeight: FontWeight.w700,
-                      color: Colors.red,
-                      letterSpacing: 1.5,
-                    ),
+              // WCAG: Feedback multissensorial (háptico + sonoro) para ação crítica
+              try {
+                await AccessibilityService.vibrar(duration: 300);
+              } catch (e) {
+                debugPrint('Erro ao vibrar: $e');
+              }
+
+              try {
+                await AccessibilityService.speak("Abrindo tela de emergência");
+              } catch (e) {
+                debugPrint('Erro ao falar: $e');
+              }
+
+              if (mounted) {
+                Navigator.push(
+                  context,
+                  AppNavigation.smoothRoute(
+                    const AjudaScreen(),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Alerta todos os familiares',
-                    style: AppTextStyles.leagueSpartan(
-                      fontSize: textScaler.scale(16), // WCAG: Aumentado de 14px para 16px
-                      color: Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
-                    ).copyWith(
-                      // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
-                      shadows: [
-                        Shadow(
-                          offset: const Offset(0, 2),
-                          blurRadius: 4,
-                          color: Colors.black.withValues(alpha: 0.5),
-                        ),
-                      ],
-                    ),
+                );
+              }
+            } catch (e) {
+              // Erro crítico - garantir que usuário ainda possa acessar a tela
+              debugPrint('Erro ao abrir tela de emergência: $e');
+              if (mounted) {
+                Navigator.push(
+                  context,
+                  AppNavigation.smoothRoute(
+                    const AjudaScreen(),
                   ),
-                ],
+                );
+              }
+            }
+          },
+          child: Row(
+            children: [
+              Container(
+                padding: AppSpacing.paddingCard,
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.warning_amber_rounded,
+                  size: 32,
+                  color: Colors.red,
+                ),
               ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              color: Colors.white,
-              size: 20,
-            ),
-          ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '🚨 EMERGÊNCIA',
+                      style: AppTextStyles.leagueSpartan(
+                        fontSize: textScaler.scale(20),
+                        fontWeight: FontWeight.w700,
+                        color: Colors.red,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Alerta todos os familiares',
+                      style: AppTextStyles.leagueSpartan(
+                        fontSize: textScaler
+                            .scale(16), // WCAG: Aumentado de 14px para 16px
+                        color: Colors
+                            .white, // WCAG: Aumentado opacidade de 0.9 para 1.0
+                      ).copyWith(
+                        // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                        shadows: [
+                          Shadow(
+                            offset: const Offset(0, 2),
+                            blurRadius: 4,
+                            color: Colors.black.withValues(alpha: 0.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios,
+                color: Colors.white,
+                size: 20,
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -825,7 +863,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
           ),
         ),
         const SizedBox(height: 16),
-        
+
         // Botão Meus Remédios
         Semantics(
           label: 'Meus Remédios',
@@ -836,13 +874,14 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
             label: 'Meus Remédios',
             color: const Color(0xFFE91E63),
             onTap: () async {
-              await _voiceNavigation.navigateToScreen(context, VoiceScreen.medications);
+              await _voiceNavigation.navigateToScreen(
+                  context, VoiceScreen.medications);
               await TTSEnhancer.announceNavigation('Dashboard', 'Medicamentos');
             },
           ),
         ),
         const SizedBox(height: 16),
-        
+
         // Botão Ajuda/Emergência (mantido para compatibilidade)
         Semantics(
           label: 'Ajuda e Emergência',
@@ -859,7 +898,8 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
                   const AjudaScreen(),
                 ),
               );
-              await TTSEnhancer.announceNavigation('Dashboard', 'Ajuda e Emergência');
+              await TTSEnhancer.announceNavigation(
+                  'Dashboard', 'Ajuda e Emergência');
             },
           ),
         ),
@@ -877,9 +917,9 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
   }) {
     // WCAG 1.4.4: Respeitar configuração de fonte grande do sistema
     // Tratamento de erro: garantir que textScaler sempre esteja disponível
-    final textScaler = MediaQuery.maybeOf(context)?.textScaler ?? 
-                       const TextScaler.linear(1.0);
-    
+    final textScaler =
+        MediaQuery.maybeOf(context)?.textScaler ?? const TextScaler.linear(1.0);
+
     return AnimatedCard(
       index: 4,
       child: CareMindCard(
@@ -926,8 +966,10 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
               Text(
                 subtitle,
                 style: AppTextStyles.leagueSpartan(
-                  fontSize: textScaler.scale(16), // WCAG: Aumentado de 14px para 16px
-                  color: Colors.white, // WCAG: Aumentado opacidade de 0.8 para 1.0
+                  fontSize:
+                      textScaler.scale(16), // WCAG: Aumentado de 14px para 16px
+                  color:
+                      Colors.white, // WCAG: Aumentado opacidade de 0.8 para 1.0
                 ).copyWith(
                   // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
                   shadows: [
@@ -945,5 +987,4 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen> with Ticker
       ),
     );
   }
-
 }

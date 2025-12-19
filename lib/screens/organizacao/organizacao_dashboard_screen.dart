@@ -24,7 +24,9 @@ class OrganizacaoDashboardScreen extends ConsumerWidget {
     if (organizacao == null || organizacao.id != organizacaoId) {
       // Carregar organização se ainda não estiver carregada
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(organizacaoProvider.notifier).selecionarOrganizacao(organizacaoId);
+        ref
+            .read(organizacaoProvider.notifier)
+            .selecionarOrganizacao(organizacaoId);
       });
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -52,133 +54,133 @@ class OrganizacaoDashboardScreen extends ConsumerWidget {
           ],
         ),
         body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Card de informações
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      organizacao.nome,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (organizacao.cnpj != null) ...[
-                      const SizedBox(height: 8),
-                      Text('CNPJ: ${organizacao.cnpj}'),
-                    ],
-                    if (organizacao.telefone != null) ...[
-                      const SizedBox(height: 4),
-                      Text('Telefone: ${organizacao.telefone}'),
-                    ],
-                    if (organizacaoState.roleAtual != null) ...[
-                      const SizedBox(height: 8),
-                      Chip(
-                        label: Text(
-                          'Função: ${organizacaoState.roleAtual}',
-                          style: const TextStyle(fontSize: 12),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Card de informações
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        organizacao.nome,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                         ),
-                        backgroundColor: Colors.blue.shade100,
                       ),
+                      if (organizacao.cnpj != null) ...[
+                        const SizedBox(height: 8),
+                        Text('CNPJ: ${organizacao.cnpj}'),
+                      ],
+                      if (organizacao.telefone != null) ...[
+                        const SizedBox(height: 4),
+                        Text('Telefone: ${organizacao.telefone}'),
+                      ],
+                      if (organizacaoState.roleAtual != null) ...[
+                        const SizedBox(height: 8),
+                        Chip(
+                          label: Text(
+                            'Função: ${organizacaoState.roleAtual}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          backgroundColor: Colors.blue.shade100,
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            // Ações rápidas
-            const Text(
-              'Ações Rápidas',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+              const SizedBox(height: 24),
+              // Ações rápidas
+              const Text(
+                'Ações Rápidas',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.5,
-              children: [
-                _buildActionCard(
-                  context,
-                  icon: Icons.people,
-                  title: 'Idosos',
-                  color: Colors.blue,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => IdososOrganizacaoListaScreen(
-                          organizacaoId: organizacaoId,
+              const SizedBox(height: 16),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 1.5,
+                children: [
+                  _buildActionCard(
+                    context,
+                    icon: Icons.people,
+                    title: 'Idosos',
+                    color: Colors.blue,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => IdososOrganizacaoListaScreen(
+                            organizacaoId: organizacaoId,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-                _buildActionCard(
-                  context,
-                  icon: Icons.group,
-                  title: 'Membros',
-                  color: Colors.green,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MembrosListaScreen(
-                          organizacaoId: organizacaoId,
+                      );
+                    },
+                  ),
+                  _buildActionCard(
+                    context,
+                    icon: Icons.group,
+                    title: 'Membros',
+                    color: Colors.green,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MembrosListaScreen(
+                            organizacaoId: organizacaoId,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-                _buildActionCard(
-                  context,
-                  icon: Icons.assessment,
-                  title: 'Relatórios',
-                  color: Colors.purple,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RelatoriosOrganizacaoScreen(
-                          organizacaoId: organizacaoId,
+                      );
+                    },
+                  ),
+                  _buildActionCard(
+                    context,
+                    icon: Icons.assessment,
+                    title: 'Relatórios',
+                    color: Colors.purple,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => RelatoriosOrganizacaoScreen(
+                            organizacaoId: organizacaoId,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-                _buildActionCard(
-                  context,
-                  icon: Icons.settings,
-                  title: 'Configurações',
-                  color: Colors.orange,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => OrganizacaoConfiguracoesScreen(
-                          organizacaoId: organizacaoId,
+                      );
+                    },
+                  ),
+                  _buildActionCard(
+                    context,
+                    icon: Icons.settings,
+                    title: 'Configurações',
+                    color: Colors.orange,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => OrganizacaoConfiguracoesScreen(
+                            organizacaoId: organizacaoId,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -216,4 +218,3 @@ class OrganizacaoDashboardScreen extends ConsumerWidget {
     );
   }
 }
-

@@ -88,7 +88,7 @@ class LocationService {
       } catch (_) {
         // Ignorar erro do fallback
       }
-      
+
       // Se chegou aqui, não conseguiu capturar nem fallback
       throw LocationException(
         'Erro ao capturar localização: ${e.toString()}',
@@ -106,7 +106,7 @@ class LocationService {
         if (position.latitude.isNaN || position.longitude.isNaN) {
           return null;
         }
-        
+
         // Verificar se a localização não é muito antiga (mais de 1 hora)
         final agora = DateTime.now();
         final diferenca = agora.difference(position.timestamp);
@@ -114,7 +114,7 @@ class LocationService {
           // Localização muito antiga, não usar
           return null;
         }
-        
+
         return {
           'latitude': position.latitude,
           'longitude': position.longitude,
@@ -161,7 +161,7 @@ class LocationService {
 class TimeoutException implements Exception {
   final String message;
   TimeoutException(this.message);
-  
+
   @override
   String toString() => message;
 }
@@ -179,12 +179,12 @@ enum LocationErrorType {
 class LocationException implements Exception {
   final String message;
   final LocationErrorType type;
-  
+
   LocationException(this.message, {required this.type});
-  
+
   @override
   String toString() => message;
-  
+
   /// Mensagem amigável para o usuário
   String get userFriendlyMessage {
     switch (type) {
@@ -201,4 +201,3 @@ class LocationException implements Exception {
     }
   }
 }
-

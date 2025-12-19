@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../theme/app_theme.dart';
+import '../../core/feedback/feedback_service.dart';
+import '../../core/errors/error_handler.dart';
 
 /// Tela de instruções para desabilitar otimização de bateria
-/// 
+///
 /// Esta tela instrui o usuário a desabilitar a otimização de bateria
 /// para garantir que os alarmes de medicamentos funcionem corretamente.
 class BatteryOptimizationScreen extends StatefulWidget {
   const BatteryOptimizationScreen({super.key});
 
   @override
-  State<BatteryOptimizationScreen> createState() => _BatteryOptimizationScreenState();
+  State<BatteryOptimizationScreen> createState() =>
+      _BatteryOptimizationScreenState();
 }
 
 class _BatteryOptimizationScreenState extends State<BatteryOptimizationScreen> {
@@ -45,14 +48,12 @@ class _BatteryOptimizationScreenState extends State<BatteryOptimizationScreen> {
   Future<void> _requestDisableOptimization() async {
     try {
       final status = await Permission.ignoreBatteryOptimizations.request();
-      
+
       if (status.isGranted) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Otimização de bateria desabilitada com sucesso!'),
-              backgroundColor: AppColors.success,
-            ),
+          FeedbackService.showSuccess(
+            context,
+            '✅ Otimização de bateria desabilitada com sucesso!',
           );
         }
         await _checkBatteryOptimization();
@@ -61,22 +62,15 @@ class _BatteryOptimizationScreenState extends State<BatteryOptimizationScreen> {
         await _openBatterySettings();
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('⚠️ Permissão negada. Abra as configurações manualmente.'),
-              backgroundColor: AppColors.warning,
-            ),
+          FeedbackService.showWarning(
+            context,
+            '⚠️ Permissão negada. Abra as configurações manualmente.',
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Erro: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        FeedbackService.showError(context, ErrorHandler.toAppException(e));
       }
     }
   }
@@ -87,11 +81,10 @@ class _BatteryOptimizationScreenState extends State<BatteryOptimizationScreen> {
       await openAppSettings();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Não foi possível abrir as configurações: $e'),
-            backgroundColor: AppColors.error,
-          ),
+        FeedbackService.showError(
+          context,
+          ErrorHandler.toAppException(
+              Exception('Não foi possível abrir as configurações: $e')),
         );
       }
     }
@@ -225,7 +218,8 @@ class _BatteryOptimizationScreenState extends State<BatteryOptimizationScreen> {
             const SizedBox(height: 12),
             _buildInstructionStep(
               number: 2,
-              text: 'Procure por "Otimização de Bateria" ou "Battery Optimization"',
+              text:
+                  'Procure por "Otimização de Bateria" ou "Battery Optimization"',
             ),
             const SizedBox(height: 12),
             _buildInstructionStep(
@@ -368,4 +362,3 @@ class _BatteryOptimizationScreenState extends State<BatteryOptimizationScreen> {
     );
   }
 }
-

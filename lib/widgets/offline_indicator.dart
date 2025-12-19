@@ -4,40 +4,41 @@ import '../theme/app_theme.dart';
 
 class OfflineIndicator extends StatefulWidget {
   final Widget child;
-  
+
   const OfflineIndicator({super.key, required this.child});
-  
+
   @override
   State<OfflineIndicator> createState() => _OfflineIndicatorState();
 }
 
-class _OfflineIndicatorState extends State<OfflineIndicator> with SingleTickerProviderStateMixin {
+class _OfflineIndicatorState extends State<OfflineIndicator>
+    with SingleTickerProviderStateMixin {
   bool _isOnline = true;
   late AnimationController _animationController;
   late Animation<double> _slideAnimation;
-  
+
   @override
   void initState() {
     super.initState();
     _checkConnectivity();
     _listenToConnectivity();
-    
+
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    
+
     _slideAnimation = Tween<double>(begin: -50, end: 0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
   }
-  
+
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
   }
-  
+
   Future<void> _checkConnectivity() async {
     final isOnline = await OfflineCacheService.isOnline();
     if (mounted) {
@@ -49,14 +50,14 @@ class _OfflineIndicatorState extends State<OfflineIndicator> with SingleTickerPr
       }
     }
   }
-  
+
   void _listenToConnectivity() {
     OfflineCacheService.connectivityStream.listen((isOnline) {
       if (mounted) {
         setState(() {
           _isOnline = isOnline;
         });
-        
+
         if (!isOnline) {
           _animationController.forward();
         } else {
@@ -65,7 +66,7 @@ class _OfflineIndicatorState extends State<OfflineIndicator> with SingleTickerPr
       }
     });
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -125,7 +126,7 @@ class _OfflineIndicatorState extends State<OfflineIndicator> with SingleTickerPr
 
 class OfflineBadge extends StatelessWidget {
   const OfflineBadge({super.key});
-  
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -159,16 +160,16 @@ class OfflineBadge extends StatelessWidget {
 
 class LastSyncInfo extends StatelessWidget {
   final DateTime? lastSync;
-  
+
   const LastSyncInfo({super.key, this.lastSync});
-  
+
   @override
   Widget build(BuildContext context) {
     if (lastSync == null) return const SizedBox.shrink();
-    
+
     final difference = DateTime.now().difference(lastSync!);
     String timeAgo;
-    
+
     if (difference.inMinutes < 1) {
       timeAgo = 'agora';
     } else if (difference.inMinutes < 60) {
@@ -178,7 +179,7 @@ class LastSyncInfo extends StatelessWidget {
     } else {
       timeAgo = 'há ${difference.inDays} dia(s)';
     }
-    
+
     return Text(
       'Última atualização: $timeAgo',
       style: AppTextStyles.leagueSpartan(
@@ -188,4 +189,3 @@ class LastSyncInfo extends StatelessWidget {
     );
   }
 }
-

@@ -8,10 +8,10 @@ import 'supabase_service.dart';
 /// Usa fluxo OAuth seguro via Edge Function (sem client_secret no app)
 class AlexaAuthService {
   final SupabaseService _supabaseService;
-  
+
   // URL base da Edge Function
-  String get _edgeFunctionBaseUrl => 
-    '${dotenv.env['SUPABASE_URL']}/functions/v1';
+  String get _edgeFunctionBaseUrl =>
+      '${dotenv.env['SUPABASE_URL']}/functions/v1';
 
   AlexaAuthService(this._supabaseService);
 
@@ -93,10 +93,10 @@ class AlexaAuthService {
   /// Chamado quando o app recebe caremind://alexa-callback
   Future<void> handleCallback(Uri uri) async {
     debugPrint('📥 Callback Alexa recebido: $uri');
-    
+
     final status = uri.queryParameters['status'];
     final error = uri.queryParameters['error'];
-    
+
     if (status == 'success') {
       debugPrint('✅ Vinculação Alexa concluída com sucesso');
     } else if (error != null) {
@@ -105,4 +105,3 @@ class AlexaAuthService {
     }
   }
 }
-

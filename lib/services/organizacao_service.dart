@@ -1,5 +1,9 @@
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_service.dart';
+import '../core/errors/result.dart';
+import '../core/errors/app_exception.dart';
+import '../core/errors/error_handler.dart';
 
 /// Modelo de Organização
 class Organizacao {
@@ -47,7 +51,7 @@ class Organizacao {
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       statusAssinatura: json['status_assinatura'] as String?,
-      trialEnd: json['trial_end'] != null 
+      trialEnd: json['trial_end'] != null
           ? DateTime.parse(json['trial_end'] as String)
           : null,
       planoId: json['plano_id'] as String?,
@@ -76,7 +80,8 @@ class MembroOrganizacao {
   final String id;
   final String organizacaoId;
   final String perfilId;
-  final String role; // 'admin', 'medico', 'enfermeiro', 'cuidador', 'recepcionista'
+  final String
+      role; // 'admin', 'medico', 'enfermeiro', 'cuidador', 'recepcionista'
   final bool ativo;
   final DateTime createdAt;
   final String? nomePerfil;
@@ -163,7 +168,7 @@ class OrganizacaoService {
   OrganizacaoService(this._supabaseService);
 
   /// Criar nova organização
-  Future<Organizacao> criarOrganizacao({
+  Future<Result<Organizacao>> criarOrganizacao({
     required String nome,
     String? cnpj,
     String? telefone,
@@ -173,7 +178,9 @@ class OrganizacaoService {
     try {
       final user = _supabaseService.currentUser;
       if (user == null) {
-        throw Exception('Usuário não autenticado');
+        return Failure(AuthenticationException(
+          message: 'Usuário não autenticado',
+        ));
       }
 
       final response = await Supabase.instance.client.functions.invoke(
@@ -187,15 +194,26 @@ class OrganizacaoService {
         },
       );
 
-      if (response.status != 200) {
-        final error = response.data as Map<String, dynamic>?;
-        throw Exception(error?['error'] ?? 'Erro ao criar organização');
+      if (response.status == 200) {
+        final data = response.data as Map<String, dynamic>;
+        return Success(
+            Organizacao.fromJson(data['organizacao'] as Map<String, dynamic>));
       }
 
-      final data = response.data as Map<String, dynamic>;
-      return Organizacao.fromJson(data['organizacao'] as Map<String, dynamic>);
+      if (response.data is Map<String, dynamic>) {
+        final exception = ErrorHandler.fromStructuredError(
+            response.data as Map<String, dynamic>);
+        return Failure(exception);
+      }
+
+      return Failure(UnknownException(message: 'Erro ao criar organização'));
+    } on SocketException catch (e) {
+      return Failure(NetworkException(
+        message: 'Erro de conexão. Verifique sua internet.',
+        originalError: e,
+      ));
     } catch (e) {
-      throw Exception('Erro ao criar organização: $e');
+      return Failure(ErrorHandler.toAppException(e));
     }
   }
 
@@ -331,4 +349,3 @@ class OrganizacaoService {
     return role == 'admin';
   }
 }
-

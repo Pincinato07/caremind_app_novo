@@ -24,7 +24,7 @@ class GlobalWaveBackground extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Ondas animadas (já tem RepaintBoundary interno no WaveBackground)
           const WaveBackground(
             height: double.infinity,

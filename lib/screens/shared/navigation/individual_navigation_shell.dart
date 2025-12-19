@@ -18,18 +18,20 @@ class IndividualNavigationShell extends ConsumerStatefulWidget {
   const IndividualNavigationShell({super.key});
 
   @override
-  ConsumerState<IndividualNavigationShell> createState() => _IndividualNavigationShellState();
+  ConsumerState<IndividualNavigationShell> createState() =>
+      _IndividualNavigationShellState();
 }
 
-class _IndividualNavigationShellState extends ConsumerState<IndividualNavigationShell> {
+class _IndividualNavigationShellState
+    extends ConsumerState<IndividualNavigationShell> {
   int _selectedIndex = 0;
 
   List<Widget> get _pages {
     final organizacaoState = ref.watch(organizacaoProvider);
-    
+
     // Se o usuário é membro/enfermeiro de organização (não admin), mostrar apenas Lista de Pacientes
-    if (organizacaoState.isModoOrganizacao && 
-        organizacaoState.roleAtual != null && 
+    if (organizacaoState.isModoOrganizacao &&
+        organizacaoState.roleAtual != null &&
         organizacaoState.roleAtual != 'admin' &&
         organizacaoState.organizacaoAtual?.id != null) {
       return [
@@ -38,7 +40,7 @@ class _IndividualNavigationShellState extends ConsumerState<IndividualNavigation
         ),
       ];
     }
-    
+
     // Caso contrário, mostrar todas as telas normais
     return const [
       IndividualDashboardScreen(),
@@ -47,13 +49,13 @@ class _IndividualNavigationShellState extends ConsumerState<IndividualNavigation
       GestaoScreen(),
     ];
   }
-  
+
   List<Widget> _buildNavItems() {
     final organizacaoState = ref.watch(organizacaoProvider);
-    
+
     // Se o usuário é membro/enfermeiro de organização (não admin), mostrar apenas Lista de Pacientes
-    if (organizacaoState.isModoOrganizacao && 
-        organizacaoState.roleAtual != null && 
+    if (organizacaoState.isModoOrganizacao &&
+        organizacaoState.roleAtual != null &&
         organizacaoState.roleAtual != 'admin') {
       return [
         NavItem(
@@ -64,7 +66,7 @@ class _IndividualNavigationShellState extends ConsumerState<IndividualNavigation
         ),
       ];
     }
-    
+
     // Caso contrário, mostrar todos os itens normais
     return [
       NavItem(
@@ -105,8 +107,8 @@ class _IndividualNavigationShellState extends ConsumerState<IndividualNavigation
   Widget build(BuildContext context) {
     return PopScope(
       canPop: true, // ✅ Permitir navegação normal com botão voltar do sistema
-      onPopInvoked: (didPop) {
-        // Se o usuário tentou voltar mas não conseguiu (raro), 
+      onPopInvokedWithResult: (didPop, result) {
+        // Se o usuário tentou voltar mas não conseguiu (raro),
         // podemos adicionar lógica adicional aqui se necessário
         // Por exemplo: confirmação de saída apenas em casos específicos
       },

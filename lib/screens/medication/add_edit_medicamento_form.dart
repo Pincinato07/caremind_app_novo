@@ -6,6 +6,8 @@ import '../../services/supabase_service.dart';
 import '../../services/notification_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
+import '../../core/feedback/feedback_service.dart';
+import '../../core/errors/error_handler.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 
 class AddEditMedicamentoForm extends StatefulWidget {
@@ -23,12 +25,12 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
   final _nomeController = TextEditingController();
   final _dosagemController = TextEditingController();
   final _quantidadeController = TextEditingController();
-  
+
   String _tipoFrequencia = 'diario';
   int _vezesPorDia = 1;
   List<String> _diasSemana = [];
   String _descricaoPersonalizada = '';
-  
+
   bool _isLoading = false;
   bool get _isEditing => widget.medicamento != null;
 
@@ -55,12 +57,12 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
     _nomeController.text = medicamento.nome;
     _dosagemController.text = medicamento.dosagem ?? '';
     _quantidadeController.text = medicamento.quantidade?.toString() ?? '';
-    
+
     // Carrega dados da frequência
     final frequencia = medicamento.frequencia;
     if (frequencia != null && frequencia.containsKey('tipo')) {
       _tipoFrequencia = frequencia['tipo'];
-      
+
       switch (_tipoFrequencia) {
         case 'diario':
           _vezesPorDia = frequencia['vezes_por_dia'] ?? 1;
@@ -113,8 +115,9 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
       _showError('Selecione pelo menos um dia da semana');
       return;
     }
-    
-    if (_tipoFrequencia == 'personalizado' && _descricaoPersonalizada.trim().isEmpty) {
+
+    if (_tipoFrequencia == 'personalizado' &&
+        _descricaoPersonalizada.trim().isEmpty) {
       _showError('Descreva a frequência personalizada');
       return;
     }
@@ -142,19 +145,19 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
           'quantidade': int.parse(_quantidadeController.text),
           'frequencia': _buildFrequenciaJson(),
         };
-        
+
         final medicamentoSalvo = await medicamentoService.updateMedicamento(
           widget.medicamento!.id!,
           updates,
         );
-        
+
         // Cancelar notificações antigas e agendar novas
         await NotificationService.cancelMedicamentoNotifications(
           widget.medicamento!.id!,
         );
         // Agendar novas notificações baseadas na frequência atualizada
         await NotificationService.scheduleMedicationReminders(medicamentoSalvo);
-        
+
         _showSuccess('Medicamento atualizado com sucesso');
       } else {
         // Criar novo medicamento
@@ -166,15 +169,16 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
           frequencia: _buildFrequenciaJson(),
           quantidade: int.parse(_quantidadeController.text),
         );
-        
-        final medicamentoSalvo = await medicamentoService.addMedicamento(medicamento);
-        
+
+        final medicamentoSalvo =
+            await medicamentoService.addMedicamento(medicamento);
+
         // Agendar notificações diárias repetitivas baseadas na frequência
         await NotificationService.scheduleMedicationReminders(medicamentoSalvo);
-        
+
         _showSuccess('Medicamento adicionado com sucesso');
       }
-      
+
       Navigator.pop(context, true); // Retorna true para indicar sucesso
     } catch (error) {
       final errorMessage = error is AppException
@@ -187,22 +191,12 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
+    FeedbackService.showError(
+        context, ErrorHandler.toAppException(Exception(message)));
   }
 
-
   void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-      ),
-    );
+    FeedbackService.showSuccess(context, message);
   }
 
   @override
@@ -239,234 +233,242 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-              // Header com ícone
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF0400B9).withValues(alpha: 0.1),
-                      const Color(0xFF0400B9).withValues(alpha: 0.05),
+                // Header com ícone
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF0400B9).withValues(alpha: 0.1),
+                        const Color(0xFF0400B9).withValues(alpha: 0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0400B9),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.medication,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _isEditing
+                                  ? 'Editar Medicamento'
+                                  : 'Novo Medicamento',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.idosoId != null
+                                  ? 'Adicionando remédio para o idoso vinculado'
+                                  : (_isEditing
+                                      ? 'Atualize as informações do medicamento'
+                                      : 'Preencha os dados do medicamento'),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0400B9),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.medication,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+
+                const SizedBox(height: 24),
+
+                // Campo Nome
+                _buildTextField(
+                  controller: _nomeController,
+                  label: 'Nome do Medicamento',
+                  icon: Icons.medication,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Por favor, insira o nome do medicamento';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // Campo Dosagem
+                _buildTextField(
+                  controller: _dosagemController,
+                  label: 'Dosagem',
+                  hint: 'ex: 500mg, 1 comprimido',
+                  icon: Icons.local_pharmacy,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Por favor, insira a dosagem';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // Campo Quantidade
+                _buildTextField(
+                  controller: _quantidadeController,
+                  label: 'Quantidade em estoque',
+                  icon: Icons.inventory_2_outlined,
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Por favor, insira a quantidade';
+                    }
+                    final quantidade = int.tryParse(value);
+                    if (quantidade == null || quantidade <= 0) {
+                      return 'Por favor, insira uma quantidade válida';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 32),
+
+                // Seção Frequência
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Text(
-                            _isEditing ? 'Editar Medicamento' : 'Novo Medicamento',
-                            style: const TextStyle(
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0400B9),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.schedule,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Frequência de Uso',
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.black87,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            widget.idosoId != null
-                                ? 'Adicionando remédio para o idoso vinculado'
-                                : (_isEditing ? 'Atualize as informações do medicamento' : 'Preencha os dados do medicamento'),
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Campo Nome
-              _buildTextField(
-                controller: _nomeController,
-                label: 'Nome do Medicamento',
-                icon: Icons.medication,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Por favor, insira o nome do medicamento';
-                  }
-                  return null;
-                },
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Campo Dosagem
-              _buildTextField(
-                controller: _dosagemController,
-                label: 'Dosagem',
-                hint: 'ex: 500mg, 1 comprimido',
-                icon: Icons.local_pharmacy,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Por favor, insira a dosagem';
-                  }
-                  return null;
-                },
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Campo Quantidade
-              _buildTextField(
-                controller: _quantidadeController,
-                label: 'Quantidade em estoque',
-                icon: Icons.inventory_2_outlined,
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Por favor, insira a quantidade';
-                  }
-                  final quantidade = int.tryParse(value);
-                  if (quantidade == null || quantidade <= 0) {
-                    return 'Por favor, insira uma quantidade válida';
-                  }
-                  return null;
-                },
-              ),
-              
-              const SizedBox(height: 32),
-              
-              // Seção Frequência
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0400B9),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.schedule,
-                            color: Colors.white,
-                            size: 20,
-                          ),
+
+                      const SizedBox(height: 16),
+
+                      // Seletor de tipo de frequência
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300),
                         ),
-                        const SizedBox(width: 12),
-                        const Text(
-                          'Frequência de Uso',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Seletor de tipo de frequência
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Column(
-                        children: [
-                          _buildRadioTile('Diário', 'diario', Icons.today),
-                          const Divider(height: 1),
-                          _buildRadioTile('Semanal', 'semanal', Icons.calendar_view_week),
-                          const Divider(height: 1),
-                          _buildRadioTile('Personalizado', 'personalizado', Icons.edit_calendar),
-                        ],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Configurações específicas da frequência
-                    _buildFrequenciaConfig(),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 32),
-              
-              // Botão Salvar
-              Container(
-                height: 56,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF0400B9).withValues(alpha: 0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _saveMedicamento,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        child: Column(
                           children: [
-                            Icon(
-                              _isEditing ? Icons.update : Icons.add,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _isEditing ? 'Atualizar Medicamento' : 'Adicionar Medicamento',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
+                            _buildRadioTile('Diário', 'diario', Icons.today),
+                            const Divider(height: 1),
+                            _buildRadioTile(
+                                'Semanal', 'semanal', Icons.calendar_view_week),
+                            const Divider(height: 1),
+                            _buildRadioTile('Personalizado', 'personalizado',
+                                Icons.edit_calendar),
                           ],
                         ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Configurações específicas da frequência
+                      _buildFrequenciaConfig(),
+                    ],
+                  ),
                 ),
-              ),
-              
-              const SizedBox(height: 24), // Espaço extra antes do botão
-            ],
+
+                const SizedBox(height: 32),
+
+                // Botão Salvar
+                Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF0400B9).withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _saveMedicamento,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                _isEditing ? Icons.update : Icons.add,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _isEditing
+                                    ? 'Atualizar Medicamento'
+                                    : 'Adicionar Medicamento',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 24), // Espaço extra antes do botão
+              ],
+            ),
           ),
-        ),
         ),
       ),
     );
@@ -535,7 +537,9 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
     final isSelected = _tipoFrequencia == value;
     return Container(
       decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF0400B9).withValues(alpha: 0.05) : Colors.transparent,
+        color: isSelected
+            ? const Color(0xFF0400B9).withValues(alpha: 0.05)
+            : Colors.transparent,
       ),
       child: RadioListTile<String>(
         title: Row(
@@ -556,7 +560,9 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
           ],
         ),
         value: value,
+        // ignore: deprecated_member_use
         groupValue: _tipoFrequencia,
+        // ignore: deprecated_member_use
         onChanged: (newValue) {
           setState(() {
             _tipoFrequencia = newValue!;
@@ -590,15 +596,18 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
               Row(
                 children: [
                   IconButton(
-                    onPressed: _vezesPorDia > 1 ? () {
-                      setState(() {
-                        _vezesPorDia--;
-                      });
-                    } : null,
+                    onPressed: _vezesPorDia > 1
+                        ? () {
+                            setState(() {
+                              _vezesPorDia--;
+                            });
+                          }
+                        : null,
                     icon: const Icon(Icons.remove),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey.shade300),
                       borderRadius: BorderRadius.circular(8),
@@ -609,11 +618,13 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                     ),
                   ),
                   IconButton(
-                    onPressed: _vezesPorDia < 10 ? () {
-                      setState(() {
-                        _vezesPorDia++;
-                      });
-                    } : null,
+                    onPressed: _vezesPorDia < 10
+                        ? () {
+                            setState(() {
+                              _vezesPorDia++;
+                            });
+                          }
+                        : null,
                     icon: const Icon(Icons.add),
                   ),
                 ],
@@ -621,7 +632,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
             ],
           ),
         );
-        
+
       case 'semanal':
         return Container(
           padding: const EdgeInsets.all(16),
@@ -657,7 +668,8 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                         }
                       });
                     },
-                    selectedColor: const Color(0xFF0400B9).withValues(alpha: 0.2),
+                    selectedColor:
+                        const Color(0xFF0400B9).withValues(alpha: 0.2),
                     checkmarkColor: const Color(0xFF0400B9),
                   );
                 }).toList(),
@@ -665,7 +677,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
             ],
           ),
         );
-        
+
       case 'personalizado':
         return Container(
           padding: const EdgeInsets.all(16),
@@ -691,7 +703,8 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                 },
                 maxLines: 3,
                 decoration: InputDecoration(
-                  hintText: 'Ex: A cada 8 horas, Apenas quando necessário, etc.',
+                  hintText:
+                      'Ex: A cada 8 horas, Apenas quando necessário, etc.',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -704,7 +717,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
             ],
           ),
         );
-        
+
       default:
         return const SizedBox.shrink();
     }

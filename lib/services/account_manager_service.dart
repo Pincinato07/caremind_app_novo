@@ -54,10 +54,10 @@ class AccountManagerService {
     String? tipo,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     // Carregar contas existentes
     final accounts = await getSavedAccounts();
-    
+
     // Atualizar ou adicionar conta
     final accountInfo = AccountInfo(
       userId: userId,
@@ -67,22 +67,22 @@ class AccountManagerService {
       tipo: tipo,
       lastLogin: DateTime.now(),
     );
-    
+
     // Remover conta antiga se existir (mesmo userId)
     accounts.removeWhere((acc) => acc.userId == userId);
-    
+
     // Adicionar nova conta no início (mais recente primeiro)
     accounts.insert(0, accountInfo);
-    
+
     // Limitar a 5 contas salvas
     if (accounts.length > 5) {
       accounts.removeRange(5, accounts.length);
     }
-    
+
     // Salvar lista de contas
     final accountsJson = accounts.map((acc) => acc.toJson()).toList();
     await prefs.setString(_accountsKey, jsonEncode(accountsJson));
-    
+
     // Salvar conta atual
     await prefs.setString(_currentAccountKey, userId);
   }
@@ -91,14 +91,16 @@ class AccountManagerService {
   Future<List<AccountInfo>> getSavedAccounts() async {
     final prefs = await SharedPreferences.getInstance();
     final accountsJson = prefs.getString(_accountsKey);
-    
+
     if (accountsJson == null || accountsJson.isEmpty) {
       return [];
     }
-    
+
     try {
       final List<dynamic> decoded = jsonDecode(accountsJson);
-      return decoded.map((json) => AccountInfo.fromJson(json as Map<String, dynamic>)).toList();
+      return decoded
+          .map((json) => AccountInfo.fromJson(json as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       return [];
     }
@@ -114,11 +116,11 @@ class AccountManagerService {
   Future<void> removeAccount(String userId) async {
     final accounts = await getSavedAccounts();
     accounts.removeWhere((acc) => acc.userId == userId);
-    
+
     final prefs = await SharedPreferences.getInstance();
     final accountsJson = accounts.map((acc) => acc.toJson()).toList();
     await prefs.setString(_accountsKey, jsonEncode(accountsJson));
-    
+
     // Se a conta removida era a atual, limpar referência
     final currentId = await getCurrentAccountId();
     if (currentId == userId) {
@@ -135,7 +137,7 @@ class AccountManagerService {
   }) async {
     final accounts = await getSavedAccounts();
     final accountIndex = accounts.indexWhere((acc) => acc.userId == userId);
-    
+
     if (accountIndex != -1) {
       final account = accounts[accountIndex];
       accounts[accountIndex] = AccountInfo(
@@ -146,7 +148,7 @@ class AccountManagerService {
         tipo: tipo ?? account.tipo,
         lastLogin: account.lastLogin,
       );
-      
+
       final prefs = await SharedPreferences.getInstance();
       final accountsJson = accounts.map((acc) => acc.toJson()).toList();
       await prefs.setString(_accountsKey, jsonEncode(accountsJson));
@@ -160,4 +162,3 @@ class AccountManagerService {
     await prefs.remove(_currentAccountKey);
   }
 }
-

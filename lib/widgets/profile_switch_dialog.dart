@@ -111,9 +111,8 @@ class ProfileSwitchDialog extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: isCurrentProfile
-              ? null
-              : () => _switchProfile(context, profile),
+          onTap:
+              isCurrentProfile ? null : () => _switchProfile(context, profile),
           borderRadius: BorderRadius.circular(AppBorderRadius.small),
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.medium),
@@ -123,9 +122,7 @@ class ProfileSwitchDialog extends StatelessWidget {
                   : AppColors.surface,
               borderRadius: BorderRadius.circular(AppBorderRadius.small),
               border: Border.all(
-                color: isCurrentProfile
-                    ? config.color
-                    : AppColors.border,
+                color: isCurrentProfile ? config.color : AppColors.border,
                 width: isCurrentProfile ? 2 : 1,
               ),
             ),
@@ -258,7 +255,7 @@ class ProfileSwitchDialog extends StatelessWidget {
       if (context.mounted) {
         // Fechar loading
         Navigator.of(context).pop();
-        
+
         // Redirecionar baseado no tipo de perfil
         final route = _getRouteForProfile(profile.tipo);
         Navigator.of(context).pushNamedAndRemoveUntil(
@@ -306,4 +303,3 @@ class _ProfileConfig {
     required this.color,
   });
 }
-

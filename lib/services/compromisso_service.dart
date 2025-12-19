@@ -11,33 +11,37 @@ class CompromissoService {
   // Buscar todos os compromissos de um usuário
   Future<List<Map<String, dynamic>>> getCompromissos(String userId) async {
     try {
-      debugPrint('📤 CompromissoService: Buscando compromissos para userId: $userId');
-      
+      debugPrint(
+          '📤 CompromissoService: Buscando compromissos para userId: $userId');
+
       // Baseado no schema, obter o perfil_id do usuário usando user_id
       final perfilResponse = await _client
           .from('perfis')
           .select('id')
           .eq('user_id', userId)
           .maybeSingle();
-      
+
       final perfilId = perfilResponse?['id'] as String?;
-      
+
       // Usar perfil_id se disponível, senão usar user_id (compatibilidade durante transição)
       final response = await _client
           .from('compromissos')
           .select()
-          .or(perfilId != null 
+          .or(perfilId != null
               ? 'perfil_id.eq.$perfilId'
               : 'perfil_id.eq.$userId')
           .order('data_hora', ascending: true);
 
-      debugPrint('✅ CompromissoService: ${response.length} compromisso(s) encontrado(s)');
+      debugPrint(
+          '✅ CompromissoService: ${response.length} compromisso(s) encontrado(s)');
       return List<Map<String, dynamic>>.from(response);
     } catch (error) {
-      debugPrint('❌ CompromissoService: Erro ao buscar compromissos: ${error.toString()}');
+      debugPrint(
+          '❌ CompromissoService: Erro ao buscar compromissos: ${error.toString()}');
       debugPrint('❌ CompromissoService: Tipo do erro: ${error.runtimeType}');
       if (error is PostgrestException) {
-        debugPrint('❌ CompromissoService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
+        debugPrint(
+            '❌ CompromissoService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
         if (error.details != null) {
           debugPrint('❌ CompromissoService: Detalhes: ${error.details}');
         }
@@ -51,21 +55,21 @@ class CompromissoService {
       String userId) async {
     try {
       final now = DateTime.now().toIso8601String();
-      
+
       // Primeiro, obter o perfil_id do usuário
       final perfilResponse = await _client
           .from('perfis')
           .select('id')
           .eq('user_id', userId)
           .maybeSingle();
-      
+
       final perfilId = perfilResponse?['id'] as String?;
-      
+
       // Usar perfil_id se disponível, senão usar user_id (compatibilidade durante transição)
       final response = await _client
           .from('compromissos')
           .select()
-          .or(perfilId != null 
+          .or(perfilId != null
               ? 'perfil_id.eq.$perfilId'
               : 'perfil_id.eq.$userId')
           .gte('data_hora', now)
@@ -82,7 +86,8 @@ class CompromissoService {
       Map<String, dynamic> compromisso) async {
     try {
       // Garantir que perfil_id ou user_id estejam presentes
-      if (compromisso['perfil_id'] == null || (compromisso['perfil_id'] as String).isEmpty) {
+      if (compromisso['perfil_id'] == null ||
+          (compromisso['perfil_id'] as String).isEmpty) {
         final userId = compromisso['user_id'] as String?;
         if (userId != null && userId.isNotEmpty) {
           final perfilResponse = await _client
@@ -90,7 +95,7 @@ class CompromissoService {
               .select('id')
               .eq('user_id', userId)
               .maybeSingle();
-          
+
           if (perfilResponse != null) {
             compromisso['perfil_id'] = perfilResponse['id'] as String;
           } else {
@@ -101,12 +106,12 @@ class CompromissoService {
           throw Exception('perfil_id é obrigatório');
         }
       }
-      
+
       // Limpar dados antes de inserir (remove strings vazias)
       final cleanedData = DataCleaner.cleanData(compromisso);
-      
+
       debugPrint('📤 CompromissoService: Dados para inserção: $cleanedData');
-      
+
       final response = await _client
           .from('compromissos')
           .insert(cleanedData)
@@ -116,10 +121,12 @@ class CompromissoService {
       debugPrint('✅ CompromissoService: Compromisso inserido com sucesso');
       return response;
     } catch (error) {
-      debugPrint('❌ CompromissoService: Erro ao adicionar compromisso: ${error.toString()}');
+      debugPrint(
+          '❌ CompromissoService: Erro ao adicionar compromisso: ${error.toString()}');
       debugPrint('❌ CompromissoService: Tipo do erro: ${error.runtimeType}');
       if (error is PostgrestException) {
-        debugPrint('❌ CompromissoService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
+        debugPrint(
+            '❌ CompromissoService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
         if (error.details != null) {
           debugPrint('❌ CompromissoService: Detalhes: ${error.details}');
         }
@@ -136,7 +143,7 @@ class CompromissoService {
     try {
       // Limpar dados antes de atualizar (remove strings vazias)
       final cleanedUpdates = DataCleaner.cleanData(updates);
-      
+
       final response = await _client
           .from('compromissos')
           .update(cleanedUpdates)

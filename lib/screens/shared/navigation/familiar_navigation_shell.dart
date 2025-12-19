@@ -19,7 +19,8 @@ class FamiliarNavigationShell extends StatefulWidget {
   const FamiliarNavigationShell({super.key});
 
   @override
-  State<FamiliarNavigationShell> createState() => _FamiliarNavigationShellState();
+  State<FamiliarNavigationShell> createState() =>
+      _FamiliarNavigationShellState();
 }
 
 class _FamiliarNavigationShellState extends State<FamiliarNavigationShell> {

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import '../../services/supabase_service.dart';
 import '../../services/convite_idoso_service.dart';
 import '../../core/injection/injection.dart';
-import '../../core/errors/app_exception.dart';
+import '../../core/feedback/feedback_service.dart';
+import '../../core/errors/error_handler.dart';
 import '../familiar/exibir_convite_screen.dart';
 
 class AdicionarIdosoForm extends StatefulWidget {
@@ -52,18 +52,25 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
         if (idIdoso != null && mounted) {
           try {
             final conviteService = getIt<ConviteIdosoService>();
-            final convite = await conviteService.gerarConvite(idIdoso);
-            
+            final conviteResult = await conviteService.gerarConvite(idIdoso);
+
+            final convite = conviteResult.when(
+              success: (data) => data,
+              failure: (exception) {
+                throw Exception('Erro ao gerar convite: ${exception.message}');
+              },
+            );
+
             // Validar dados do convite antes de exibir
             if (convite.codigoConvite.isEmpty || convite.linkCompleto.isEmpty) {
               throw Exception('Convite gerado com dados inválidos');
             }
-            
+
             // Fechar o diálogo de adicionar idoso
             if (mounted) {
               Navigator.of(context).pop(true);
             }
-            
+
             // Exibir tela de convite
             if (mounted) {
               Navigator.of(context).push(
@@ -79,74 +86,42 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
             // Se falhar ao gerar convite, apenas fecha o diálogo
             // O idoso já foi criado, então não é crítico
             debugPrint('Erro ao gerar convite após criar idoso: $e');
-            
+
             if (!mounted) return;
-            
+
             // Fechar diálogo
             Navigator.of(context).pop(true);
-            
+
             // Mostrar mensagem informando que o idoso foi criado mas o convite falhou
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Idoso "${_nomeController.text}" adicionado com sucesso!',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Não foi possível gerar o convite automaticamente. Você pode gerar um convite manualmente pelo menu do idoso.',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ],
-                ),
-                backgroundColor: Colors.orange,
-                duration: const Duration(seconds: 5),
-                action: SnackBarAction(
-                  label: 'OK',
-                  textColor: Colors.white,
-                  onPressed: () {},
-                ),
-              ),
+            FeedbackService.showWarning(
+              context,
+              'Idoso "${_nomeController.text}" adicionado com sucesso!\nNão foi possível gerar o convite automaticamente. Você pode gerar um convite manualmente pelo menu do idoso.',
+              duration: const Duration(seconds: 5),
             );
           }
         } else {
           // Se não tiver id_idoso, apenas fecha normalmente
           // Isso pode acontecer se a resposta da Edge Function não tiver o formato esperado
-          debugPrint('Aviso: Resposta da Edge Function não contém id_idoso. Estrutura: ${response.keys}');
-          
+          debugPrint(
+              'Aviso: Resposta da Edge Function não contém id_idoso. Estrutura: ${response.keys}');
+
           if (mounted) {
             Navigator.of(context).pop(true);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Idoso "${_nomeController.text}" adicionado com sucesso!'),
-                backgroundColor: Colors.green,
-              ),
-            );
+            FeedbackService.showSuccess(context,
+                'Idoso "${_nomeController.text}" adicionado com sucesso!');
           }
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response['error'] ?? response['message'] ?? 'Erro ao adicionar idoso'),
-            backgroundColor: Colors.red,
-          ),
+        FeedbackService.showError(
+          context,
+          ErrorHandler.toAppException(Exception(response['error'] ??
+              response['message'] ??
+              'Erro ao adicionar idoso')),
         );
       }
     } catch (error) {
       if (!mounted) return;
-      final errorMessage = error is AppException
-          ? error.message
-          : 'Erro ao adicionar idoso: ${error.toString()}';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-        ),
-      );
+      FeedbackService.showError(context, ErrorHandler.toAppException(error));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -178,194 +153,202 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                // Header
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.person_add,
+                          color: colors.primary,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Adicionar Idoso',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colors.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Crie a conta e estabeleça o vínculo automaticamente',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: colors.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Campo Nome
+                  TextFormField(
+                    controller: _nomeController,
+                    decoration: InputDecoration(
+                      labelText: 'Nome Completo do Idoso',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
-                        Icons.person_add,
-                        color: colors.primary,
-                        size: 24,
-                      ),
+                      filled: true,
+                      fillColor:
+                          colors.surfaceContainerHighest.withValues(alpha: 0.3),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Adicionar Idoso',
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: colors.primary,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor, insira o nome completo';
+                      }
+                      if (value.length < 3) {
+                        return 'O nome deve ter pelo menos 3 caracteres';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Campo Email
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      labelText: 'E-mail do Idoso',
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor:
+                          colors.surfaceContainerHighest.withValues(alpha: 0.3),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor, insira o e-mail';
+                      }
+                      if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+                          .hasMatch(value)) {
+                        return 'Por favor, insira um e-mail válido';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Campo Senha
+                  TextFormField(
+                    controller: _senhaController,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Senha Inicial',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor:
+                          colors.surfaceContainerHighest.withValues(alpha: 0.3),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor, insira uma senha';
+                      }
+                      if (value.length < 6) {
+                        return 'A senha deve ter pelo menos 6 caracteres';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Info sobre senha
+                  Text(
+                    'Esta será a senha inicial do idoso. Ele poderá alterá-la depois.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Botões
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () => Navigator.of(context).pop(),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Crie a conta e estabeleça o vínculo automaticamente',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: colors.onSurfaceVariant,
+                          child: const Text('Cancelar'),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _submitForm,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colors.primary,
+                            foregroundColor: colors.onPrimary,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
-
-                // Campo Nome
-                TextFormField(
-                  controller: _nomeController,
-                  decoration: InputDecoration(
-                    labelText: 'Nome Completo do Idoso',
-                    prefixIcon: const Icon(Icons.person_outline),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.3),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, insira o nome completo';
-                    }
-                    if (value.length < 3) {
-                      return 'O nome deve ter pelo menos 3 caracteres';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 16),
-
-                // Campo Email
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: 'E-mail do Idoso',
-                    prefixIcon: const Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.3),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, insira o e-mail';
-                    }
-                    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value)) {
-                      return 'Por favor, insira um e-mail válido';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 16),
-
-                // Campo Senha
-                TextFormField(
-                  controller: _senhaController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Senha Inicial',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.3),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, insira uma senha';
-                    }
-                    if (value.length < 6) {
-                      return 'A senha deve ter pelo menos 6 caracteres';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 8),
-
-                // Info sobre senha
-                Text(
-                  'Esta será a senha inicial do idoso. Ele poderá alterá-la depois.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Botões
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  ),
+                                )
+                              : const Text('Adicionar e Conectar'),
                         ),
-                        child: const Text('Cancelar'),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _submitForm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: colors.primary,
-                          foregroundColor: colors.onPrimary,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Text('Adicionar e Conectar'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-      ),
     );
   }
 }
-

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import '../../theme/app_theme.dart';
 import '../../models/perfil.dart';
 import '../../widgets/caremind_card.dart';
 import '../../widgets/animated_card.dart';
 import '../../services/onboarding_service.dart';
+import '../../core/feedback/feedback_service.dart';
 
 /// Tela de onboarding contextual que aparece após o primeiro login
 /// Guia o usuário para a primeira ação baseado no tipo de perfil
@@ -17,10 +17,12 @@ class OnboardingContextualScreen extends StatefulWidget {
   });
 
   @override
-  State<OnboardingContextualScreen> createState() => _OnboardingContextualScreenState();
+  State<OnboardingContextualScreen> createState() =>
+      _OnboardingContextualScreenState();
 }
 
-class _OnboardingContextualScreenState extends State<OnboardingContextualScreen> {
+class _OnboardingContextualScreenState
+    extends State<OnboardingContextualScreen> {
   bool _isLoading = false;
 
   @override
@@ -43,7 +45,7 @@ class _OnboardingContextualScreenState extends State<OnboardingContextualScreen>
 
   Future<void> _handleAction(String action) async {
     if (_isLoading) return; // Previne múltiplos cliques
-    
+
     setState(() => _isLoading = true);
 
     try {
@@ -61,17 +63,15 @@ class _OnboardingContextualScreenState extends State<OnboardingContextualScreen>
       Navigator.of(context).pop(action);
     } catch (e) {
       debugPrint('⚠️ Erro ao processar ação do onboarding: $e');
-      
+
       if (mounted) {
         // Mostrar erro ao usuário de forma não intrusiva
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao processar. Tente novamente.'),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 2),
-          ),
+        FeedbackService.showWarning(
+          context,
+          'Erro ao processar. Tente novamente.',
+          duration: const Duration(seconds: 2),
         );
-        
+
         // Ainda assim, permite navegar para não bloquear usuário
         Navigator.of(context).pop(action);
       }
@@ -332,4 +332,3 @@ class _OnboardingContextualScreenState extends State<OnboardingContextualScreen>
     );
   }
 }
-

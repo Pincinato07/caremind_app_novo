@@ -4,6 +4,7 @@ import '../../services/supabase_service.dart';
 import '../../services/medicamento_service.dart';
 import '../../services/historico_eventos_service.dart';
 import '../../core/injection/injection.dart';
+import '../../core/feedback/feedback_service.dart';
 import '../../core/state/familiar_state.dart';
 import '../../models/medicamento.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
@@ -21,14 +22,15 @@ class FamiliarDashboardScreen extends StatefulWidget {
   const FamiliarDashboardScreen({super.key});
 
   @override
-  State<FamiliarDashboardScreen> createState() => _FamiliarDashboardScreenState();
+  State<FamiliarDashboardScreen> createState() =>
+      _FamiliarDashboardScreenState();
 }
 
 class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
   String _userName = 'Familiar';
   bool _isLoading = true;
   Map<String, dynamic> _statusIdosos = {};
-  
+
   List<Map<String, dynamic>> _alertas = [];
   DateTime? _ultimaAtividade;
   List<DailyAdherence> _dadosAdesao = [];
@@ -37,7 +39,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
   void initState() {
     super.initState();
     _loadUserData();
-    
+
     // Escutar mudanças no FamiliarState
     final familiarState = getIt<FamiliarState>();
     familiarState.addListener(_onFamiliarStateChanged);
@@ -48,7 +50,8 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
     super.didChangeDependencies();
     // Leitura automática do título da tela se habilitada
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      AccessibilityHelper.autoReadIfEnabled('Dashboard Familiar. Olá, $_userName');
+      AccessibilityHelper.autoReadIfEnabled(
+          'Dashboard Familiar. Olá, $_userName');
     });
   }
 
@@ -71,7 +74,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
     try {
       final supabaseService = getIt<SupabaseService>();
       final familiarState = getIt<FamiliarState>();
-      
+
       final user = supabaseService.currentUser;
       if (user == null) {
         if (mounted) {
@@ -82,11 +85,11 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
         debugPrint('⚠️ Usuário não autenticado');
         return;
       }
-      
+
       if (user.id.isEmpty) {
         throw Exception('ID de usuário inválido');
       }
-      
+
       final perfil = await supabaseService.getProfile(user.id);
       if (perfil == null) {
         if (mounted) {
@@ -97,9 +100,9 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
         debugPrint('⚠️ Perfil não encontrado');
         return;
       }
-      
+
       if (!mounted) return;
-      
+
       // Carregar idosos no FamiliarState (já deve estar carregado pelo shell, mas garantir)
       try {
         if (!familiarState.hasIdosos) {
@@ -109,7 +112,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
         debugPrint('⚠️ Erro ao carregar idosos: $e');
         // Continuar mesmo se falhar
       }
-      
+
       // Carregar status do idoso selecionado
       if (familiarState.idosoSelecionado != null) {
         try {
@@ -129,26 +132,24 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
     } catch (e, stackTrace) {
       debugPrint('❌ Erro ao carregar dados do usuário: $e');
       debugPrint('Stack trace: $stackTrace');
-      
+
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-        
+
         // Mostrar erro apenas se for crítico
-        if (e.toString().contains('network') || 
+        if (e.toString().contains('network') ||
             e.toString().contains('connection') ||
             e.toString().contains('timeout')) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Erro de conexão. Verifique sua internet.'),
-              backgroundColor: Colors.orange,
-              duration: const Duration(seconds: 3),
-              action: SnackBarAction(
-                label: 'Tentar novamente',
-                textColor: Colors.white,
-                onPressed: _loadUserData,
-              ),
+          FeedbackService.showWarning(
+            context,
+            'Erro de conexão. Verifique sua internet.',
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: 'Tentar novamente',
+              textColor: Colors.white,
+              onPressed: _loadUserData,
             ),
           );
         }
@@ -161,32 +162,41 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
       debugPrint('⚠️ ID do idoso vazio');
       return;
     }
-    
+
     try {
       final familiarState = getIt<FamiliarState>();
       final supabaseService = getIt<SupabaseService>();
       final medicamentoService = getIt<MedicamentoService>();
-      
+
       // Carregar medicamentos
       List<Medicamento> medicamentos = [];
       try {
-        medicamentos = await medicamentoService.getMedicamentos(idosoId);
+        final result = await medicamentoService.getMedicamentos(idosoId);
+        medicamentos = result.when(
+          success: (data) => data,
+          failure: (exception) {
+            debugPrint(
+                '⚠️ Erro ao carregar medicamentos: ${exception.message}');
+            return []; // Continuar com lista vazia
+          },
+        );
       } catch (e) {
         debugPrint('⚠️ Erro ao carregar medicamentos: $e');
         medicamentos = []; // Continuar com lista vazia
       }
-      
+
       // Carregar última atividade (updated_at do perfil)
       try {
         final perfilIdoso = await supabaseService.getProfile(idosoId);
         if (perfilIdoso != null) {
-          _ultimaAtividade = perfilIdoso.createdAt; // Usar createdAt como fallback
+          _ultimaAtividade =
+              perfilIdoso.createdAt; // Usar createdAt como fallback
         }
       } catch (e) {
         debugPrint('⚠️ Erro ao carregar perfil do idoso: $e');
         // Continuar sem última atividade
       }
-      
+
       // Verificar status de medicamentos concluídos hoje
       Map<int, bool> statusMedicamentos = {};
       if (medicamentos.isNotEmpty) {
@@ -196,16 +206,18 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
               .map((m) => m.id!)
               .where((id) => id > 0)
               .toList();
-          
+
           if (ids.isNotEmpty) {
-            statusMedicamentos = await HistoricoEventosService.checkMedicamentosConcluidosHoje(idosoId, ids);
+            statusMedicamentos =
+                await HistoricoEventosService.checkMedicamentosConcluidosHoje(
+                    idosoId, ids);
           }
         } catch (e) {
           debugPrint('⚠️ Erro ao verificar status de medicamentos: $e');
           // Continuar com mapa vazio
         }
       }
-      
+
       // Gerar alertas baseados em medicamentos atrasados
       try {
         _alertas = _gerarAlertas(medicamentos, statusMedicamentos);
@@ -213,18 +225,22 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
         debugPrint('⚠️ Erro ao gerar alertas: $e');
         _alertas = []; // Continuar sem alertas
       }
-      
+
       // Buscar dados de adesão dos últimos 7 dias
       try {
-        _dadosAdesao = await HistoricoEventosService.getDadosAdesaoUltimos7Dias(idosoId);
+        _dadosAdesao =
+            await HistoricoEventosService.getDadosAdesaoUltimos7Dias(idosoId);
       } catch (e) {
         debugPrint('⚠️ Erro ao carregar dados de adesão: $e');
         _dadosAdesao = []; // Continuar sem dados de adesão
       }
-      
-      final pendentes = medicamentos.where((m) => !(statusMedicamentos[m.id] ?? false)).toList();
-      final tomados = medicamentos.where((m) => statusMedicamentos[m.id] ?? false).toList();
-      
+
+      final pendentes = medicamentos
+          .where((m) => !(statusMedicamentos[m.id] ?? false))
+          .toList();
+      final tomados =
+          medicamentos.where((m) => statusMedicamentos[m.id] ?? false).toList();
+
       final temAtraso = pendentes.isNotEmpty;
       final idosoNome = familiarState.idosoSelecionado?.nome ?? 'Idoso';
       final mensagemStatus = pendentes.isEmpty
@@ -250,21 +266,19 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
   }
 
   List<Map<String, dynamic>> _gerarAlertas(
-    List<Medicamento> medicamentos, 
-    Map<int, bool> statusMedicamentos
-  ) {
+      List<Medicamento> medicamentos, Map<int, bool> statusMedicamentos) {
     try {
       final alertas = <Map<String, dynamic>>[];
       final agora = DateTime.now();
-      
+
       if (medicamentos.isEmpty) {
         return alertas;
       }
-      
+
       for (var med in medicamentos) {
         try {
           if (statusMedicamentos[med.id] ?? false) continue;
-          
+
           // Verificar se há horários passados hoje
           try {
             final horarios = _extrairHorarios(med);
@@ -277,13 +291,14 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                   horario.hour,
                   horario.minute,
                 );
-                
+
                 if (horarioDateTime.isBefore(agora)) {
                   final nomeMed = med.nome;
                   alertas.add({
                     'tipo': 'atraso',
                     'mensagem': '$nomeMed Atrasado',
-                    'horario': '${horario.hour.toString().padLeft(2, '0')}:${horario.minute.toString().padLeft(2, '0')}',
+                    'horario':
+                        '${horario.hour.toString().padLeft(2, '0')}:${horario.minute.toString().padLeft(2, '0')}',
                     'medicamento': nomeMed,
                   });
                 }
@@ -293,9 +308,10 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
               }
             }
           } catch (e) {
-            debugPrint('⚠️ Erro ao extrair horários do medicamento ${med.id}: $e');
+            debugPrint(
+                '⚠️ Erro ao extrair horários do medicamento ${med.id}: $e');
           }
-          
+
           // Verificar estoque baixo
           try {
             final quantidade = med.quantidade ?? 0;
@@ -316,7 +332,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
           continue;
         }
       }
-      
+
       // Ordenar por horário (mais recente primeiro) e limitar a 3
       try {
         alertas.sort((a, b) {
@@ -342,7 +358,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
 
   List<TimeOfDay> _extrairHorarios(Medicamento medicamento) {
     final frequencia = medicamento.frequencia;
-    
+
     if (frequencia != null && frequencia.containsKey('horarios')) {
       final horariosList = frequencia['horarios'] as List?;
       if (horariosList != null) {
@@ -353,7 +369,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
             .toList();
       }
     }
-    
+
     return [];
   }
 
@@ -394,12 +410,10 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                   } catch (e) {
                     debugPrint('❌ Erro ao atualizar dados: $e');
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Erro ao atualizar. Tente novamente.'),
-                          backgroundColor: Colors.orange,
-                          duration: const Duration(seconds: 2),
-                        ),
+                      FeedbackService.showWarning(
+                        context,
+                        'Erro ao atualizar. Tente novamente.',
+                        duration: const Duration(seconds: 2),
                       );
                     }
                   }
@@ -409,87 +423,90 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                 strokeWidth: 2.5,
                 displacement: 40,
                 child: CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        AppSpacing.large,
-                        AppSpacing.medium,
-                        AppSpacing.large,
-                        AppSpacing.large,
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          AppSpacing.large,
+                          AppSpacing.medium,
+                          AppSpacing.large,
+                          AppSpacing.large,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Olá, $_userName!',
+                              style: AppTextStyles.leagueSpartan(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Acompanhe o cuidado da sua família',
+                              style: AppTextStyles.leagueSpartan(
+                                fontSize: 16,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Olá, $_userName!',
-                            style: AppTextStyles.leagueSpartan(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Acompanhe o cuidado da sua família',
-                            style: AppTextStyles.leagueSpartan(
-                              fontSize: 16,
-                              color: AppColors.textSecondary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                    ),
+                    // Banner de contexto (seletor já está na AppBar)
+                    SliverToBoxAdapter(
+                      child: ListenableBuilder(
+                        listenable: getIt<FamiliarState>(),
+                        builder: (context, _) {
+                          final familiarState = getIt<FamiliarState>();
+                          if (familiarState.idosoSelecionado != null) {
+                            return Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: AppSpacing.large,
+                                vertical: AppSpacing.small,
+                              ),
+                              child: _buildSemaforoStatus(),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
                       ),
                     ),
-                  ),
-                  // Banner de contexto (seletor já está na AppBar)
-                  SliverToBoxAdapter(
-                    child: ListenableBuilder(
-                      listenable: getIt<FamiliarState>(),
-                      builder: (context, _) {
-                        final familiarState = getIt<FamiliarState>();
-                        if (familiarState.idosoSelecionado != null) {
-                          return Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: AppSpacing.large,
-                              vertical: AppSpacing.small,
-                            ),
-                            child: _buildSemaforoStatus(),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
+                    // Card Status de Adesão
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24.0, vertical: 12),
+                        child: _buildStatusAdesao(),
+                      ),
                     ),
-                  ),
-                  // Card Status de Adesão
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12),
-                      child: _buildStatusAdesao(),
+                    // Widget Alertas Recentes
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24.0, vertical: 12),
+                        child: _buildAlertasRecentess(),
+                      ),
                     ),
-                  ),
-                  // Widget Alertas Recentes
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12),
-                      child: _buildAlertasRecentess(),
+                    // Widget Última Atividade
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24.0, vertical: 12),
+                        child: _buildUltimaAtividade(),
+                      ),
                     ),
-                  ),
-                  // Widget Última Atividade
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12),
-                      child: _buildUltimaAtividade(),
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: AppSpacing.bottomNavBarPadding),
                     ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: SizedBox(height: AppSpacing.bottomNavBarPadding),
-                  ),
-                ],
+                  ],
+                ),
               ),
       ),
-        ),
     );
   }
 
@@ -499,7 +516,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
   Widget _buildSemaforoStatus() {
     final familiarState = getIt<FamiliarState>();
     final idosoSelecionado = familiarState.idosoSelecionado;
-    
+
     if (idosoSelecionado == null) return const SizedBox.shrink();
 
     final status = _statusIdosos[idosoSelecionado.id];
@@ -508,14 +525,16 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
 
     return CareMindCard(
       variant: CardVariant.solid,
-      borderColor: (temAtraso ? AppColors.error : AppColors.success).withValues(alpha: 0.4),
+      borderColor: (temAtraso ? AppColors.error : AppColors.success)
+          .withValues(alpha: 0.4),
       child: Row(
         children: [
           Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: (temAtraso ? AppColors.error : AppColors.success).withValues(alpha: 0.12),
+              color: (temAtraso ? AppColors.error : AppColors.success)
+                  .withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -555,7 +574,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
       builder: (context, _) {
         final familiarState = getIt<FamiliarState>();
         final idosoSelecionado = familiarState.idosoSelecionado;
-        
+
         if (idosoSelecionado == null) {
           return const SizedBox.shrink();
         }
@@ -619,7 +638,11 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                               strokeWidth: 8,
                               backgroundColor: AppColors.border,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                percentual >= 80 ? AppColors.success : percentual >= 50 ? AppColors.warning : AppColors.error,
+                                percentual >= 80
+                                    ? AppColors.success
+                                    : percentual >= 50
+                                        ? AppColors.warning
+                                        : AppColors.error,
                               ),
                             ),
                             Text(
@@ -710,7 +733,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
       builder: (context, _) {
         final familiarState = getIt<FamiliarState>();
         final idosoSelecionado = familiarState.idosoSelecionado;
-        
+
         if (idosoSelecionado == null) {
           return const SizedBox.shrink();
         }
@@ -790,7 +813,9 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                         width: 4,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: alerta['tipo'] == 'atraso' ? AppColors.error : AppColors.warning,
+                          color: alerta['tipo'] == 'atraso'
+                              ? AppColors.error
+                              : AppColors.warning,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -836,7 +861,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
       builder: (context, _) {
         final familiarState = getIt<FamiliarState>();
         final idosoSelecionado = familiarState.idosoSelecionado;
-        
+
         if (idosoSelecionado == null || _ultimaAtividade == null) {
           return const SizedBox.shrink();
         }
@@ -844,7 +869,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
         final agora = DateTime.now();
         final diferenca = agora.difference(_ultimaAtividade!);
         String textoAtividade;
-        
+
         if (diferenca.inDays > 0) {
           textoAtividade = 'Visto há ${diferenca.inDays} dia(s)';
         } else if (diferenca.inHours > 0) {
@@ -895,4 +920,3 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
     );
   }
 }
-

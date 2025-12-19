@@ -4,6 +4,8 @@ import '../../../providers/organizacao_provider.dart';
 import '../../../services/idoso_organizacao_service.dart';
 import '../../../services/organizacao_service.dart';
 import '../../../core/injection/injection.dart';
+import '../../../core/feedback/feedback_service.dart';
+import '../../../core/errors/error_handler.dart';
 import 'adicionar_idoso_organizacao_screen.dart';
 import 'editar_idoso_organizacao_screen.dart';
 
@@ -23,7 +25,8 @@ class IdososOrganizacaoListaScreen extends ConsumerStatefulWidget {
 
 class _IdososOrganizacaoListaScreenState
     extends ConsumerState<IdososOrganizacaoListaScreen> {
-  final IdosoOrganizacaoService _idosoService = getIt<IdosoOrganizacaoService>();
+  final IdosoOrganizacaoService _idosoService =
+      getIt<IdosoOrganizacaoService>();
   bool _isLoading = true;
   List<IdosoOrganizacao> _idosos = [];
 
@@ -39,9 +42,7 @@ class _IdososOrganizacaoListaScreenState
       _idosos = await _idosoService.listarIdosos(widget.organizacaoId);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar idosos: $e')),
-        );
+        FeedbackService.showError(context, ErrorHandler.toAppException(e));
       }
     } finally {
       if (mounted) {
@@ -99,7 +100,9 @@ class _IdososOrganizacaoListaScreenState
                                 ? Colors.orange.shade100
                                 : Colors.blue.shade100,
                             child: Icon(
-                              idoso.isVirtual ? Icons.person_outline : Icons.person,
+                              idoso.isVirtual
+                                  ? Icons.person_outline
+                                  : Icons.person,
                               color: idoso.isVirtual
                                   ? Colors.orange.shade700
                                   : Colors.blue.shade700,
@@ -109,8 +112,10 @@ class _IdososOrganizacaoListaScreenState
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (idoso.quarto != null) Text('Quarto: ${idoso.quarto}'),
-                              if (idoso.setor != null) Text('Setor: ${idoso.setor}'),
+                              if (idoso.quarto != null)
+                                Text('Quarto: ${idoso.quarto}'),
+                              if (idoso.setor != null)
+                                Text('Setor: ${idoso.setor}'),
                               if (idoso.isVirtual)
                                 const Chip(
                                   label: Text('Perfil Virtual'),
@@ -123,7 +128,8 @@ class _IdososOrganizacaoListaScreenState
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => EditarIdosoOrganizacaoScreen(
+                                builder: (context) =>
+                                    EditarIdosoOrganizacaoScreen(
                                   idosoId: idoso.id,
                                   organizacaoId: widget.organizacaoId,
                                   idoso: idoso,
@@ -143,4 +149,3 @@ class _IdososOrganizacaoListaScreenState
     );
   }
 }
-

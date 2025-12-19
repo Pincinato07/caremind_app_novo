@@ -118,7 +118,9 @@ class _OrganizacaoListaScreenState
                     ),
                   );
                   if (result == true) {
-                    ref.read(organizacaoProvider.notifier).carregarOrganizacoes();
+                    ref
+                        .read(organizacaoProvider.notifier)
+                        .carregarOrganizacoes();
                   }
                 },
                 icon: const Icon(Icons.add_circle_outline, size: 24),
@@ -208,4 +210,3 @@ class _OrganizacaoListaScreenState
     );
   }
 }
-

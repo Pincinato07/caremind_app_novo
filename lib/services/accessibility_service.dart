@@ -29,26 +29,23 @@ class AccessibilityService {
 
       // Configuração importante para iOS
       await _tts.setSharedInstance(true);
-      await _tts.setIosAudioCategory(
-          IosTextToSpeechAudioCategory.playback,
-          [
-            IosTextToSpeechAudioCategoryOptions.defaultToSpeaker,
-            IosTextToSpeechAudioCategoryOptions.allowBluetooth,
-            IosTextToSpeechAudioCategoryOptions.allowBluetoothA2DP,
-            IosTextToSpeechAudioCategoryOptions.mixWithOthers,
-          ]
-      );
+      await _tts.setIosAudioCategory(IosTextToSpeechAudioCategory.playback, [
+        IosTextToSpeechAudioCategoryOptions.defaultToSpeaker,
+        IosTextToSpeechAudioCategoryOptions.allowBluetooth,
+        IosTextToSpeechAudioCategoryOptions.allowBluetoothA2DP,
+        IosTextToSpeechAudioCategoryOptions.mixWithOthers,
+      ]);
 
       await _tts.awaitSpeakCompletion(true);
       await _tts.setLanguage("pt-BR");
-      
+
       // Tenta configurar voz específica se disponível (opcional)
       // await _setBestVoice();
 
       await _updateTtsSettings();
       await _tts.setVolume(1.0);
       await _tts.setPitch(1.0);
-      
+
       _isInitialized = true;
     } catch (e) {
       debugPrint('Erro ao inicializar TTS: $e');
@@ -71,15 +68,16 @@ class AccessibilityService {
   /// Fala um texto usando Text-to-Speech (respeita configuração)
   static Future<void> speak(String text) async {
     await initialize();
-    
+
     // Verificar se TTS está habilitado
-    if (_settingsService != null && !_settingsService!.accessibilityTtsEnabled) {
+    if (_settingsService != null &&
+        !_settingsService!.accessibilityTtsEnabled) {
       return; // TTS desabilitado, não fala
     }
 
     // Parar fala anterior para evitar sobreposição
     await _tts.stop();
-    
+
     if (text.isNotEmpty) {
       await _tts.speak(text);
     }
@@ -93,7 +91,8 @@ class AccessibilityService {
   /// Feedback multissensorial: vibração longa + som de sucesso
   static Future<void> feedbackSucesso() async {
     // Vibração longa (500ms) - respeita configuração
-    if (_settingsService == null || _settingsService!.accessibilityVibrationEnabled) {
+    if (_settingsService == null ||
+        _settingsService!.accessibilityVibrationEnabled) {
       final hasVibrator = await Vibration.hasVibrator();
       if (hasVibrator == true) {
         await Vibration.vibrate(duration: 500);
@@ -110,7 +109,8 @@ class AccessibilityService {
   /// Feedback multissensorial: vibração curta + som de erro (compatibilidade)
   static Future<void> feedbackNegativo() async {
     // Vibração curta (100ms) - respeita configuração
-    if (_settingsService == null || _settingsService!.accessibilityVibrationEnabled) {
+    if (_settingsService == null ||
+        _settingsService!.accessibilityVibrationEnabled) {
       final hasVibrator = await Vibration.hasVibrator();
       if (hasVibrator == true) {
         await Vibration.vibrate(duration: 100);
@@ -127,7 +127,8 @@ class AccessibilityService {
   /// Vibração curta para feedback tátil (respeita configuração)
   static Future<void> vibrar({int duration = 200}) async {
     // Verificar se vibração está habilitada
-    if (_settingsService != null && !_settingsService!.accessibilityVibrationEnabled) {
+    if (_settingsService != null &&
+        !_settingsService!.accessibilityVibrationEnabled) {
       return; // Vibração desabilitada
     }
 

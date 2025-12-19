@@ -6,6 +6,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/supabase_service.dart';
 import '../../services/onboarding_service.dart';
+import '../../core/feedback/feedback_service.dart';
+import '../../core/errors/error_handler.dart';
 import '../../widgets/wave_background.dart';
 import '../shared/main_navigator_screen.dart';
 import '../onboarding/onboarding_contextual_screen.dart';
@@ -23,7 +25,8 @@ class AuthShell extends StatefulWidget {
   State<AuthShell> createState() => _AuthShellState();
 }
 
-class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMixin {
+class _AuthShellState extends State<AuthShell>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   late AuthMode _mode;
   final _loginEmailController = TextEditingController();
@@ -68,16 +71,15 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
     try {
       if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Não foi possível abrir o link: $url')),
-          );
+          FeedbackService.showError(
+              context,
+              ErrorHandler.toAppException(
+                  Exception('Não foi possível abrir o link: $url')));
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ocorreu um erro ao tentar abrir o link')),
-        );
+        FeedbackService.showError(context, ErrorHandler.toAppException(e));
       }
     }
   }
@@ -105,13 +107,15 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         if (response.user != null) {
           // Get user profile
           final perfil = await supabaseService.getProfile(response.user!.id);
-          
+
           if (perfil != null && mounted) {
             try {
               // ✅ Verificar se é primeiro acesso e mostrar onboarding contextual
-              final isFirstAccess = await OnboardingService.isFirstAccess(perfil.id);
-              final shouldShowOnboarding = await OnboardingService.shouldShowOnboarding(perfil.id);
-              
+              final isFirstAccess =
+                  await OnboardingService.isFirstAccess(perfil.id);
+              final shouldShowOnboarding =
+                  await OnboardingService.shouldShowOnboarding(perfil.id);
+
               if (isFirstAccess && shouldShowOnboarding) {
                 // Marcar primeiro acesso (com tratamento de erro)
                 try {
@@ -120,43 +124,44 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                   debugPrint('⚠️ Erro ao marcar primeiro acesso: $e');
                   // Continua mesmo se falhar
                 }
-                
+
                 // Mostrar onboarding contextual
                 String? action;
                 try {
                   action = await Navigator.push<String>(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => OnboardingContextualScreen(perfil: perfil),
+                      builder: (_) =>
+                          OnboardingContextualScreen(perfil: perfil),
                     ),
                   );
                 } catch (e) {
                   debugPrint('⚠️ Erro ao mostrar onboarding: $e');
                   // Se falhar, continua sem onboarding
                 }
-                
+
                 // Navegar para tela principal
                 if (mounted) {
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
+                    MaterialPageRoute(
+                        builder: (_) => MainNavigatorScreen(perfil: perfil)),
                     (_) => false,
                   );
-                  
+
                   // Se usuário escolheu uma ação, navegar para ela
                   if (action == 'add_medicamento' && mounted) {
                     Future.delayed(const Duration(milliseconds: 500), () {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Navegue até Medicamentos para adicionar seu primeiro medicamento'),
-                            duration: Duration(seconds: 3),
-                          ),
+                        FeedbackService.showInfo(
+                          context,
+                          'Navegue até Medicamentos para adicionar seu primeiro medicamento',
+                          duration: const Duration(seconds: 3),
                         );
                       }
                     });
                   }
-                  
+
                   // Verificar DND bypass após login (com delay para garantir que a tela está carregada)
                   Future.delayed(const Duration(seconds: 2), () {
                     if (mounted) {
@@ -168,10 +173,11 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                 // Navegar direto para tela principal (usuário retornando)
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
+                  MaterialPageRoute(
+                      builder: (_) => MainNavigatorScreen(perfil: perfil)),
                   (_) => false,
                 );
-                
+
                 // Verificar DND bypass após login (com delay para garantir que a tela está carregada)
                 Future.delayed(const Duration(seconds: 2), () {
                   if (mounted) {
@@ -185,7 +191,8 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
               if (mounted) {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
+                  MaterialPageRoute(
+                      builder: (_) => MainNavigatorScreen(perfil: perfil)),
                   (_) => false,
                 );
               }
@@ -196,12 +203,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('E-mail ou senha inválidos'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          FeedbackService.showError(context, ErrorHandler.toAppException(e));
         }
       } finally {
         if (mounted) {
@@ -237,7 +239,8 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                     filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
                     child: Container(
                       margin: EdgeInsets.symmetric(
-                        horizontal: MediaQuery.of(context).size.width > 600 ? 24 : 16,
+                        horizontal:
+                            MediaQuery.of(context).size.width > 600 ? 24 : 16,
                       ),
                       padding: EdgeInsets.all(
                         MediaQuery.of(context).size.width > 600 ? 32 : 24,
@@ -280,7 +283,8 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                               hint: 'seu@email.com',
                               keyboardType: TextInputType.emailAddress,
                               validator: (v) {
-                                if (v?.trim().isEmpty == true) return 'E-mail é obrigatório';
+                                if (v?.trim().isEmpty == true)
+                                  return 'E-mail é obrigatório';
                                 if (!v!.contains('@')) return 'E-mail inválido';
                                 return null;
                               },
@@ -291,7 +295,10 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                                 Expanded(
                                   child: _outlineButton(
                                     label: 'Cancelar',
-                                    onPressed: isLoading ? null : () => Navigator.of(context).pop(false),
+                                    onPressed: isLoading
+                                        ? null
+                                        : () =>
+                                            Navigator.of(context).pop(false),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -302,23 +309,30 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
                                     onPressed: isLoading
                                         ? null
                                         : () async {
-                                            if (formKey.currentState?.validate() ?? false) {
-                                              setDialogState(() => isLoading = true);
+                                            if (formKey.currentState
+                                                    ?.validate() ??
+                                                false) {
+                                              setDialogState(
+                                                  () => isLoading = true);
                                               try {
-                                                final supabaseService = getIt<SupabaseService>();
-                                                await supabaseService.resetPassword(emailController.text.trim());
+                                                final supabaseService =
+                                                    getIt<SupabaseService>();
+                                                await supabaseService
+                                                    .resetPassword(
+                                                        emailController.text
+                                                            .trim());
                                                 if (context.mounted) {
-                                                  Navigator.of(context).pop(true);
+                                                  Navigator.of(context)
+                                                      .pop(true);
                                                 }
                                               } catch (e) {
-                                                setDialogState(() => isLoading = false);
+                                                setDialogState(
+                                                    () => isLoading = false);
                                                 if (context.mounted) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text('Erro ao enviar e-mail: $e'),
-                                                      backgroundColor: Colors.red,
-                                                    ),
-                                                  );
+                                                  FeedbackService.showError(
+                                                      context,
+                                                      ErrorHandler
+                                                          .toAppException(e));
                                                 }
                                               }
                                             }
@@ -343,15 +357,10 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
     emailController.dispose();
 
     if (result == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'E-mail de recuperação enviado! Verifique sua caixa de entrada.',
-            style: GoogleFonts.leagueSpartan(),
-          ),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 4),
-        ),
+      FeedbackService.showSuccess(
+        context,
+        'E-mail de recuperação enviado! Verifique sua caixa de entrada.',
+        duration: const Duration(seconds: 4),
       );
     }
   }
@@ -406,9 +415,11 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         if (perfil != null && mounted) {
           try {
             // ✅ Verificar se é primeiro acesso e mostrar onboarding contextual
-            final isFirstAccess = await OnboardingService.isFirstAccess(perfil.id);
-            final shouldShowOnboarding = await OnboardingService.shouldShowOnboarding(perfil.id);
-            
+            final isFirstAccess =
+                await OnboardingService.isFirstAccess(perfil.id);
+            final shouldShowOnboarding =
+                await OnboardingService.shouldShowOnboarding(perfil.id);
+
             if (isFirstAccess && shouldShowOnboarding) {
               // Marcar primeiro acesso (com tratamento de erro)
               try {
@@ -416,7 +427,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
               } catch (e) {
                 debugPrint('⚠️ Erro ao marcar primeiro acesso: $e');
               }
-              
+
               // Mostrar onboarding contextual
               try {
                 await Navigator.push<String>(
@@ -428,12 +439,13 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
               } catch (e) {
                 debugPrint('⚠️ Erro ao mostrar onboarding: $e');
               }
-              
+
               // Navegar para tela principal
               if (mounted) {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
+                  MaterialPageRoute(
+                      builder: (_) => MainNavigatorScreen(perfil: perfil)),
                   (_) => false,
                 );
               }
@@ -441,7 +453,8 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
               // Navegar direto para tela principal
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
+                MaterialPageRoute(
+                    builder: (_) => MainNavigatorScreen(perfil: perfil)),
                 (_) => false,
               );
             }
@@ -451,7 +464,8 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
             if (mounted) {
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (_) => MainNavigatorScreen(perfil: perfil)),
+                MaterialPageRoute(
+                    builder: (_) => MainNavigatorScreen(perfil: perfil)),
                 (_) => false,
               );
             }
@@ -472,7 +486,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
 
   void _showSnack(String msg) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      FeedbackService.showInfo(context, msg);
     }
   }
 
@@ -500,7 +514,7 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
       // Don't advance from step 3, user must submit
       return;
     }
-    
+
     // If validation passes, advance to next step
     if (_registerStep < 2) {
       setState(() => _registerStep++);
@@ -556,8 +570,10 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         onPressed: isLoading ? null : onPressed,
         style: ButtonStyle(
           backgroundColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.pressed)) return const Color(0xFF020054);
-            if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
+            if (states.contains(WidgetState.pressed))
+              return const Color(0xFF020054);
+            if (states.contains(WidgetState.hovered) ||
+                states.contains(WidgetState.focused)) {
               return const Color(0xFF0600E0);
             }
             return baseColor;
@@ -591,7 +607,8 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _outlineButton({required String label, required VoidCallback? onPressed}) {
+  Widget _outlineButton(
+      {required String label, required VoidCallback? onPressed}) {
     return SizedBox(
       height: 44,
       child: OutlinedButton(
@@ -663,7 +680,8 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.6), width: 1.5),
+            borderSide: BorderSide(
+                color: Colors.white.withValues(alpha: 0.6), width: 1.5),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
@@ -678,7 +696,8 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
     );
@@ -699,7 +718,9 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white.withAlpha(30) : Colors.white.withAlpha(12),
+          color: isSelected
+              ? Colors.white.withAlpha(30)
+              : Colors.white.withAlpha(12),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? Colors.white : Colors.white.withAlpha(50),
@@ -796,9 +817,13 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _outlineButton(label: 'Voltar', onPressed: _previousPage)),
+              Expanded(
+                  child: _outlineButton(
+                      label: 'Voltar', onPressed: _previousPage)),
               const SizedBox(width: 12),
-              Expanded(child: _primaryButton(label: 'Continuar', onPressed: _nextPage)),
+              Expanded(
+                  child:
+                      _primaryButton(label: 'Continuar', onPressed: _nextPage)),
             ],
           ),
         ],
@@ -854,83 +879,92 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
           ),
           const SizedBox(height: 20),
           Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Checkbox(
-              value: _termsAccepted,
-              onChanged: (v) => setState(() => _termsAccepted = v ?? false),
-              activeColor: Colors.white,
-              checkColor: const Color(0xFF0400BA),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: RichText(
-                  text: TextSpan(
-                    style: GoogleFonts.leagueSpartan(
-                      color: Colors.white70,
-                      fontSize: 13,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: _termsAccepted,
+                onChanged: (v) => setState(() => _termsAccepted = v ?? false),
+                activeColor: Colors.white,
+                checkColor: const Color(0xFF0400BA),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: RichText(
+                    text: TextSpan(
+                      style: GoogleFonts.leagueSpartan(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                      children: [
+                        const TextSpan(text: '(Obrigatório) Li e aceito os '),
+                        TextSpan(
+                          text: 'Termos de Uso',
+                          style: const TextStyle(
+                              decoration: TextDecoration.underline),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () =>
+                                _launchURL('https://caremind.com.br/termos'),
+                        ),
+                        const TextSpan(text: ' e '),
+                        TextSpan(
+                          text: 'Política de Privacidade',
+                          style: const TextStyle(
+                              decoration: TextDecoration.underline),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () => _launchURL(
+                                'https://caremind.com.br/politica-privacidade'),
+                        ),
+                      ],
                     ),
-                    children: [
-                      const TextSpan(text: '(Obrigatório) Li e aceito os '),
-                      TextSpan(
-                        text: 'Termos de Uso',
-                        style: const TextStyle(decoration: TextDecoration.underline),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () => _launchURL('https://caremind.com.br/termos'),
-                      ),
-                      const TextSpan(text: ' e '),
-                      TextSpan(
-                        text: 'Política de Privacidade',
-                        style: const TextStyle(decoration: TextDecoration.underline),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () => _launchURL('https://caremind.com.br/politica-privacidade'),
-                      ),
-                    ],
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
           ),
           const SizedBox(height: 20),
           // Checkbox de compartilhamento de dados (opcional)
           Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Checkbox(
-              value: _dataSharingAccepted,
-              onChanged: (v) => setState(() => _dataSharingAccepted = v ?? false),
-              activeColor: Colors.white,
-              checkColor: const Color(0xFF0400BA),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  '(Opcional) Aceito compartilhar meus dados de uso e saúde de forma anônima com parceiros da indústria farmacêutica para auxiliar em pesquisas e receber ofertas personalizadas.',
-                  style: GoogleFonts.leagueSpartan(
-                    color: Colors.white70,
-                    fontSize: 13,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: _dataSharingAccepted,
+                onChanged: (v) =>
+                    setState(() => _dataSharingAccepted = v ?? false),
+                activeColor: Colors.white,
+                checkColor: const Color(0xFF0400BA),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Text(
+                    '(Opcional) Aceito compartilhar meus dados de uso e saúde de forma anônima com parceiros da indústria farmacêutica para auxiliar em pesquisas e receber ofertas personalizadas.',
+                    style: GoogleFonts.leagueSpartan(
+                      color: Colors.white70,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
           ),
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _outlineButton(label: 'Voltar', onPressed: _previousPage)),
+              Expanded(
+                  child: _outlineButton(
+                      label: 'Voltar', onPressed: _previousPage)),
               const SizedBox(width: 12),
               Expanded(
                 child: _primaryButton(
                   label: 'Cadastrar',
-                  onPressed: (_termsAccepted && !_isRegistering) ? () {
-                    if (_step3FormKey.currentState?.validate() ?? false) {
-                      _handleSignUp();
-                    }
-                  } : null,
+                  onPressed: (_termsAccepted && !_isRegistering)
+                      ? () {
+                          if (_step3FormKey.currentState?.validate() ?? false) {
+                            _handleSignUp();
+                          }
+                        }
+                      : null,
                   isLoading: _isRegistering,
                 ),
               ),
@@ -975,7 +1009,8 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
               controller: _loginPasswordController,
               hint: 'Senha',
               obscure: true,
-              validator: (v) => (v?.length ?? 0) < 6 ? 'Mínimo 6 caracteres' : null,
+              validator: (v) =>
+                  (v?.length ?? 0) < 6 ? 'Mínimo 6 caracteres' : null,
             ),
             const SizedBox(height: 24),
             _primaryButton(
@@ -1130,7 +1165,9 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
           SafeArea(
             child: SingleChildScrollView(
               child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: size.height - viewPadding.top - viewPadding.bottom),
+                constraints: BoxConstraints(
+                    minHeight:
+                        size.height - viewPadding.top - viewPadding.bottom),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 32),
                   child: Column(

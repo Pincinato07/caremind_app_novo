@@ -3,13 +3,14 @@ import '../theme/app_theme.dart';
 import '../models/notificacao_app.dart';
 
 /// Widget para exibir notificações in-app (toast/snackbar estilizado)
-/// 
+///
 /// Usado para mostrar notificações quando o app está em foreground
 /// e uma push notification chega via FCM.
 class InAppNotification extends StatefulWidget {
   final String titulo;
   final String mensagem;
-  final String tipo; // 'info', 'warning', 'error', 'success', 'medicamento', 'rotina', 'compromisso'
+  final String
+      tipo; // 'info', 'warning', 'error', 'success', 'medicamento', 'rotina', 'compromisso'
   final VoidCallback? onTap;
   final VoidCallback? onDismiss;
   final Duration duration;
@@ -182,7 +183,8 @@ class _InAppNotificationState extends State<InAppNotification>
         child: GestureDetector(
           onTap: widget.onTap,
           onHorizontalDragEnd: (details) {
-            if (details.primaryVelocity != null && details.primaryVelocity!.abs() > 100) {
+            if (details.primaryVelocity != null &&
+                details.primaryVelocity!.abs() > 100) {
               _dismiss();
             }
           },
@@ -326,5 +328,3 @@ class NotificationBadge extends StatelessWidget {
     );
   }
 }
-
-

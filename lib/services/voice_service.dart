@@ -3,6 +3,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'medicamento_service.dart';
 import 'rotina_service.dart';
 import 'accessibility_service.dart';
+import '../models/medicamento.dart';
+import '../core/errors/result.dart';
 
 /// Serviço completo de interface de voz (Voice-First)
 /// Integra Speech-to-Text (STT) e Text-to-Speech (TTS)
@@ -12,16 +14,14 @@ class VoiceService {
   factory VoiceService() => _instance;
   VoiceService._internal();
 
-
   final stt.SpeechToText _speech = stt.SpeechToText();
-  
+
   bool _isListening = false;
   bool _isInitialized = false;
   bool _isAvailable = false;
-  
+
   Function(String)? _onResult;
   Function(String)? _onError;
-
 
   /// Inicializa o serviço de voz
   Future<bool> initialize() async {
@@ -31,7 +31,8 @@ class VoiceService {
       // Solicitar permissão de microfone
       final micPermission = await Permission.microphone.request();
       if (!micPermission.isGranted) {
-        await speak('Preciso de permissão para usar o microfone. Por favor, ative nas configurações.');
+        await speak(
+            'Preciso de permissão para usar o microfone. Por favor, ative nas configurações.');
         _isAvailable = false;
         _isInitialized = true;
         return false;
@@ -102,6 +103,7 @@ class VoiceService {
         listenFor: const Duration(seconds: 10),
         pauseFor: const Duration(seconds: 3),
         localeId: 'pt_BR',
+        // ignore: deprecated_member_use
         cancelOnError: true,
       );
     } catch (e) {
@@ -285,7 +287,8 @@ class VoiceService {
     ])) {
       return VoiceCommandResult(
         success: true,
-        message: 'Você pode me pedir para: confirmar um remédio, confirmar uma rotina, listar seus remédios, listar suas rotinas, ir para medicamentos, ir para compromissos, voltar ao início, ir para configurações, ou chamar ajuda. O que deseja fazer?',
+        message:
+            'Você pode me pedir para: confirmar um remédio, confirmar uma rotina, listar seus remédios, listar suas rotinas, ir para medicamentos, ir para compromissos, voltar ao início, ir para configurações, ou chamar ajuda. O que deseja fazer?',
         action: VoiceAction.help,
       );
     }
@@ -293,16 +296,61 @@ class VoiceService {
     // Comando não reconhecido
     return VoiceCommandResult(
       success: false,
-      message: 'Desculpe, não entendi. Você pode me pedir para confirmar um remédio, confirmar uma rotina, listar itens, navegar entre telas ou chamar ajuda. Diga "ajuda" para ver todos os comandos.',
+      message:
+          'Desculpe, não entendi. Você pode me pedir para confirmar um remédio, confirmar uma rotina, listar itens, navegar entre telas ou chamar ajuda. Diga "ajuda" para ver todos os comandos.',
       action: VoiceAction.unknown,
     );
   }
 
   /// Verifica se o comando corresponde a algum dos padrões
   bool _matchesCommand(String command, List<String> patterns) {
-    return patterns.any((pattern) => 
-      command.contains(pattern) || 
-      pattern.split(' ').every((word) => command.contains(word))
+    return patterns.any((pattern) =>
+        command.contains(pattern) ||
+        pattern.split(' ').every((word) => command.contains(word)));
+  }
+
+  /// Helper para processar sucesso na busca de medicamentos
+  Future<VoiceCommandResult> _handleMedicamentosSuccess(
+    List<Medicamento> medicamentos,
+    MedicamentoService medicamentoService,
+  ) async {
+    if (medicamentos.isEmpty) {
+      return VoiceCommandResult(
+        success: true,
+        message: 'Não encontrei nenhum remédio cadastrado.',
+        action: VoiceAction.noPendingItems,
+      );
+    }
+
+    // Se houver apenas um, confirmar automaticamente
+    if (medicamentos.length == 1) {
+      final medicamento = medicamentos.first;
+      await medicamentoService.toggleConcluido(
+        medicamento.id!,
+        true,
+        DateTime.now(),
+      );
+
+      return VoiceCommandResult(
+        success: true,
+        message:
+            'Entendido! Marquei o remédio "${medicamento.nome}" como tomado. Bom trabalho!',
+        action: VoiceAction.medicationConfirmed,
+        data: {'medicamento_id': medicamento.id},
+      );
+    }
+
+    // Se houver múltiplos, listar e pedir confirmação
+    final nomes = medicamentos.map((m) => m.nome).join(', ');
+    return VoiceCommandResult(
+      success: true,
+      message:
+          'Encontrei ${medicamentos.length} remédios: $nomes. Qual você tomou?',
+      action: VoiceAction.multipleItems,
+      data: {
+        'medicamentos':
+            medicamentos.map((m) => {'id': m.id, 'nome': m.nome}).toList()
+      },
     );
   }
 
@@ -321,45 +369,26 @@ class VoiceService {
 
     try {
       // Buscar todos os medicamentos
-      final medicamentos = await medicamentoService.getMedicamentos(userId);
+      final medicamentosResult =
+          await medicamentoService.getMedicamentos(userId);
 
-      if (medicamentos.isEmpty) {
-        return VoiceCommandResult(
-          success: true,
-          message: 'Não encontrei nenhum remédio cadastrado.',
-          action: VoiceAction.noPendingItems,
-        );
-      }
-
-      // Se houver apenas um, confirmar automaticamente
-      if (medicamentos.length == 1) {
-        final medicamento = medicamentos.first;
-        await medicamentoService.toggleConcluido(
-          medicamento.id!, 
-          true,
-          DateTime.now(),
-        );
-        
-        return VoiceCommandResult(
-          success: true,
-          message: 'Entendido! Marquei o remédio "${medicamento.nome}" como tomado. Bom trabalho!',
-          action: VoiceAction.medicationConfirmed,
-          data: {'medicamento_id': medicamento.id},
-        );
-      }
-
-      // Se houver múltiplos, listar e pedir confirmação
-      final nomes = medicamentos.map((m) => m.nome).join(', ');
-      return VoiceCommandResult(
-        success: true,
-        message: 'Encontrei ${medicamentos.length} remédios: $nomes. Qual você tomou?',
-        action: VoiceAction.multipleItems,
-        data: {'medicamentos': medicamentos.map((m) => {'id': m.id, 'nome': m.nome}).toList()},
-      );
+      return switch (medicamentosResult) {
+        Success(:final data) => await _handleMedicamentosSuccess(
+            data,
+            medicamentoService,
+          ),
+        Failure() => VoiceCommandResult(
+            success: false,
+            message:
+                'Tive um problema ao processar sua solicitação. Tente novamente.',
+            action: VoiceAction.error,
+          ),
+      };
     } catch (e) {
       return VoiceCommandResult(
         success: false,
-        message: 'Tive um problema ao processar sua solicitação. Tente novamente.',
+        message:
+            'Tive um problema ao processar sua solicitação. Tente novamente.',
         action: VoiceAction.error,
       );
     }
@@ -381,12 +410,14 @@ class VoiceService {
     try {
       // Buscar rotinas pendentes
       final rotinas = await rotinaService.getRotinas(userId);
-      final rotinasPendentes = rotinas.where((r) => r['concluida'] == false).toList();
+      final rotinasPendentes =
+          rotinas.where((r) => r['concluida'] == false).toList();
 
       if (rotinasPendentes.isEmpty) {
         return VoiceCommandResult(
           success: true,
-          message: 'Não encontrei nenhuma rotina pendente para confirmar agora.',
+          message:
+              'Não encontrei nenhuma rotina pendente para confirmar agora.',
           action: VoiceAction.noPendingItems,
         );
       }
@@ -395,10 +426,11 @@ class VoiceService {
       if (rotinasPendentes.length == 1) {
         final rotina = rotinasPendentes.first;
         await rotinaService.toggleConcluida(rotina['id'], true);
-        
+
         return VoiceCommandResult(
           success: true,
-          message: 'Entendido! Marquei a rotina "${rotina['titulo']}" como concluída. Bom trabalho!',
+          message:
+              'Entendido! Marquei a rotina "${rotina['titulo']}" como concluída. Bom trabalho!',
           action: VoiceAction.routineConfirmed,
           data: {'rotina_id': rotina['id']},
         );
@@ -408,17 +440,50 @@ class VoiceService {
       final titulos = rotinasPendentes.map((r) => r['titulo']).join(', ');
       return VoiceCommandResult(
         success: true,
-        message: 'Encontrei ${rotinasPendentes.length} rotinas pendentes: $titulos. Qual você concluiu?',
+        message:
+            'Encontrei ${rotinasPendentes.length} rotinas pendentes: $titulos. Qual você concluiu?',
         action: VoiceAction.multipleItems,
-        data: {'rotinas': rotinasPendentes.map((r) => {'id': r['id'], 'titulo': r['titulo']}).toList()},
+        data: {
+          'rotinas': rotinasPendentes
+              .map((r) => {'id': r['id'], 'titulo': r['titulo']})
+              .toList()
+        },
       );
     } catch (e) {
       return VoiceCommandResult(
         success: false,
-        message: 'Tive um problema ao processar sua solicitação. Tente novamente.',
+        message:
+            'Tive um problema ao processar sua solicitação. Tente novamente.',
         action: VoiceAction.error,
       );
     }
+  }
+
+  /// Helper para processar sucesso na listagem de medicamentos
+  VoiceCommandResult _handleListarMedicamentosSuccess(
+    List<Medicamento> medicamentos,
+  ) {
+    if (medicamentos.isEmpty) {
+      return VoiceCommandResult(
+        success: true,
+        message: 'Você não tem remédios cadastrados ainda.',
+        action: VoiceAction.listEmpty,
+      );
+    }
+
+    String message =
+        'Você tem ${medicamentos.length} remédio(s) cadastrado(s): ';
+    message += medicamentos.map((m) => m.nome).join(', ');
+
+    return VoiceCommandResult(
+      success: true,
+      message: message,
+      action: VoiceAction.listMedications,
+      data: {
+        'medicamentos':
+            medicamentos.map((m) => {'id': m.id, 'nome': m.nome}).toList()
+      },
+    );
   }
 
   /// Processa listagem de medicamentos
@@ -435,25 +500,18 @@ class VoiceService {
     }
 
     try {
-      final medicamentos = await medicamentoService.getMedicamentos(userId);
-      
-      if (medicamentos.isEmpty) {
-        return VoiceCommandResult(
-          success: true,
-          message: 'Você não tem remédios cadastrados ainda.',
-          action: VoiceAction.listEmpty,
-        );
-      }
+      final medicamentosResult =
+          await medicamentoService.getMedicamentos(userId);
 
-      String message = 'Você tem ${medicamentos.length} remédio(s) cadastrado(s): ';
-      message += medicamentos.map((m) => m.nome).join(', ');
-
-      return VoiceCommandResult(
-        success: true,
-        message: message,
-        action: VoiceAction.listMedications,
-        data: {'medicamentos': medicamentos.map((m) => {'id': m.id, 'nome': m.nome}).toList()},
-      );
+      return switch (medicamentosResult) {
+        Success(:final data) => _handleListarMedicamentosSuccess(data),
+        Failure() => VoiceCommandResult(
+            success: false,
+            message:
+                'Tive um problema ao buscar seus remédios. Tente novamente.',
+            action: VoiceAction.error,
+          ),
+      };
     } catch (e) {
       return VoiceCommandResult(
         success: false,
@@ -478,7 +536,7 @@ class VoiceService {
 
     try {
       final rotinas = await rotinaService.getRotinas(userId);
-      
+
       if (rotinas.isEmpty) {
         return VoiceCommandResult(
           success: true,
@@ -491,11 +549,12 @@ class VoiceService {
       final concluidas = rotinas.where((r) => r['concluida'] == true).toList();
 
       String message = 'Você tem ${rotinas.length} rotina(s) cadastrada(s). ';
-      
+
       if (pendentes.isNotEmpty) {
-        message += '${pendentes.length} pendente(s): ${pendentes.map((r) => r['titulo']).join(', ')}. ';
+        message +=
+            '${pendentes.length} pendente(s): ${pendentes.map((r) => r['titulo']).join(', ')}. ';
       }
-      
+
       if (concluidas.isNotEmpty) {
         message += '${concluidas.length} já concluída(s) hoje.';
       }
@@ -504,7 +563,15 @@ class VoiceService {
         success: true,
         message: message,
         action: VoiceAction.listRoutines,
-        data: {'rotinas': rotinas.map((r) => {'id': r['id'], 'titulo': r['titulo'], 'concluida': r['concluida']}).toList()},
+        data: {
+          'rotinas': rotinas
+              .map((r) => {
+                    'id': r['id'],
+                    'titulo': r['titulo'],
+                    'concluida': r['concluida']
+                  })
+              .toList()
+        },
       );
     } catch (e) {
       return VoiceCommandResult(
@@ -556,4 +623,3 @@ enum VoiceAction {
   error,
   unknown,
 }
-

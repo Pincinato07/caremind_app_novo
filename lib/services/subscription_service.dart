@@ -49,7 +49,7 @@ class SubscriptionService {
   final SupabaseClient _supabase;
   UserPermissions? _cachedPermissions;
   DateTime? _lastFetch;
-  
+
   static const _cacheDuration = Duration(minutes: 5);
 
   SubscriptionService(this._supabase);
@@ -77,7 +77,7 @@ class SubscriptionService {
 
       _cachedPermissions = UserPermissions.fromJson(response);
       _lastFetch = DateTime.now();
-      
+
       return _cachedPermissions!;
     } catch (e) {
       _cachedPermissions = UserPermissions.free();

@@ -26,7 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nomeController = TextEditingController();
   final _telefoneController = TextEditingController();
-  
+
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isEditing = false;
@@ -52,7 +52,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _initializeProfile() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final profile = await _profileService.loadProfile();
       if (profile != null) {
@@ -76,7 +76,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _pickImage() async {
     try {
       await AccessibilityService.speak('Selecionando foto do perfil');
-      
+
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(
         source: ImageSource.gallery,
@@ -89,19 +89,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _selectedImage = File(pickedFile.path);
         });
-        
+
         await AccessibilityService.speak('Foto selecionada com sucesso');
       } else {
         await AccessibilityService.speak('Nenhuma foto selecionada');
       }
     } catch (e) {
-      await TTSEnhancer.announceError('Erro ao selecionar foto: ${e.toString()}');
+      await TTSEnhancer.announceError(
+          'Erro ao selecionar foto: ${e.toString()}');
     }
   }
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) {
-      await AccessibilityService.speak('Por favor, corrija os erros no formulário');
+      await AccessibilityService.speak(
+          'Por favor, corrija os erros no formulário');
       return;
     }
 
@@ -120,26 +122,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await _profileService.createProfile(
           nome: _nomeController.text.trim(),
           tipo: _selectedTipo ?? 'individual',
-          telefone: _telefoneController.text.trim().isEmpty 
-              ? null 
+          telefone: _telefoneController.text.trim().isEmpty
+              ? null
               : _telefoneController.text.trim(),
           fotoUrl: fotoUrl,
         );
       } else {
         await _profileService.updateProfile(
           nome: _nomeController.text.trim(),
-          telefone: _telefoneController.text.trim().isEmpty 
-              ? null 
+          telefone: _telefoneController.text.trim().isEmpty
+              ? null
               : _telefoneController.text.trim(),
           fotoUrl: fotoUrl,
         );
       }
-      
+
       setState(() {
         _isEditing = false;
         _currentProfile = _profileService.currentProfile;
       });
-        
+
       await TTSEnhancer.announceCriticalSuccess('Perfil salvo com sucesso!');
     } catch (e) {
       await TTSEnhancer.announceError('Erro ao salvar perfil: ${e.toString()}');
@@ -161,53 +163,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       await TTSEnhancer.announceAction('Excluindo perfil...');
-      
+
       final success = await _profileService.deleteProfile();
-      
+
       if (success && mounted) {
-        await TTSEnhancer.announceCriticalSuccess('Perfil excluído com sucesso');
+        await TTSEnhancer.announceCriticalSuccess(
+            'Perfil excluído com sucesso');
         Navigator.of(context).pop();
       }
     } catch (e) {
-      await TTSEnhancer.announceError('Erro ao excluir perfil: ${e.toString()}');
+      await TTSEnhancer.announceError(
+          'Erro ao excluir perfil: ${e.toString()}');
     }
   }
 
   Future<bool> _showDeleteConfirmation() async {
     return await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Semantics(
-          label: 'Confirmar exclusão',
-          child: const Text('Confirmar Exclusão'),
-        ),
-        content: Semantics(
-          label: 'Tem certeza que deseja excluir seu perfil? Esta ação não pode ser desfeita.',
-          child: const Text('Tem certeza que deseja excluir seu perfil? Esta ação não pode ser desfeita.'),
-        ),
-        actions: [
-          Semantics(
-            label: 'Botão cancelar',
-            hint: 'Cancela a exclusão do perfil',
-            button: true,
-            child: TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancelar'),
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Semantics(
+              label: 'Confirmar exclusão',
+              child: const Text('Confirmar Exclusão'),
             ),
-          ),
-          Semantics(
-            label: 'Botão excluir',
-            hint: 'Confirma a exclusão do perfil',
-            button: true,
-            child: TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Excluir'),
+            content: Semantics(
+              label:
+                  'Tem certeza que deseja excluir seu perfil? Esta ação não pode ser desfeita.',
+              child: const Text(
+                  'Tem certeza que deseja excluir seu perfil? Esta ação não pode ser desfeita.'),
             ),
+            actions: [
+              Semantics(
+                label: 'Botão cancelar',
+                hint: 'Cancela a exclusão do perfil',
+                button: true,
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancelar'),
+                ),
+              ),
+              Semantics(
+                label: 'Botão excluir',
+                hint: 'Confirma a exclusão do perfil',
+                button: true,
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('Excluir'),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
   }
 
   void _toggleEdit() {
@@ -235,90 +242,94 @@ class _ProfileScreenState extends State<ProfileScreen> {
           variant: CardVariant.glass,
           padding: AppSpacing.paddingLarge,
           child: Column(
-          children: [
-            // Foto do perfil
-            GestureDetector(
-              onTap: _isEditing ? _pickImage : null,
-              child: Semantics(
-                label: _isEditing ? 'Botão para alterar foto do perfil' : 'Foto do perfil',
-                hint: _isEditing ? 'Toque para selecionar uma nova foto' : null,
-                button: _isEditing,
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.2),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.4),
-                      width: 3,
+            children: [
+              // Foto do perfil
+              GestureDetector(
+                onTap: _isEditing ? _pickImage : null,
+                child: Semantics(
+                  label: _isEditing
+                      ? 'Botão para alterar foto do perfil'
+                      : 'Foto do perfil',
+                  hint:
+                      _isEditing ? 'Toque para selecionar uma nova foto' : null,
+                  button: _isEditing,
+                  child: Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.2),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.4),
+                        width: 3,
+                      ),
                     ),
+                    child: _selectedImage != null
+                        ? ClipOval(
+                            child: Image.file(
+                              _selectedImage!,
+                              width: 120,
+                              height: 120,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : _currentProfile?.fotoUsuario != null
+                            ? ClipOval(
+                                child: Image.network(
+                                  _currentProfile!.fotoUsuario!,
+                                  width: 120,
+                                  height: 120,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return _buildDefaultAvatar();
+                                  },
+                                ),
+                              )
+                            : _buildDefaultAvatar(),
                   ),
-                  child: _selectedImage != null
-                      ? ClipOval(
-                          child: Image.file(
-                            _selectedImage!,
-                            width: 120,
-                            height: 120,
-                            fit: BoxFit.cover,
-                          ),
-                        )
-                      : _currentProfile?.fotoUsuario != null
-                          ? ClipOval(
-                              child: Image.network(
-                                _currentProfile!.fotoUsuario!,
-                                width: 120,
-                                height: 120,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return _buildDefaultAvatar();
-                                },
-                              ),
-                            )
-                          : _buildDefaultAvatar(),
                 ),
               ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Nome do usuário
-            Text(
-              _currentProfile?.nome ?? _nomeController.text,
-              style: AppTextStyles.leagueSpartan(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            
-            const SizedBox(height: 8),
-            
-            // Tipo de perfil
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.4),
-                  width: 1,
-                ),
-              ),
-              child: Text(
-                _selectedTipo ?? 'Individual',
+
+              const SizedBox(height: 16),
+
+              // Nome do usuário
+              Text(
+                _currentProfile?.nome ?? _nomeController.text,
                 style: AppTextStyles.leagueSpartan(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
                   color: Colors.white,
                 ),
+                textAlign: TextAlign.center,
               ),
-            ),
-          ],
+
+              const SizedBox(height: 8),
+
+              // Tipo de perfil
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.4),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  _selectedTipo ?? 'Individual',
+                  style: AppTextStyles.leagueSpartan(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 
@@ -350,15 +361,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 fillColor: Colors.white.withValues(alpha: 0.1),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                  borderSide:
+                      BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                  borderSide:
+                      BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.5)),
+                  borderSide:
+                      BorderSide(color: Colors.white.withValues(alpha: 0.5)),
                 ),
               ),
               style: const TextStyle(color: Colors.white),
@@ -375,9 +389,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Campo Telefone
           Semantics(
             label: 'Campo telefone',
@@ -394,15 +408,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 fillColor: Colors.white.withValues(alpha: 0.1),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                  borderSide:
+                      BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                  borderSide:
+                      BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.5)),
+                  borderSide:
+                      BorderSide(color: Colors.white.withValues(alpha: 0.5)),
                 ),
               ),
               style: const TextStyle(color: Colors.white),
@@ -424,21 +441,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Campo Tipo
           if (_isEditing)
             Semantics(
               label: 'Campo tipo de perfil',
               hint: 'Selecione o tipo de perfil',
               child: DropdownButtonFormField<String>(
-                value: _selectedTipo,
+                initialValue: _selectedTipo,
                 decoration: InputDecoration(
                   labelText: 'Tipo de Perfil',
-                  labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+                  labelStyle:
+                      TextStyle(color: Colors.white.withValues(alpha: 0.8)),
                   enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                    borderSide:
+                        BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: AppColors.primary, width: 2),
@@ -449,7 +468,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: const TextStyle(color: Colors.white),
                 dropdownColor: AppColors.surface,
                 items: const [
-                  DropdownMenuItem(value: 'individual', child: Text('Individual')),
+                  DropdownMenuItem(
+                      value: 'individual', child: Text('Individual')),
                   DropdownMenuItem(value: 'idoso', child: Text('Idoso')),
                   DropdownMenuItem(value: 'familiar', child: Text('Familiar')),
                 ],
@@ -476,15 +496,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Expanded(
               child: Semantics(
-                label: _isEditing ? 'Botão salvar perfil' : 'Botão editar perfil',
-                hint: _isEditing ? 'Salva as alterações do perfil' : 'Inicia a edição do perfil',
+                label:
+                    _isEditing ? 'Botão salvar perfil' : 'Botão editar perfil',
+                hint: _isEditing
+                    ? 'Salva as alterações do perfil'
+                    : 'Inicia a edição do perfil',
                 button: true,
                 child: ElevatedButton(
-                  onPressed: _isSaving ? null : (_isEditing ? _saveProfile : _toggleEdit),
+                  onPressed: _isSaving
+                      ? null
+                      : (_isEditing ? _saveProfile : _toggleEdit),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: const Color(0xFF0400BA),
-                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 16, horizontal: 24),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -495,7 +521,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0400BA)),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFF0400BA)),
                           ),
                         )
                       : Text(
@@ -508,7 +535,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            
             if (_isEditing) ...[
               const SizedBox(width: 16),
               Expanded(
@@ -522,7 +548,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       backgroundColor: Colors.transparent,
                       foregroundColor: Colors.white,
                       side: const BorderSide(color: Colors.white, width: 2),
-                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 16, horizontal: 24),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -540,9 +567,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Botões secundários
         Row(
           children: [
@@ -553,12 +580,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 button: true,
                 child: ElevatedButton(
                   onPressed: () async {
-                await AccessibilityService.speak('Nome: ${_nomeController.text}. Telefone: ${_telefoneController.text.isEmpty ? 'Não informado' : _telefoneController.text}. Tipo: $_selectedTipo.');
-              },
+                    await AccessibilityService.speak(
+                        'Nome: ${_nomeController.text}. Telefone: ${_telefoneController.text.isEmpty ? 'Não informado' : _telefoneController.text}. Tipo: $_selectedTipo.');
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white.withValues(alpha: 0.2),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 16, horizontal: 24),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -573,7 +602,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            
             if (_currentProfile != null) ...[
               const SizedBox(width: 16),
               Expanded(
@@ -586,8 +614,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red.withValues(alpha: 0.2),
                       foregroundColor: Colors.red,
-                      side: BorderSide(color: Colors.red.withValues(alpha: 0.5)),
-                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                      side:
+                          BorderSide(color: Colors.red.withValues(alpha: 0.5)),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 16, horizontal: 24),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -625,7 +655,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: 'Perfil',
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, AppSpacing.bottomNavBarPadding),
+        padding: const EdgeInsets.fromLTRB(
+            24, 24, 24, AppSpacing.bottomNavBarPadding),
         child: Column(
           children: [
             _buildProfileHeader(),
@@ -634,7 +665,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 32),
             _buildActionButtons(),
             const SizedBox(height: 32),
-            
+
             // Informações adicionais
             if (_currentProfile != null)
               Semantics(
@@ -646,26 +677,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: AppSpacing.paddingCard,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Informações Adicionais',
-                        style: AppTextStyles.leagueSpartan(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                      children: [
+                        Text(
+                          'Informações Adicionais',
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildInfoRow('ID do Perfil', _currentProfile!.id.substring(0, 8)),
-                      _buildInfoRow(
-                        'Criado em',
-                        _formatDate(_currentProfile!.createdAt),
-                      ),
-                    ],
+                        const SizedBox(height: 12),
+                        _buildInfoRow('ID do Perfil',
+                            _currentProfile!.id.substring(0, 8)),
+                        _buildInfoRow(
+                          'Criado em',
+                          _formatDate(_currentProfile!.createdAt),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -707,12 +739,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final day = date.day;
     final month = date.month;
     final year = date.year;
-    
+
     final monthNames = [
-      'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
-      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+      'janeiro',
+      'fevereiro',
+      'março',
+      'abril',
+      'maio',
+      'junho',
+      'julho',
+      'agosto',
+      'setembro',
+      'outubro',
+      'novembro',
+      'dezembro'
     ];
-    
+
     return '$day de ${monthNames[month - 1]} de $year';
   }
 
@@ -723,5 +765,3 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 }
-
-

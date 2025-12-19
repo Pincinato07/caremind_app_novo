@@ -36,7 +36,7 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    
+
     _startPolling();
   }
 
@@ -155,9 +155,8 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen>
 
                   Expanded(
                     child: Center(
-                      child: _hasError
-                          ? _buildErrorState()
-                          : _buildLoadingState(),
+                      child:
+                          _hasError ? _buildErrorState() : _buildLoadingState(),
                     ),
                   ),
                 ],
@@ -332,4 +331,3 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen>
     );
   }
 }
-

@@ -29,4 +29,3 @@ class AppNavigator extends StatelessWidget {
     }
   }
 }
-

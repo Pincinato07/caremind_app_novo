@@ -15,19 +15,19 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/vinculo_familiar.dart';
 
 /// Serviço de Notificações (Locais + Push Remotas FCM) para Lembretes de Medicamentos
-/// 
+///
 /// Responsável por:
 /// - Agendar notificações locais diárias repetitivas com som e vibração fortes
 /// - Receber notificações push remotas (FCM) mesmo com o app fechado
 /// - Gerenciar tokens FCM e sincronizar com backend
-/// 
+///
 /// Funciona mesmo com o app fechado através de:
 /// - Notificações locais agendadas (flutter_local_notifications)
 /// - Push notifications remotas (Firebase Cloud Messaging)
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
-  
+
   // Firebase Messaging
   static FirebaseMessaging? _firebaseMessaging;
   static String? _fcmToken;
@@ -35,14 +35,14 @@ class NotificationService {
 
   static bool _initialized = false;
   static SettingsService? _settingsService;
-  
-  // Callback para quando o token FCM é atualizado (para enviar ao backend)    
+
+  // Callback para quando o token FCM é atualizado (para enviar ao backend)
   static Function(String token)? onFcmTokenUpdated;
-  
+
   // Callback para quando uma notificação FCM chega em foreground
   // Use isso para mostrar in-app notifications
   static Function(RemoteMessage message)? onForegroundMessage;
-  
+
   // Callbacks para notificar erros FCM ao usuário
   static Function(String message)? onFcmPermissionDenied;
   static Function(String message)? onFcmTokenError;
@@ -81,7 +81,8 @@ class NotificationService {
       tz.setLocalLocation(tz.getLocation('America/Sao_Paulo'));
 
       // Configurações Android - CRÍTICO para som e vibração
-      const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const androidSettings =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
 
       // Configurações iOS
       const iosSettings = DarwinInitializationSettings(
@@ -103,7 +104,8 @@ class NotificationService {
       );
 
       if (initialized != true) {
-        debugPrint('⚠️ NotificationService: Falha ao inicializar notificações locais');
+        debugPrint(
+            '⚠️ NotificationService: Falha ao inicializar notificações locais');
         return;
       }
 
@@ -112,10 +114,10 @@ class NotificationService {
 
       // Solicitar permissões
       await requestPermissions();
-      
+
       // Verificar permissões de alarmes exatos (Android 13+)
       await checkAndRequestExactAlarmPermission();
-      
+
       // Configurar bypass de DND (já está no canal)
       await requestDndBypassPermission();
 
@@ -123,25 +125,29 @@ class NotificationService {
       await _initializeFCM();
 
       _initialized = true;
-      debugPrint('✅ NotificationService: Inicializado com sucesso (Local + FCM)');
+      debugPrint(
+          '✅ NotificationService: Inicializado com sucesso (Local + FCM)');
     } catch (e) {
-      debugPrint('❌ NotificationService: Erro ao inicializar - ${e.toString()}');
+      debugPrint(
+          '❌ NotificationService: Erro ao inicializar - ${e.toString()}');
       _initialized = true; // Continua mesmo com erro
     }
   }
-  
+
   /// Inicializar Firebase Cloud Messaging (FCM) para Push Notifications Remotas
   static Future<void> _initializeFCM() async {
     try {
       // FCM não funciona na web
       if (kIsWeb) {
-        debugPrint('ℹ️ FCM não suportado na web. Apenas notificações locais serão usadas.');
+        debugPrint(
+            'ℹ️ FCM não suportado na web. Apenas notificações locais serão usadas.');
         return;
       }
-      
+
       // Verificar se Firebase já foi inicializado
       if (Firebase.apps.isEmpty) {
-        debugPrint('⚠️ Firebase não foi inicializado. Certifique-se de chamar Firebase.initializeApp() no main.dart');
+        debugPrint(
+            '⚠️ Firebase não foi inicializado. Certifique-se de chamar Firebase.initializeApp() no main.dart');
         return;
       }
 
@@ -157,7 +163,8 @@ class NotificationService {
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         debugPrint('✅ Permissão FCM concedida');
-      } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
+      } else if (settings.authorizationStatus ==
+          AuthorizationStatus.provisional) {
         debugPrint('⚠️ Permissão FCM provisória');
         onFcmPermissionDenied?.call(
           'Permissão de notificações provisória. Você pode não receber todos os alertas de medicamento.',
@@ -173,9 +180,10 @@ class NotificationService {
       // Configurar handlers para notificações FCM
       // Foreground: quando o app está aberto
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
-      
+
       // Background: quando o app está em background (já configurado via top-level function)
-      FirebaseMessaging.onMessageOpenedApp.listen(_handleBackgroundMessageOpened);
+      FirebaseMessaging.onMessageOpenedApp
+          .listen(_handleBackgroundMessageOpened);
 
       // Obter token FCM
       await _getFCMToken();
@@ -197,12 +205,12 @@ class NotificationService {
       // Continua mesmo sem FCM (notificações locais ainda funcionam)
     }
   }
-  
+
   /// Obter token FCM atual
   static Future<String?> _getFCMToken() async {
     try {
       if (_firebaseMessaging == null) return null;
-      
+
       _fcmToken = await _firebaseMessaging!.getToken();
       if (_fcmToken != null) {
         debugPrint('✅ Token FCM obtido: $_fcmToken');
@@ -217,7 +225,7 @@ class NotificationService {
       return null;
     }
   }
-  
+
   /// Obter token FCM (método público)
   static Future<String?> getFCMToken() async {
     if (kIsWeb) {
@@ -229,33 +237,36 @@ class NotificationService {
     }
     return _fcmToken ?? await _getFCMToken();
   }
-  
+
   /// Handler para notificações FCM quando o app está em foreground
   static Future<void> _handleForegroundMessage(RemoteMessage message) async {
-    debugPrint('📨 Notificação FCM recebida (foreground): ${message.notification?.title}');
+    debugPrint(
+        '📨 Notificação FCM recebida (foreground): ${message.notification?.title}');
     debugPrint('📦 Payload data: ${message.data}');
-    
+
     // Notificar o app para mostrar in-app notification
     // O callback será configurado no main.dart ou em um widget de nível superior
     onForegroundMessage?.call(message);
-    
+
     // Também mostrar notificação local (como backup/para histórico)
     if (message.notification != null) {
       await _showLocalNotificationFromFCM(message);
     }
   }
-  
+
   /// Handler para quando o usuário toca em uma notificação FCM com o app em background
   static void _handleBackgroundMessageOpened(RemoteMessage message) {
-    debugPrint('🔔 Notificação FCM tocada (background): ${message.notification?.title}');
+    debugPrint(
+        '🔔 Notificação FCM tocada (background): ${message.notification?.title}');
     debugPrint('📦 Payload: ${message.data}');
     // Aqui você pode navegar para a tela apropriada baseado no payload
   }
-  
+
   /// Mostrar notificação local a partir de uma mensagem FCM
-  static Future<void> _showLocalNotificationFromFCM(RemoteMessage message) async {
+  static Future<void> _showLocalNotificationFromFCM(
+      RemoteMessage message) async {
     if (!_initialized) await initialize();
-    
+
     final notification = message.notification;
     if (notification == null) return;
 
@@ -294,7 +305,7 @@ class NotificationService {
   }
 
   /// Criar canal Android com importância máxima (CRÍTICO)
-  /// 
+  ///
   /// O canal deve ter Importance.max para que as notificações:
   /// - Apareçam como heads-up (popup)
   /// - Toquem som mesmo em modo silencioso (se configurado)
@@ -324,7 +335,7 @@ class NotificationService {
   }
 
   /// Solicitar permissões necessárias
-  /// 
+  ///
   /// Android 13+ (API 33+): Requer POST_NOTIFICATIONS
   /// iOS: Já solicitado no DarwinInitializationSettings
   static Future<bool> requestPermissions() async {
@@ -349,7 +360,7 @@ class NotificationService {
   }
 
   /// Verificar e solicitar permissão USE_EXACT_ALARM (Android 13+)
-  /// 
+  ///
   /// Android 13+ (API 33+) requer permissão explícita para usar alarmes exatos.
   /// Retorna true se a permissão está disponível, false caso contrário.
   static Future<bool> checkAndRequestExactAlarmPermission() async {
@@ -363,22 +374,24 @@ class NotificationService {
 
       // Verificar se pode agendar alarmes exatos
       final canSchedule = await android.canScheduleExactNotifications();
-      
+
       if (canSchedule == true) {
         debugPrint('✅ Permissão USE_EXACT_ALARM: Já disponível');
         return true;
       }
 
-      debugPrint('⚠️ Permissão USE_EXACT_ALARM: Não disponível. Solicitando...');
-      
+      debugPrint(
+          '⚠️ Permissão USE_EXACT_ALARM: Não disponível. Solicitando...');
+
       // Tentar solicitar permissão (pode abrir configurações do sistema)
       final requested = await android.requestExactAlarmsPermission();
-      
+
       if (requested == true) {
         debugPrint('✅ Permissão USE_EXACT_ALARM: Concedida');
         return true;
       } else {
-        debugPrint('❌ Permissão USE_EXACT_ALARM: Negada. Usuário precisa habilitar manualmente.');
+        debugPrint(
+            '❌ Permissão USE_EXACT_ALARM: Negada. Usuário precisa habilitar manualmente.');
         return false;
       }
     } catch (e) {
@@ -391,19 +404,19 @@ class NotificationService {
   /// Verificar se pode agendar alarmes exatos (método público)
   static Future<bool> canScheduleExactAlarms() async {
     if (!Platform.isAndroid) return true;
-    
+
     final android = _notifications.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
-    
+
     if (android == null) return false;
-    
+
     return await android.canScheduleExactNotifications() ?? false;
   }
 
   /// Verificar se otimização de bateria está desabilitada (método público)
   static Future<bool> isBatteryOptimizationDisabled() async {
     if (!Platform.isAndroid) return true;
-    
+
     try {
       return await Permission.ignoreBatteryOptimizations.isGranted;
     } catch (e) {
@@ -415,7 +428,7 @@ class NotificationService {
   /// Solicitar desabilitar otimização de bateria (método público)
   static Future<bool> requestDisableBatteryOptimization() async {
     if (!Platform.isAndroid) return true;
-    
+
     try {
       final status = await Permission.ignoreBatteryOptimizations.request();
       return status.isGranted;
@@ -426,30 +439,32 @@ class NotificationService {
   }
 
   /// Solicitar permissão de bypass do modo Não Perturbe (DND) no Android
-  /// 
+  ///
   /// Esta permissão é crítica para garantir que notificações de medicamentos
   /// sejam exibidas mesmo quando o dispositivo está em modo Não Perturbe.
-  /// 
+  ///
   /// Android 6.0+ (API 23+): O bypass de DND é configurado através do canal
   /// de notificação com `bypassDnd: true` (já implementado em _createMedicamentoChannel).
-  /// 
+  ///
   /// Nota: A permissão ACCESS_NOTIFICATION_POLICY pode ser necessária em alguns
   /// dispositivos, mas não está disponível via permission_handler. O usuário pode
   /// precisar habilitar manualmente nas configurações do sistema.
   static Future<bool> requestDndBypassPermission() async {
     if (!Platform.isAndroid) return true;
-    
+
     try {
       // O bypass de DND é configurado através do canal de notificação
       // com bypassDnd: true, que já foi implementado em _createMedicamentoChannel()
-      // 
+      //
       // Para dispositivos que requerem permissão adicional, o usuário precisará
       // habilitar manualmente nas configurações do sistema:
       // Configurações > Apps > CareMind > Notificações > Permitir interromper modo Não Perturbe
-      
-      debugPrint('ℹ️ Bypass DND: Configurado através do canal de notificação (bypassDnd: true)');
-      debugPrint('ℹ️ Se necessário, habilite manualmente nas configurações do sistema');
-      
+
+      debugPrint(
+          'ℹ️ Bypass DND: Configurado através do canal de notificação (bypassDnd: true)');
+      debugPrint(
+          'ℹ️ Se necessário, habilite manualmente nas configurações do sistema');
+
       // Retornar true pois o canal já está configurado corretamente
       return true;
     } catch (e) {
@@ -460,27 +475,27 @@ class NotificationService {
   }
 
   /// Verificar se a permissão de bypass DND está concedida (método público)
-  /// 
+  ///
   /// Nota: A verificação real do status de bypass DND requer acesso nativo
   /// que não está disponível via flutter_local_notifications. Este método
   /// verifica se o canal foi criado corretamente (com bypassDnd: true).
-  /// 
+  ///
   /// Para uma verificação mais precisa, seria necessário usar código nativo Android.
   static Future<bool> isDndBypassGranted() async {
     if (!Platform.isAndroid) return true;
-    
+
     try {
       // O canal foi criado com bypassDnd: true em _createMedicamentoChannel()
       // A verificação real se o usuário permitiu nas configurações requer
       // acesso nativo que não está disponível via flutter_local_notifications
-      
+
       // Por enquanto, assumimos que se o canal foi criado, está configurado
       // O usuário pode precisar habilitar manualmente nas configurações
       // se o dispositivo requerer permissão adicional
-      
+
       debugPrint('ℹ️ Bypass DND: Canal configurado com bypassDnd: true');
       debugPrint('ℹ️ Verificação real requer acesso nativo (não disponível)');
-      
+
       // Como não podemos verificar o status real via API, vamos sempre
       // mostrar o dialog na primeira vez para garantir que o usuário saiba
       // como habilitar se necessário
@@ -490,14 +505,14 @@ class NotificationService {
       return false;
     }
   }
-  
+
   /// Abrir configurações de notificação do app no Android
-  /// 
+  ///
   /// Abre diretamente a tela de configurações de notificação do CareMind
   /// onde o usuário pode habilitar o bypass de DND.
   static Future<void> openNotificationSettings() async {
     if (!Platform.isAndroid) return;
-    
+
     try {
       // Abrir configurações do app (vai para a tela de notificações)
       await openAppSettings();
@@ -506,14 +521,14 @@ class NotificationService {
       debugPrint('❌ Erro ao abrir configurações: $e');
     }
   }
-  
+
   /// Mostrar dialog informando sobre bypass de DND
-  /// 
+  ///
   /// Exibe um dialog explicando a importância do bypass de DND e oferece
   /// um botão para abrir as configurações do sistema.
   static Future<void> showDndBypassDialog(BuildContext context) async {
     if (!Platform.isAndroid) return;
-    
+
     return showDialog(
       context: context,
       barrierDismissible: false,
@@ -552,7 +567,8 @@ class NotificationService {
                 decoration: BoxDecoration(
                   color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                  border:
+                      Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                 ),
                 child: const Row(
                   children: [
@@ -581,9 +597,11 @@ class NotificationService {
               ),
               const SizedBox(height: 8),
               _buildInstructionItem('1. Toque em "Abrir Configurações" abaixo'),
-              _buildInstructionItem('2. Procure por "Notificações" ou "Notifications"'),
+              _buildInstructionItem(
+                  '2. Procure por "Notificações" ou "Notifications"'),
               _buildInstructionItem('3. Encontre "Lembretes de Medicamentos"'),
-              _buildInstructionItem('4. Ative "Permitir interromper modo Não Perturbe"'),
+              _buildInstructionItem(
+                  '4. Ative "Permitir interromper modo Não Perturbe"'),
               _buildInstructionItem('5. Volte ao app'),
             ],
           ),
@@ -609,7 +627,7 @@ class NotificationService {
       ),
     );
   }
-  
+
   /// Widget helper para itens de instrução
   static Widget _buildInstructionItem(String text) {
     return Padding(
@@ -628,27 +646,27 @@ class NotificationService {
       ),
     );
   }
-  
+
   /// Verificar e solicitar bypass de DND com dialog se necessário
-  /// 
+  ///
   /// Verifica se o bypass está ativo e mostra um dialog se não estiver.
   /// Retorna true se está ativo ou foi configurado, false caso contrário.
   static Future<bool> checkAndRequestDndBypass(BuildContext? context) async {
     if (!Platform.isAndroid) return true;
     if (context == null) return false;
-    
+
     try {
       // Verificar se está ativo
       final isGranted = await isDndBypassGranted();
-      
+
       if (isGranted) {
         debugPrint('✅ Bypass DND: Já está ativo');
         return true;
       }
-      
+
       // Mostrar dialog para o usuário
       await showDndBypassDialog(context);
-      
+
       // Verificar novamente após o usuário voltar
       return await isDndBypassGranted();
     } catch (e) {
@@ -659,14 +677,15 @@ class NotificationService {
 
   /// Handler quando usuário toca na notificação (foreground)
   static void _onNotificationTapped(NotificationResponse response) async {
-    debugPrint('🔔 Notificação tocada - ID: ${response.id}, Payload: ${response.payload}, Action: ${response.actionId}');
-    
+    debugPrint(
+        '🔔 Notificação tocada - ID: ${response.id}, Payload: ${response.payload}, Action: ${response.actionId}');
+
     await _handleNotificationAction(response);
   }
 
-
   /// Processar ação da notificação (snooze ou confirmar)
-  static Future<void> _handleNotificationAction(NotificationResponse response) async {
+  static Future<void> _handleNotificationAction(
+      NotificationResponse response) async {
     try {
       final payload = response.payload;
       if (payload == null || payload.isEmpty) {
@@ -688,7 +707,7 @@ class NotificationService {
           debugPrint('❌ Erro ao agendar snooze: $e');
           // Não relançar erro - já foi logado
         }
-      } 
+      }
       // Se ação for "confirm", marcar como confirmado (cancelar notificações pendentes)
       else if (response.actionId == 'confirm') {
         try {
@@ -713,12 +732,13 @@ class NotificationService {
       debugPrint('Stack trace: $stackTrace');
     }
   }
-  
+
   // Callback para quando uma notificação é tocada (para navegação)
   static Function(int medicamentoId)? onNotificationTapped;
 
   /// Processar ação da notificação em background (método estático para ser chamado pela função top-level)
-  static Future<void> _handleNotificationActionInBackground(NotificationResponse response) async {
+  static Future<void> _handleNotificationActionInBackground(
+      NotificationResponse response) async {
     try {
       // Garantir que timezone está inicializado (pode não estar em background)
       try {
@@ -728,7 +748,7 @@ class NotificationService {
         // Timezone já inicializado ou erro (continuar mesmo assim)
         debugPrint('ℹ️ Timezone já inicializado ou erro: $e');
       }
-      
+
       // Garantir que serviço está inicializado
       if (!_initialized) {
         try {
@@ -738,7 +758,7 @@ class NotificationService {
           // Tentar continuar mesmo sem inicialização completa
         }
       }
-      
+
       await _handleNotificationAction(response);
     } catch (e, stackTrace) {
       debugPrint('❌ Erro ao processar ação de notificação em background: $e');
@@ -758,7 +778,7 @@ class NotificationService {
           return;
         }
       }
-      
+
       // Obter estado atual de snooze
       SharedPreferences? prefs;
       try {
@@ -767,13 +787,14 @@ class NotificationService {
         debugPrint('❌ Erro ao obter SharedPreferences para snooze: $e');
         return;
       }
-      
+
       final stateKey = '${_snoozeStateKey}_$medicamentoId';
       final snoozeCount = prefs.getInt(stateKey) ?? 0;
 
       if (snoozeCount >= _maxSnoozes) {
         // Máximo de snoozes atingido - escalar para familiar
-        debugPrint('⚠️ Máximo de snoozes atingido para medicamento $medicamentoId. Escalando para familiar...');
+        debugPrint(
+            '⚠️ Máximo de snoozes atingido para medicamento $medicamentoId. Escalando para familiar...');
         try {
           await _escalateToFamiliar(medicamentoId);
         } catch (e) {
@@ -815,7 +836,8 @@ class NotificationService {
       DateTime snoozeTime;
       tz.TZDateTime tzSnoozeTime;
       try {
-        snoozeTime = DateTime.now().add(const Duration(minutes: _snoozeMinutes));
+        snoozeTime =
+            DateTime.now().add(const Duration(minutes: _snoozeMinutes));
         tzSnoozeTime = tz.TZDateTime.from(snoozeTime, tz.local);
       } catch (e) {
         debugPrint('❌ Erro ao calcular horário do snooze: $e');
@@ -834,7 +856,8 @@ class NotificationService {
 
       final saudacao = _getSaudacao(snoozeTime.hour);
       final titulo = '$saudacao Lembrete: ${medicamento.nome}';
-      final corpo = '⏰ Você ainda não confirmou este medicamento. ${_getCorpoNotificacao(medicamento, TimeOfDay(hour: snoozeTime.hour, minute: snoozeTime.minute))}';
+      final corpo =
+          '⏰ Você ainda não confirmou este medicamento. ${_getCorpoNotificacao(medicamento, TimeOfDay(hour: snoozeTime.hour, minute: snoozeTime.minute))}';
 
       final androidDetails = AndroidNotificationDetails(
         _medicamentoChannelId,
@@ -897,7 +920,8 @@ class NotificationService {
           payload: medicamentoId.toString(),
         );
 
-        debugPrint('✅ Snooze agendado: Medicamento=$medicamentoId, Tentativa=$newSnoozeCount/${_maxSnoozes + 1}, Horário=$snoozeTime');
+        debugPrint(
+            '✅ Snooze agendado: Medicamento=$medicamentoId, Tentativa=$newSnoozeCount/${_maxSnoozes + 1}, Horário=$snoozeTime');
       } catch (e) {
         debugPrint('❌ Erro ao agendar notificação de snooze: $e');
         // Reverter contador de snooze em caso de erro
@@ -926,7 +950,7 @@ class NotificationService {
         debugPrint('⚠️ Erro ao cancelar notificações do medicamento: $e');
         // Continuar mesmo com erro
       }
-      
+
       // Cancelar snoozes pendentes (IDs negativos)
       for (int i = 0; i <= _maxSnoozes; i++) {
         try {
@@ -948,7 +972,8 @@ class NotificationService {
         // Continuar mesmo com erro
       }
 
-      debugPrint('✅ Medicamento $medicamentoId confirmado. Notificações canceladas.');
+      debugPrint(
+          '✅ Medicamento $medicamentoId confirmado. Notificações canceladas.');
     } catch (e, stackTrace) {
       debugPrint('❌ Erro ao confirmar medicamento: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -961,15 +986,17 @@ class NotificationService {
     try {
       final medicamento = await _getMedicamentoById(medicamentoId);
       if (medicamento == null) {
-        debugPrint('⚠️ Medicamento $medicamentoId não encontrado para escalonamento');
+        debugPrint(
+            '⚠️ Medicamento $medicamentoId não encontrado para escalonamento');
         return;
       }
 
       // Buscar vínculos familiares do idoso
       final vinculos = await _getVinculosFamiliares(medicamento.perfilId);
-      
+
       if (vinculos.isEmpty) {
-        debugPrint('⚠️ Nenhum familiar vinculado para medicamento $medicamentoId');
+        debugPrint(
+            '⚠️ Nenhum familiar vinculado para medicamento $medicamentoId');
         return;
       }
 
@@ -979,7 +1006,7 @@ class NotificationService {
       // Enviar notificação para cada familiar via Edge Function
       int sucessos = 0;
       int falhas = 0;
-      
+
       for (final vinculo in vinculos) {
         try {
           await _sendPushToFamiliar(
@@ -991,13 +1018,15 @@ class NotificationService {
           sucessos++;
         } catch (e) {
           falhas++;
-          debugPrint('⚠️ Erro ao enviar push para familiar ${vinculo.idFamiliar}: $e');
+          debugPrint(
+              '⚠️ Erro ao enviar push para familiar ${vinculo.idFamiliar}: $e');
           // Continuar enviando para os outros familiares
         }
       }
 
       if (sucessos > 0) {
-        debugPrint('✅ Escalonamento enviado: $sucessos sucesso(s), $falhas falha(s) de ${vinculos.length} familiar(es)');
+        debugPrint(
+            '✅ Escalonamento enviado: $sucessos sucesso(s), $falhas falha(s) de ${vinculos.length} familiar(es)');
       } else {
         debugPrint('❌ Falha ao enviar escalonamento para todos os familiares');
       }
@@ -1027,7 +1056,8 @@ class NotificationService {
   }
 
   /// Buscar vínculos familiares (helper)
-  static Future<List<VinculoFamiliar>> _getVinculosFamiliares(String idosoId) async {
+  static Future<List<VinculoFamiliar>> _getVinculosFamiliares(
+      String idosoId) async {
     try {
       final client = Supabase.instance.client;
       final response = await client
@@ -1070,14 +1100,15 @@ class NotificationService {
   }) async {
     try {
       final client = Supabase.instance.client;
-      
+
       // Chamar Edge Function para enviar push
       final response = await client.functions.invoke(
         'enviar-push-notification',
         body: {
           'userId': familiarId,
           'title': '⚠️ Alerta: Medicamento não confirmado',
-          'body': '$idosoNome não confirmou o medicamento "$medicamentoNome". Por favor, verifique.',
+          'body':
+              '$idosoNome não confirmou o medicamento "$medicamentoNome". Por favor, verifique.',
           'data': {
             'type': 'medication_escalation',
             'medicamento_id': medicamentoId.toString(),
@@ -1091,9 +1122,12 @@ class NotificationService {
       if (response.status == 200) {
         debugPrint('✅ Push enviado para familiar $familiarId');
       } else {
-        debugPrint('⚠️ Push enviado para familiar $familiarId com status: ${response.status}');
+        debugPrint(
+            '⚠️ Push enviado para familiar $familiarId com status: ${response.status}');
         final errorData = response.data;
-        if (errorData != null && errorData is Map && errorData.containsKey('error')) {
+        if (errorData != null &&
+            errorData is Map &&
+            errorData.containsKey('error')) {
           throw Exception('Erro na Edge Function: ${errorData['error']}');
         }
       }
@@ -1105,17 +1139,18 @@ class NotificationService {
   }
 
   /// Agendar lembretes de medicamento (MÉTODO PRINCIPAL)
-  /// 
+  ///
   /// Agenda notificações diárias repetitivas baseadas nos horários do medicamento.
   /// Cada horário gera uma notificação que se repete todos os dias.
   /// Respeita a configuração de notificações do usuário.
-  /// 
+  ///
   /// **Exemplo de uso:**
   /// ```dart
   /// final medicamento = Medicamento(...);
   /// await NotificationService.scheduleMedicationReminders(medicamento);
   /// ```
-  static Future<void> scheduleMedicationReminders(Medicamento medicamento) async {
+  static Future<void> scheduleMedicationReminders(
+      Medicamento medicamento) async {
     // Verificar se notificações de medicamentos estão habilitadas
     final settings = _getSettingsService();
     if (settings != null && !settings.notificationsMedicamentos) {
@@ -1134,7 +1169,8 @@ class NotificationService {
     final horarios = _extractHorarios(medicamento);
 
     if (horarios.isEmpty) {
-      debugPrint('⚠️ Medicamento ${medicamento.nome}: Nenhum horário encontrado');
+      debugPrint(
+          '⚠️ Medicamento ${medicamento.nome}: Nenhum horário encontrado');
       return;
     }
 
@@ -1157,11 +1193,12 @@ class NotificationService {
       );
     }
 
-    debugPrint('✅ ${horarios.length} notificação(ões) agendada(s) para ${medicamento.nome}');
+    debugPrint(
+        '✅ ${horarios.length} notificação(ões) agendada(s) para ${medicamento.nome}');
   }
 
   /// Extrair horários da frequência do medicamento
-  /// 
+  ///
   /// Suporta diferentes formatos:
   /// - Frequência diária com horários: `{tipo: 'diario', horarios: ['08:00', '20:00']}`
   /// - Frequência diária com vezes_por_dia: `{tipo: 'diario', vezes_por_dia: 2}` (gera horários padrão)
@@ -1199,9 +1236,9 @@ class NotificationService {
   /// Gerar horários padrão baseado na quantidade de vezes por dia
   static List<TimeOfDay> _generateDefaultHorarios(int vezesPorDia) {
     final horariosPadrao = [
-      const TimeOfDay(hour: 8, minute: 0),   // 08:00 - Manhã
-      const TimeOfDay(hour: 14, minute: 0),  // 14:00 - Tarde
-      const TimeOfDay(hour: 20, minute: 0),  // 20:00 - Noite
+      const TimeOfDay(hour: 8, minute: 0), // 08:00 - Manhã
+      const TimeOfDay(hour: 14, minute: 0), // 14:00 - Tarde
+      const TimeOfDay(hour: 20, minute: 0), // 20:00 - Noite
     ];
 
     return horariosPadrao.take(vezesPorDia).toList();
@@ -1223,7 +1260,7 @@ class NotificationService {
   }
 
   /// Gerar ID único para notificação
-  /// 
+  ///
   /// Formato: medicamentoId * 1000 + indexHorario
   /// Permite até 999 horários por medicamento
   static int _generateNotificationId(int medicamentoId, int horarioIndex) {
@@ -1338,25 +1375,27 @@ class NotificationService {
     }
   }
 
-  static String _getCorpoNotificacao(Medicamento medicamento, TimeOfDay horario) {
+  static String _getCorpoNotificacao(
+      Medicamento medicamento, TimeOfDay horario) {
     final nomeFormatado = medicamento.nome;
     final dosagem = medicamento.dosagem ?? 'sua dose';
     final via = medicamento.via ?? 'oral';
-    
+
     final mensagens = [
       'Tome $dosagem de $nomeFormatado agora. Sua saúde agradece! 💪',
       '$nomeFormatado $dosagem - via $via. Cuide-se bem! 🌟',
       'Não esqueça: $dosagem de $nomeFormatado. Você está cuidando de você! ❤️',
       'Hora de tomar $nomeFormatado ($dosagem). Continue firme! 💊',
     ];
-    
+
     final index = horario.hour % mensagens.length;
     var corpo = mensagens[index];
-    
+
     if (medicamento.quantidade != null && medicamento.quantidade! <= 5) {
-      corpo += '\n\n⚠️ Atenção: Restam apenas ${medicamento.quantidade} unidade(s). Reponha seu estoque!';
+      corpo +=
+          '\n\n⚠️ Atenção: Restam apenas ${medicamento.quantidade} unidade(s). Reponha seu estoque!';
     }
-    
+
     return corpo;
   }
 
@@ -1374,7 +1413,8 @@ class NotificationService {
       await _notifications.cancel(id);
     }
 
-    debugPrint('🗑️ Notificações canceladas para medicamento ID=$medicamentoId');
+    debugPrint(
+        '🗑️ Notificações canceladas para medicamento ID=$medicamentoId');
   }
 
   /// Cancelar uma notificação específica por ID
@@ -1437,10 +1477,10 @@ class NotificationService {
 }
 
 /// Handler top-level para notificações FCM em background (quando o app está completamente fechado)
-/// 
+///
 /// Esta função DEVE estar no nível superior do arquivo (não dentro de uma classe)
 /// e DEVE ser uma função top-level ou estática para funcionar corretamente.
-/// 
+///
 /// IMPORTANTE: Esta função é chamada automaticamente pelo Firebase quando uma
 /// notificação chega com o app em background ou fechado.
 @pragma('vm:entry-point')
@@ -1448,19 +1488,20 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // IMPORTANTE: Inicializar Firebase se ainda não foi inicializado
   // Isso é necessário porque esta função roda em um isolate separado
   await Firebase.initializeApp();
-  
-  debugPrint('📨 Notificação FCM recebida (background/terminated): ${message.notification?.title}');
+
+  debugPrint(
+      '📨 Notificação FCM recebida (background/terminated): ${message.notification?.title}');
   debugPrint('📦 Payload: ${message.data}');
-  
+
   // Mostrar notificação local mesmo quando em background
   // Isso garante que o usuário veja a notificação mesmo com o app fechado
-  final FlutterLocalNotificationsPlugin localNotifications = 
+  final FlutterLocalNotificationsPlugin localNotifications =
       FlutterLocalNotificationsPlugin();
-  
+
   // Inicializar timezone se necessário
   tz.initializeTimeZones();
   tz.setLocalLocation(tz.getLocation('America/Sao_Paulo'));
-  
+
   // Configurar canal Android
   const androidChannel = AndroidNotificationChannel(
     'lembrete_medicamento_channel',
@@ -1470,22 +1511,24 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     playSound: true,
     enableVibration: true,
   );
-  
-  final androidImplementation = localNotifications.resolvePlatformSpecificImplementation<
-      AndroidFlutterLocalNotificationsPlugin>();
-  
+
+  final androidImplementation =
+      localNotifications.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
   if (androidImplementation != null) {
     await androidImplementation.createNotificationChannel(androidChannel);
   }
-  
+
   // Mostrar notificação
   if (message.notification != null) {
     final notification = message.notification!;
-    
+
     final androidDetails = AndroidNotificationDetails(
       'lembrete_medicamento_channel',
       'Lembretes de Medicamentos',
-      channelDescription: 'Notificações de horários de medicamentos com som e vibração',
+      channelDescription:
+          'Notificações de horários de medicamentos com som e vibração',
       importance: Importance.max,
       priority: Priority.max,
       icon: '@mipmap/ic_launcher',
@@ -1518,19 +1561,21 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 /// Handler top-level para ações de notificações locais em background
-/// 
+///
 /// Esta função DEVE estar no nível superior do arquivo (não dentro de uma classe)
 /// para funcionar corretamente quando o app está em background ou fechado.
-/// 
+///
 /// IMPORTANTE: Esta função não pode ser async, mas pode chamar métodos assíncronos.
 /// O método assíncrono será executado em background.
 @pragma('vm:entry-point')
 void notificationActionHandler(NotificationResponse response) {
-  debugPrint('🔔 Notificação tocada (background) - ID: ${response.id}, Payload: ${response.payload}, Action: ${response.actionId}');
-  
+  debugPrint(
+      '🔔 Notificação tocada (background) - ID: ${response.id}, Payload: ${response.payload}, Action: ${response.actionId}');
+
   // Processar ação em background de forma assíncrona
   // Usar unawaited para não bloquear, mas processar em background
-  NotificationService._handleNotificationActionInBackground(response).catchError((error) {
+  NotificationService._handleNotificationActionInBackground(response)
+      .catchError((error) {
     debugPrint('❌ Erro ao processar ação de notificação em background: $error');
   });
 }

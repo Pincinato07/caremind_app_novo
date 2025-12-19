@@ -4,13 +4,13 @@ import '../core/injection/injection.dart';
 import 'voice_interface_widget.dart';
 
 /// Mixin para adicionar facilmente interface de voz em qualquer tela
-/// 
+///
 /// Uso:
 /// ```dart
 /// class MinhaTela extends StatefulWidget {
 ///   ...
 /// }
-/// 
+///
 /// class _MinhaTelaState extends State<MinhaTela> with VoiceInterfaceMixin {
 ///   @override
 ///   Widget build(BuildContext context) {
@@ -37,11 +37,11 @@ mixin VoiceInterfaceMixin<T extends StatefulWidget> on State<T> {
     try {
       final supabaseService = getIt<SupabaseService>();
       final user = supabaseService.currentUser;
-      
+
       if (user != null) {
         final perfil = await supabaseService.getProfile(user.id);
         final isIdoso = perfil?.tipo?.toLowerCase() == 'idoso';
-        
+
         if (mounted) {
           setState(() {
             _userId = user.id;
@@ -92,4 +92,3 @@ mixin VoiceInterfaceMixin<T extends StatefulWidget> on State<T> {
     );
   }
 }
-

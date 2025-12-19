@@ -11,7 +11,7 @@ class DailyCacheService {
   static const String _keyRotinas = 'cache_rotinas';
   static const String _keyLastSync = 'cache_last_sync';
   static const String _keyCacheDate = 'cache_date';
-  
+
   SharedPreferences? _prefs;
   bool _initialized = false;
 
@@ -33,7 +33,8 @@ class DailyCacheService {
     try {
       final supabase = Supabase.instance.client;
       final hoje = DateTime.now();
-      final hojeStr = '${hoje.year}-${hoje.month.toString().padLeft(2, '0')}-${hoje.day.toString().padLeft(2, '0')}';
+      final hojeStr =
+          '${hoje.year}-${hoje.month.toString().padLeft(2, '0')}-${hoje.day.toString().padLeft(2, '0')}';
 
       final medicamentos = await supabase
           .from('medicamentos')
@@ -47,10 +48,8 @@ class DailyCacheService {
           .gte('data_hora', hojeStr)
           .lte('data_hora', '${hojeStr}T23:59:59');
 
-      final rotinas = await supabase
-          .from('rotinas')
-          .select()
-          .eq('perfil_id', perfilId);
+      final rotinas =
+          await supabase.from('rotinas').select().eq('perfil_id', perfilId);
 
       await _prefs!.setString(_keyMedicamentos, jsonEncode(medicamentos));
       await _prefs!.setString(_keyCompromissos, jsonEncode(compromissos));
@@ -58,7 +57,8 @@ class DailyCacheService {
       await _prefs!.setString(_keyLastSync, DateTime.now().toIso8601String());
       await _prefs!.setString(_keyCacheDate, hojeStr);
 
-      await _schedulePersonalizedNotifications(medicamentos, compromissos, rotinas);
+      await _schedulePersonalizedNotifications(
+          medicamentos, compromissos, rotinas);
 
       debugPrint('✅ DailyCacheService: Dados do dia sincronizados');
     } catch (e) {
@@ -93,20 +93,23 @@ class DailyCacheService {
     }
   }
 
-  Future<void> _schedulePersonalizedMedicationNotification(Medicamento med) async {
+  Future<void> _schedulePersonalizedMedicationNotification(
+      Medicamento med) async {
     await NotificationService.scheduleMedicationReminders(med);
   }
 
-  Future<void> _scheduleCompromissoNotification(Map<String, dynamic> comp) async {
+  Future<void> _scheduleCompromissoNotification(
+      Map<String, dynamic> comp) async {
     try {
       final dataHora = DateTime.parse(comp['data_hora'] as String);
       final titulo = comp['titulo'] as String? ?? 'Compromisso';
       final lembreteMinutos = comp['lembrete_minutos'] as int? ?? 60;
 
       final horaNotif = dataHora.subtract(Duration(minutes: lembreteMinutos));
-      
+
       if (horaNotif.isAfter(DateTime.now())) {
-        debugPrint('📅 Compromisso agendado: $titulo às ${dataHora.hour}:${dataHora.minute}');
+        debugPrint(
+            '📅 Compromisso agendado: $titulo às ${dataHora.hour}:${dataHora.minute}');
       }
     } catch (e) {
       debugPrint('⚠️ Erro ao agendar compromisso: $e');
@@ -117,7 +120,7 @@ class DailyCacheService {
     try {
       final titulo = rotina['titulo'] as String? ?? 'Rotina';
       final frequencia = rotina['frequencia'] as Map<String, dynamic>?;
-      
+
       if (frequencia != null && frequencia['horario'] != null) {
         final horario = frequencia['horario'] as String;
         debugPrint('🔁 Rotina agendada: $titulo às $horario');
@@ -135,7 +138,8 @@ class DailyCacheService {
       final list = jsonDecode(data) as List;
       return list.map((item) => Medicamento.fromMap(item)).toList();
     } catch (e) {
-      debugPrint('⚠️ DailyCacheService: Erro ao ler medicamentos do cache - $e');
+      debugPrint(
+          '⚠️ DailyCacheService: Erro ao ler medicamentos do cache - $e');
       return null;
     }
   }
@@ -148,7 +152,8 @@ class DailyCacheService {
       final list = jsonDecode(data) as List;
       return list.cast<Map<String, dynamic>>();
     } catch (e) {
-      debugPrint('⚠️ DailyCacheService: Erro ao ler compromissos do cache - $e');
+      debugPrint(
+          '⚠️ DailyCacheService: Erro ao ler compromissos do cache - $e');
       return null;
     }
   }
@@ -168,35 +173,36 @@ class DailyCacheService {
 
   bool shouldSync() {
     if (_prefs == null) return true;
-    
+
     final lastSyncStr = _prefs!.getString(_keyLastSync);
     final cacheDateStr = _prefs!.getString(_keyCacheDate);
-    
+
     if (lastSyncStr == null || cacheDateStr == null) return true;
-    
+
     final hoje = DateTime.now();
-    final hojeStr = '${hoje.year}-${hoje.month.toString().padLeft(2, '0')}-${hoje.day.toString().padLeft(2, '0')}';
-    
+    final hojeStr =
+        '${hoje.year}-${hoje.month.toString().padLeft(2, '0')}-${hoje.day.toString().padLeft(2, '0')}';
+
     if (cacheDateStr != hojeStr) return true;
-    
+
     final lastSync = DateTime.parse(lastSyncStr);
     final horaAtual = hoje.hour;
-    
+
     if (horaAtual < 7 && lastSync.day != hoje.day) return true;
-    
+
     return false;
   }
 
   Future<void> clearCache() async {
     await initialize();
     if (_prefs == null) return;
-    
+
     await _prefs!.remove(_keyMedicamentos);
     await _prefs!.remove(_keyCompromissos);
     await _prefs!.remove(_keyRotinas);
     await _prefs!.remove(_keyLastSync);
     await _prefs!.remove(_keyCacheDate);
-    
+
     debugPrint('🗑️ DailyCacheService: Cache limpo');
   }
 

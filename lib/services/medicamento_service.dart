@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/medicamento.dart';
 import '../core/errors/error_handler.dart';
+import '../core/errors/result.dart';
+import '../core/errors/app_exception.dart';
 import '../core/utils/data_cleaner.dart';
 import 'notification_service.dart';
 import 'historico_eventos_service.dart';
@@ -12,32 +15,35 @@ class MedicamentoService {
   MedicamentoService(this._client);
 
   // Buscar todos os medicamentos de um usuário
-  // Atualizado para usar user_id (campo correto baseado no schema)
-  Future<List<Medicamento>> getMedicamentos(String userId) async {
+  Future<Result<List<Medicamento>>> getMedicamentos(String userId) async {
     try {
-      // Baseado no schema, obter o perfil_id do usuário usando user_id
       final perfilResponse = await _client
           .from('perfis')
           .select('id')
           .eq('user_id', userId)
           .maybeSingle();
-      
+
       final perfilId = perfilResponse?['id'] as String?;
-      
-      // Usar perfil_id se disponível, senão usar user_id (compatibilidade durante transição)
+
       final response = await _client
           .from('medicamentos')
           .select()
-          .or(perfilId != null 
+          .or(perfilId != null
               ? 'perfil_id.eq.$perfilId'
               : 'perfil_id.eq.$userId')
           .order('created_at', ascending: false);
 
-      return (response as List)
-          .map((item) => Medicamento.fromMap(item))
-          .toList();
+      final medicamentos =
+          (response as List).map((item) => Medicamento.fromMap(item)).toList();
+
+      return Success(medicamentos);
+    } on SocketException catch (e) {
+      return Failure(NetworkException(
+        message: 'Erro de conexão',
+        originalError: e,
+      ));
     } catch (error) {
-      throw ErrorHandler.toAppException(error);
+      return Failure(ErrorHandler.toAppException(error));
     }
   }
 
@@ -46,7 +52,7 @@ class MedicamentoService {
     try {
       final data = medicamento.toMap();
       data.remove('id'); // Remove o ID para inserção
-      
+
       // Garantir que perfil_id ou user_id estejam presentes
       if (data['perfil_id'] == null) {
         if (medicamento.userId != null && medicamento.userId!.isNotEmpty) {
@@ -55,12 +61,13 @@ class MedicamentoService {
               .select('id')
               .eq('user_id', medicamento.userId!)
               .maybeSingle();
-          
+
           if (perfilResponse != null) {
             data['perfil_id'] = perfilResponse['id'] as String;
           } else {
             // Se não encontrou perfil, garantir que user_id esteja presente
-            if (data['perfil_id'] == null || (data['perfil_id'] as String).isEmpty) {
+            if (data['perfil_id'] == null ||
+                (data['perfil_id'] as String).isEmpty) {
               data['perfil_id'] = medicamento.userId!;
             }
           }
@@ -79,12 +86,12 @@ class MedicamentoService {
         data,
         fieldsToKeepEmpty: ['perfil_id'],
       );
-      
+
       // Garantir que pelo menos perfil_id ou user_id estejam presentes após limpeza
       if (cleanedData['perfil_id'] == null) {
         throw Exception('É necessário perfil_id para criar medicamento');
       }
-      
+
       debugPrint('📤 MedicamentoService: Dados para inserção: $cleanedData');
 
       final response = await _client
@@ -105,10 +112,12 @@ class MedicamentoService {
 
       return medicamentoSalvo;
     } catch (error) {
-      debugPrint('❌ MedicamentoService: Erro ao adicionar medicamento: ${error.toString()}');
+      debugPrint(
+          '❌ MedicamentoService: Erro ao adicionar medicamento: ${error.toString()}');
       debugPrint('❌ MedicamentoService: Tipo do erro: ${error.runtimeType}');
       if (error is PostgrestException) {
-        debugPrint('❌ MedicamentoService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
+        debugPrint(
+            '❌ MedicamentoService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
         if (error.details != null) {
           debugPrint('❌ MedicamentoService: Detalhes: ${error.details}');
         }
@@ -128,9 +137,10 @@ class MedicamentoService {
         updates,
         fieldsToKeepEmpty: ['perfil_id'],
       );
-      
-      debugPrint('📤 MedicamentoService: Dados para atualização: $cleanedUpdates');
-      
+
+      debugPrint(
+          '📤 MedicamentoService: Dados para atualização: $cleanedUpdates');
+
       final response = await _client
           .from('medicamentos')
           .update(cleanedUpdates)
@@ -143,7 +153,8 @@ class MedicamentoService {
       // Cancelar notificações antigas e agendar novas com frequência atualizada
       try {
         await NotificationService.cancelMedicamentoNotifications(medicamentoId);
-        await NotificationService.scheduleMedicationReminders(medicamentoAtualizado);
+        await NotificationService.scheduleMedicationReminders(
+            medicamentoAtualizado);
       } catch (e) {
         // Log erro mas não interrompe o fluxo
         print('⚠️ Erro ao atualizar notificações: $e');
@@ -151,10 +162,12 @@ class MedicamentoService {
 
       return medicamentoAtualizado;
     } catch (error) {
-      debugPrint('❌ MedicamentoService: Erro ao atualizar medicamento: ${error.toString()}');
+      debugPrint(
+          '❌ MedicamentoService: Erro ao atualizar medicamento: ${error.toString()}');
       debugPrint('❌ MedicamentoService: Tipo do erro: ${error.runtimeType}');
       if (error is PostgrestException) {
-        debugPrint('❌ MedicamentoService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
+        debugPrint(
+            '❌ MedicamentoService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
         if (error.details != null) {
           debugPrint('❌ MedicamentoService: Detalhes: ${error.details}');
         }
@@ -174,10 +187,7 @@ class MedicamentoService {
         print('⚠️ Erro ao cancelar notificações: $e');
       }
 
-      await _client
-          .from('medicamentos')
-          .delete()
-          .eq('id', medicamentoId);
+      await _client.from('medicamentos').delete().eq('id', medicamentoId);
     } catch (error) {
       throw ErrorHandler.toAppException(error);
     }
@@ -211,40 +221,36 @@ class MedicamentoService {
 
       if (eventosResponse != null) {
         // Atualizar evento existente
-        await _client
-            .from('historico_eventos')
-            .update({
-              'status': novoStatus,
-              'horario_programado': DateTime.now().toIso8601String(),
-            })
-            .eq('id', eventosResponse['id']);
+        await _client.from('historico_eventos').update({
+          'status': novoStatus,
+          'horario_programado': DateTime.now().toIso8601String(),
+        }).eq('id', eventosResponse['id']);
       } else {
         // Criar novo evento
-        await _client
-            .from('historico_eventos')
-            .insert({
-              'perfil_id': perfilId,
-              'tipo_evento': 'medicamento',
-              'evento_id': medicamentoId,
-              'medicamento_id': medicamentoId,
-              'data_prevista': dataPrevista.toIso8601String(),
-              'status': novoStatus,
-              'horario_programado': DateTime.now().toIso8601String(),
-              'titulo': medicamentoAtual.nome,
-              'descricao': medicamentoAtual.dosagem != null ? 'Dosagem: ${medicamentoAtual.dosagem}' : 'Medicamento registrado',
-            });
+        await _client.from('historico_eventos').insert({
+          'perfil_id': perfilId,
+          'tipo_evento': 'medicamento',
+          'evento_id': medicamentoId,
+          'medicamento_id': medicamentoId,
+          'data_prevista': dataPrevista.toIso8601String(),
+          'status': novoStatus,
+          'horario_programado': DateTime.now().toIso8601String(),
+          'titulo': medicamentoAtual.nome,
+          'descricao': medicamentoAtual.dosagem != null
+              ? 'Dosagem: ${medicamentoAtual.dosagem}'
+              : 'Medicamento registrado',
+        });
       }
-      
+
       // Se está marcando como tomado, decrementar quantidade
       if (concluido) {
-        final novaQuantidade = (medicamentoAtual.quantidade ?? 0) > 0 
-            ? (medicamentoAtual.quantidade ?? 0) - 1 
+        final novaQuantidade = (medicamentoAtual.quantidade ?? 0) > 0
+            ? (medicamentoAtual.quantidade ?? 0) - 1
             : 0;
-        
+
         await _client
             .from('medicamentos')
-            .update({'quantidade': novaQuantidade})
-            .eq('id', medicamentoId);
+            .update({'quantidade': novaQuantidade}).eq('id', medicamentoId);
 
         // Verificar se estoque está baixo (<= 5 unidades)
         if (novaQuantidade <= 5 && novaQuantidade > 0) {
@@ -256,7 +262,8 @@ class MedicamentoService {
               'data_prevista': DateTime.now().toIso8601String(),
               'status': 'pendente',
               'titulo': 'Estoque baixo',
-              'descricao': 'Estoque de "${medicamentoAtual.nome}" está baixo ($novaQuantidade unidade(s) restante(s))',
+              'descricao':
+                  'Estoque de "${medicamentoAtual.nome}" está baixo ($novaQuantidade unidade(s) restante(s))',
               'medicamento_id': medicamentoId,
             });
           } catch (e) {
@@ -266,12 +273,15 @@ class MedicamentoService {
         }
       }
 
-      debugPrint('✅ MedicamentoService: Medicamento $medicamentoId marcado como $novoStatus');
+      debugPrint(
+          '✅ MedicamentoService: Medicamento $medicamentoId marcado como $novoStatus');
     } catch (error) {
-      debugPrint('❌ MedicamentoService: Erro ao marcar medicamento como concluído: ${error.toString()}');
+      debugPrint(
+          '❌ MedicamentoService: Erro ao marcar medicamento como concluído: ${error.toString()}');
       debugPrint('❌ MedicamentoService: Tipo do erro: ${error.runtimeType}');
       if (error is PostgrestException) {
-        debugPrint('❌ MedicamentoService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
+        debugPrint(
+            '❌ MedicamentoService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
         if (error.details != null) {
           debugPrint('❌ MedicamentoService: Detalhes: ${error.details}');
         }
@@ -279,7 +289,6 @@ class MedicamentoService {
       throw ErrorHandler.toAppException(error);
     }
   }
-
 
   // Buscar medicamento por ID
   Future<Medicamento?> getMedicamentoPorId(int medicamentoId) async {

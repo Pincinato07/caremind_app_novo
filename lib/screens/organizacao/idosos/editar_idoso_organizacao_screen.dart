@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import '../../../services/idoso_organizacao_service.dart';
 import '../../../core/injection/injection.dart';
 import '../../../services/organizacao_service.dart';
+import '../../../core/feedback/feedback_service.dart';
+import '../../../core/errors/error_handler.dart';
 
 /// Tela para editar idoso da organização
 class EditarIdosoOrganizacaoScreen extends StatefulWidget {
@@ -30,7 +32,8 @@ class _EditarIdosoOrganizacaoScreenState
   final _quartoController = TextEditingController();
   final _setorController = TextEditingController();
   final _observacoesController = TextEditingController();
-  final IdosoOrganizacaoService _idosoService = getIt<IdosoOrganizacaoService>();
+  final IdosoOrganizacaoService _idosoService =
+      getIt<IdosoOrganizacaoService>();
   DateTime? _dataNascimento;
   bool _isLoading = false;
 
@@ -58,7 +61,8 @@ class _EditarIdosoOrganizacaoScreenState
   Future<void> _selecionarData() async {
     final data = await showDatePicker(
       context: context,
-      initialDate: _dataNascimento ?? DateTime.now().subtract(const Duration(days: 365 * 70)),
+      initialDate: _dataNascimento ??
+          DateTime.now().subtract(const Duration(days: 365 * 70)),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
@@ -92,22 +96,12 @@ class _EditarIdosoOrganizacaoScreenState
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Idoso atualizado com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        FeedbackService.showSuccess(context, 'Idoso atualizado com sucesso!');
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao atualizar idoso: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        FeedbackService.showError(context, ErrorHandler.toAppException(e));
       }
     } finally {
       if (mounted) {
@@ -212,4 +206,3 @@ class _EditarIdosoOrganizacaoScreenState
     );
   }
 }
-

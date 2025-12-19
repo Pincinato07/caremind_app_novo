@@ -7,7 +7,8 @@ class HistoricoEventosService {
   static final SupabaseClient _client = Supabase.instance.client;
 
   // Buscar histórico de eventos de um perfil
-  static Future<List<Map<String, dynamic>>> getHistoricoEventos(String perfilId) async {
+  static Future<List<Map<String, dynamic>>> getHistoricoEventos(
+      String perfilId) async {
     try {
       // Baseado no schema, tentar encontrar o perfil usando user_id
       final perfilResponse = await _client
@@ -15,9 +16,9 @@ class HistoricoEventosService {
           .select('id')
           .eq('user_id', perfilId)
           .maybeSingle();
-      
+
       final targetPerfilId = perfilResponse?['id'] as String? ?? perfilId;
-      
+
       final response = await _client
           .from('historico_eventos')
           .select()
@@ -36,7 +37,7 @@ class HistoricoEventosService {
     try {
       // Limpar dados antes de inserir (remove strings vazias)
       final cleanedData = DataCleaner.cleanData(evento);
-      
+
       final response = await _client
           .from('historico_eventos')
           .insert(cleanedData)
@@ -57,7 +58,7 @@ class HistoricoEventosService {
     try {
       // Limpar dados antes de atualizar (remove strings vazias)
       final cleanedUpdates = DataCleaner.cleanData(updates);
-      
+
       final response = await _client
           .from('historico_eventos')
           .update(cleanedUpdates)
@@ -74,10 +75,7 @@ class HistoricoEventosService {
   // Deletar um evento
   static Future<void> deleteEvento(int eventoId) async {
     try {
-      await _client
-          .from('historico_eventos')
-          .delete()
-          .eq('id', eventoId);
+      await _client.from('historico_eventos').delete().eq('id', eventoId);
     } catch (error) {
       throw Exception('Erro ao deletar evento: $error');
     }
@@ -95,14 +93,17 @@ class HistoricoEventosService {
           .select('id')
           .eq('user_id', perfilId)
           .maybeSingle();
-      
+
       final targetPerfilId = perfilResponse?['id'] as String? ?? perfilId;
 
       final hoje = DateTime.now();
       // Ajuste para garantir comparação correta com strings ISO
-      final inicioDia = DateTime(hoje.year, hoje.month, hoje.day).toIso8601String();
+      final inicioDia =
+          DateTime(hoje.year, hoje.month, hoje.day).toIso8601String();
       // Usar data do dia seguinte para garantir cobertura total do dia atual
-      final fimDia = DateTime(hoje.year, hoje.month, hoje.day).add(const Duration(days: 1)).toIso8601String();
+      final fimDia = DateTime(hoje.year, hoje.month, hoje.day)
+          .add(const Duration(days: 1))
+          .toIso8601String();
 
       // Buscar eventos de medicamentos concluídos hoje
       final response = await _client
@@ -115,7 +116,7 @@ class HistoricoEventosService {
           .eq('status', 'concluido');
 
       final Map<int, bool> statusMap = {};
-      
+
       // Inicializar tudo como false
       for (var id in medicamentoIds) {
         statusMap[id] = false;
@@ -138,7 +139,8 @@ class HistoricoEventosService {
   }
 
   // Buscar dados de adesão dos últimos 7 dias
-  static Future<List<DailyAdherence>> getDadosAdesaoUltimos7Dias(String perfilId) async {
+  static Future<List<DailyAdherence>> getDadosAdesaoUltimos7Dias(
+      String perfilId) async {
     try {
       // Baseado no schema, tentar encontrar o perfil usando user_id
       final perfilResponse = await _client
@@ -146,13 +148,18 @@ class HistoricoEventosService {
           .select('id')
           .eq('user_id', perfilId)
           .maybeSingle();
-      
+
       final targetPerfilId = perfilResponse?['id'] as String? ?? perfilId;
 
       final agora = DateTime.now();
-      final seteDiasAtras = agora.subtract(const Duration(days: 6)); // Inclui hoje (7 dias total)
-      final inicioPeriodo = DateTime(seteDiasAtras.year, seteDiasAtras.month, seteDiasAtras.day).toIso8601String();
-      final fimPeriodo = DateTime(agora.year, agora.month, agora.day).add(const Duration(days: 1)).toIso8601String();
+      final seteDiasAtras =
+          agora.subtract(const Duration(days: 6)); // Inclui hoje (7 dias total)
+      final inicioPeriodo =
+          DateTime(seteDiasAtras.year, seteDiasAtras.month, seteDiasAtras.day)
+              .toIso8601String();
+      final fimPeriodo = DateTime(agora.year, agora.month, agora.day)
+          .add(const Duration(days: 1))
+          .toIso8601String();
 
       // Buscar eventos dos últimos 7 dias (apenas medicamentos)
       final response = await _client
@@ -165,7 +172,7 @@ class HistoricoEventosService {
 
       // Agrupar eventos por dia
       final Map<String, Map<String, int>> dadosPorDia = {};
-      
+
       // Inicializar todos os dias dos últimos 7 dias
       for (int i = 0; i < 7; i++) {
         final data = agora.subtract(Duration(days: 6 - i));
@@ -180,13 +187,15 @@ class HistoricoEventosService {
 
         final dataPrevista = DateTime.parse(dataPrevistaStr);
         final chaveDia = DateFormat('yyyy-MM-dd').format(dataPrevista);
-        
+
         if (dadosPorDia.containsKey(chaveDia)) {
           final status = evento['status'] as String? ?? 'pendente';
           if (status == 'concluido') {
-            dadosPorDia[chaveDia]!['taken'] = (dadosPorDia[chaveDia]!['taken'] ?? 0) + 1;
+            dadosPorDia[chaveDia]!['taken'] =
+                (dadosPorDia[chaveDia]!['taken'] ?? 0) + 1;
           } else {
-            dadosPorDia[chaveDia]!['missed'] = (dadosPorDia[chaveDia]!['missed'] ?? 0) + 1;
+            dadosPorDia[chaveDia]!['missed'] =
+                (dadosPorDia[chaveDia]!['missed'] ?? 0) + 1;
           }
         }
       }
@@ -197,7 +206,7 @@ class HistoricoEventosService {
         final data = agora.subtract(Duration(days: 6 - i));
         final chaveDia = DateFormat('yyyy-MM-dd').format(data);
         final dados = dadosPorDia[chaveDia] ?? {'taken': 0, 'missed': 0};
-        
+
         // Formatar label do dia (abreviação do dia da semana)
         // DateTime.weekday retorna 1-7 (segunda=1, domingo=7)
         // Array: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -206,7 +215,8 @@ class HistoricoEventosService {
         final diaSemana = diasSemana[data.weekday == 7 ? 0 : data.weekday];
         final diaMes = data.day;
         final mes = data.month;
-        final dayLabel = '$diaSemana\n$diaMes/${mes.toString().padLeft(2, '0')}';
+        final dayLabel =
+            '$diaSemana\n$diaMes/${mes.toString().padLeft(2, '0')}';
 
         dadosAdesao.add(DailyAdherence(
           dayLabel: dayLabel,
@@ -222,14 +232,15 @@ class HistoricoEventosService {
       final agora = DateTime.now();
       final List<DailyAdherence> dadosAdesao = [];
       final diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-      
+
       for (int i = 0; i < 7; i++) {
         final data = agora.subtract(Duration(days: 6 - i));
         final diaSemana = diasSemana[data.weekday == 7 ? 0 : data.weekday];
         final diaMes = data.day;
         final mes = data.month;
-        final dayLabel = '$diaSemana\n$diaMes/${mes.toString().padLeft(2, '0')}';
-        
+        final dayLabel =
+            '$diaSemana\n$diaMes/${mes.toString().padLeft(2, '0')}';
+
         dadosAdesao.add(DailyAdherence(
           dayLabel: dayLabel,
           taken: 0,
@@ -237,7 +248,7 @@ class HistoricoEventosService {
           date: data,
         ));
       }
-      
+
       return dadosAdesao;
     }
   }

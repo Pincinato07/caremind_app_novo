@@ -9,6 +9,7 @@ import '../../widgets/caremind_card.dart';
 import '../../widgets/animated_card.dart';
 import '../../core/state/familiar_state.dart';
 import '../../core/injection/injection.dart';
+import '../../core/feedback/feedback_service.dart';
 import '../../services/notificacoes_app_service.dart';
 import '../../models/notificacao_app.dart';
 import 'relatorios_screen.dart';
@@ -20,7 +21,8 @@ class AlertasScreen extends StatefulWidget {
   State<AlertasScreen> createState() => _AlertasScreenState();
 }
 
-class _AlertasScreenState extends State<AlertasScreen> with SingleTickerProviderStateMixin {
+class _AlertasScreenState extends State<AlertasScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final FamiliarState _familiarState = getIt<FamiliarState>();
 
@@ -40,7 +42,7 @@ class _AlertasScreenState extends State<AlertasScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     final isFamiliar = _familiarState.hasIdosos;
-    
+
     return AppScaffoldWithWaves(
       appBar: CareMindAppBar(
         title: 'Relatórios',
@@ -56,39 +58,39 @@ class _AlertasScreenState extends State<AlertasScreen> with SingleTickerProvider
             builder: (context, snapshot) {
               final count = snapshot.data ?? 0;
               if (count == 0) return const SizedBox.shrink();
-              
+
               return Padding(
                 padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
                 child: AnimatedCard(
                   index: 0,
                   child: CareMindCard(
                     variant: CardVariant.glass,
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium, vertical: AppSpacing.small),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: AppSpacing.medium,
+                        vertical: AppSpacing.small),
                     child: TextButton.icon(
-                    onPressed: () async {
-                      final service = getIt<NotificacoesAppService>();
-                      final marcadas = await service.marcarTodasComoLidas();
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('$marcadas notificações marcadas como lidas'),
-                            backgroundColor: AppColors.success,
-                          ),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.done_all, color: Colors.white),
-                    label: Text(
-                      'Marcar todas como lidas ($count)',
-                      style: AppTextStyles.leagueSpartan(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                      onPressed: () async {
+                        final service = getIt<NotificacoesAppService>();
+                        final marcadas = await service.marcarTodasComoLidas();
+                        if (mounted) {
+                          FeedbackService.showSuccess(
+                            context,
+                            '$marcadas notificações marcadas como lidas',
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.done_all, color: Colors.white),
+                      label: Text(
+                        'Marcar todas como lidas ($count)',
+                        style: AppTextStyles.leagueSpartan(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
               );
             },
           ),
@@ -239,7 +241,7 @@ class _NotificacoesTabState extends State<_NotificacoesTab> {
 
   Future<void> _marcarComoLida(NotificacaoApp notificacao) async {
     if (notificacao.lida) return;
-    
+
     try {
       await _service.marcarComoLida(notificacao.id);
     } catch (e) {
@@ -365,156 +367,170 @@ class _NotificacoesTabState extends State<_NotificacoesTab> {
                       child: CareMindCard(
                         variant: CardVariant.glass,
                         padding: AppSpacing.paddingLarge,
-                        borderColor: notificacao.lida 
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : color.withValues(alpha: 0.5),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Ícone colorido com indicador de não lida
-                          Stack(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: color.withValues(alpha: 0.25),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  icon,
-                                  color: Colors.white,
-                                  size: 28,
-                                ),
-                              ),
-                              // Indicador de não lida
-                              if (!notificacao.lida)
-                                Positioned(
-                                  right: 0,
-                                  top: 0,
-                                  child: Container(
-                                    width: 12,
-                                    height: 12,
-                                    decoration: BoxDecoration(
-                                      color: color,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 2,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(width: 16),
-                          // Conteúdo
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                        borderColor: notificacao.lida
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : color.withValues(alpha: 0.5),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Ícone colorido com indicador de não lida
+                            Stack(
                               children: [
-                                // Título com badge de prioridade
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        notificacao.titulo,
-                                        style: AppTextStyles.leagueSpartan(
-                                          fontSize: (MediaQuery.maybeOf(context)?.textScaler ?? const TextScaler.linear(1.0)).scale(18),
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                    if (notificacao.isUrgente)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red,
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          'URGENTE',
-                                          style: AppTextStyles.leagueSpartan(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      )
-                                    else if (notificacao.isAlta)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.orange,
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          'ALTA',
-                                          style: AppTextStyles.leagueSpartan(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                // Mensagem
-                                Text(
-                                  notificacao.mensagem,
-                                  style: AppTextStyles.leagueSpartan(
-                                    fontSize: (MediaQuery.maybeOf(context)?.textScaler ?? const TextScaler.linear(1.0)).scale(14),
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                    height: 1.4,
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: color.withValues(alpha: 0.25),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    icon,
+                                    color: Colors.white,
+                                    size: 28,
                                   ),
                                 ),
-                                const SizedBox(height: 8),
-                                // Data/Hora e tempo relativo
-                                Row(
-                                  children: [
-                                    Text(
-                                      _formatarDataHoraCompleta(notificacao.dataCriacao),
-                                      style: AppTextStyles.leagueSpartan(
-                                        fontSize: 12,
-                                        color: Colors.white.withValues(alpha: 0.6),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      width: 4,
-                                      height: 4,
+                                // Indicador de não lida
+                                if (!notificacao.lida)
+                                  Positioned(
+                                    right: 0,
+                                    top: 0,
+                                    child: Container(
+                                      width: 12,
+                                      height: 12,
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withValues(alpha: 0.4),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      notificacao.tempoRelativo,
-                                      style: AppTextStyles.leagueSpartan(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
                                         color: color,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        ),
                                       ),
                                     ),
-                                  ],
-                                ),
+                                  ),
                               ],
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 16),
+                            // Conteúdo
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Título com badge de prioridade
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          notificacao.titulo,
+                                          style: AppTextStyles.leagueSpartan(
+                                            fontSize:
+                                                (MediaQuery.maybeOf(context)
+                                                            ?.textScaler ??
+                                                        const TextScaler.linear(
+                                                            1.0))
+                                                    .scale(18),
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      if (notificacao.isUrgente)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red,
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            'URGENTE',
+                                            style: AppTextStyles.leagueSpartan(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        )
+                                      else if (notificacao.isAlta)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.orange,
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            'ALTA',
+                                            style: AppTextStyles.leagueSpartan(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  // Mensagem
+                                  Text(
+                                    notificacao.mensagem,
+                                    style: AppTextStyles.leagueSpartan(
+                                      fontSize: (MediaQuery.maybeOf(context)
+                                                  ?.textScaler ??
+                                              const TextScaler.linear(1.0))
+                                          .scale(14),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.9),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // Data/Hora e tempo relativo
+                                  Row(
+                                    children: [
+                                      Text(
+                                        _formatarDataHoraCompleta(
+                                            notificacao.dataCriacao),
+                                        style: AppTextStyles.leagueSpartan(
+                                          fontSize: 12,
+                                          color: Colors.white
+                                              .withValues(alpha: 0.6),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        width: 4,
+                                        height: 4,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.4),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        notificacao.tempoRelativo,
+                                        style: AppTextStyles.leagueSpartan(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: color,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
               );
             },
           ),
@@ -523,4 +539,3 @@ class _NotificacoesTabState extends State<_NotificacoesTab> {
     );
   }
 }
-

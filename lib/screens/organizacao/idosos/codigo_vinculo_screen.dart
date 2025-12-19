@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'claim_profile_screen.dart';
+import '../../../core/feedback/feedback_service.dart';
 
 /// Tela para entrada do código de 6 dígitos para vincular perfil
 class CodigoVinculoScreen extends StatefulWidget {
@@ -18,7 +19,8 @@ class CodigoVinculoScreen extends StatefulWidget {
 }
 
 class _CodigoVinculoScreenState extends State<CodigoVinculoScreen> {
-  final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
+  final List<TextEditingController> _controllers =
+      List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   bool _isLoading = false;
 
@@ -50,14 +52,10 @@ class _CodigoVinculoScreenState extends State<CodigoVinculoScreen> {
 
   void _validateCode() {
     final code = _controllers.map((c) => c.text).join();
-    
+
     if (code.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, preencha todos os 6 dígitos'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      FeedbackService.showWarning(
+          context, 'Por favor, preencha todos os 6 dígitos');
       return;
     }
 
@@ -208,4 +206,3 @@ class _CodigoVinculoScreenState extends State<CodigoVinculoScreen> {
     );
   }
 }
-

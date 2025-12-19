@@ -36,7 +36,8 @@ class OcrService {
       if (perfilResponse == null) {
         debugPrint('❌ Perfil não encontrado para userId: $userId');
         throw ValidationException(
-          message: 'Perfil não encontrado. Verifique se o usuário possui um perfil cadastrado.',
+          message:
+              'Perfil não encontrado. Verifique se o usuário possui um perfil cadastrado.',
           code: 'PERFIL_NAO_ENCONTRADO',
         );
       }
@@ -46,7 +47,8 @@ class OcrService {
       // 1. Fazer upload da imagem para Supabase Storage
       debugPrint('📤 Fazendo upload da imagem...');
 
-      final fileName = '$userId/${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
+      final fileName =
+          '$userId/${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
 
       // Ler bytes do arquivo
       final imageBytes = await imageFile.readAsBytes();
@@ -59,9 +61,8 @@ class OcrService {
       debugPrint('✅ Upload concluído: $fileName');
 
       // 2. Obter URL pública da imagem
-      final publicUrl = _client.storage
-          .from('receitas-medicas')
-          .getPublicUrl(fileName);
+      final publicUrl =
+          _client.storage.from('receitas-medicas').getPublicUrl(fileName);
 
       debugPrint('🔗 URL pública gerada: $publicUrl');
 
@@ -142,7 +143,8 @@ class OcrService {
       // Verificar timeout
       final elapsed = DateTime.now().difference(startTime).inSeconds;
       if (elapsed >= timeout) {
-        throw UnknownException(message: 'Tempo esgotado aguardando processamento da receita.');
+        throw UnknownException(
+            message: 'Tempo esgotado aguardando processamento da receita.');
       }
 
       // Verificar status
@@ -164,12 +166,15 @@ class OcrService {
       }
 
       // Status de erro
-      if (status == 'ERRO_PROCESSAMENTO' || status == 'ERRO_DATABASE' || status == 'ERRO') {
+      if (status == 'ERRO_PROCESSAMENTO' ||
+          status == 'ERRO_DATABASE' ||
+          status == 'ERRO') {
         debugPrint('❌ Erro no processamento OCR');
         return {
           'status': status,
           'success': false,
-          'error_message': 'Não foi possível processar a receita. Tente novamente.',
+          'error_message':
+              'Não foi possível processar a receita. Tente novamente.',
         };
       }
 
@@ -233,11 +238,8 @@ class OcrService {
           'created_at': DateTime.now().toIso8601String(),
         };
 
-        final response = await _client
-            .from('medicamentos')
-            .insert(data)
-            .select()
-            .single();
+        final response =
+            await _client.from('medicamentos').insert(data).select().single();
 
         salvos.add(Medicamento.fromMap(response));
         debugPrint('✅ Medicamento salvo: ${ocrMed.nome}');
@@ -254,8 +256,7 @@ class OcrService {
     try {
       await _client
           .from('ocr_gerenciamento')
-          .update({'status': 'VALIDADO'})
-          .eq('id', ocrId);
+          .update({'status': 'VALIDADO'}).eq('id', ocrId);
     } catch (e) {
       debugPrint('❌ Erro ao marcar OCR como validado: $e');
     }

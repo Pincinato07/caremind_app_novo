@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/organizacao_provider.dart';
 import '../../services/organizacao_service.dart';
 import '../../core/injection/injection.dart';
+import '../../core/feedback/feedback_service.dart';
+import '../../core/errors/error_handler.dart';
 
 /// Tela de configurações da organização
 class OrganizacaoConfiguracoesScreen extends ConsumerStatefulWidget {
@@ -47,16 +49,15 @@ class _OrganizacaoConfiguracoesScreenState
   Future<void> _carregarDados() async {
     setState(() => _isLoading = true);
     try {
-      final org = await _organizacaoService.obterOrganizacao(widget.organizacaoId);
+      final org =
+          await _organizacaoService.obterOrganizacao(widget.organizacaoId);
       _nomeController.text = org.nome;
       _cnpjController.text = org.cnpj ?? '';
       _telefoneController.text = org.telefone ?? '';
       _emailController.text = org.email ?? '';
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar dados: $e')),
-        );
+        FeedbackService.showError(context, ErrorHandler.toAppException(e));
       }
     } finally {
       if (mounted) {
@@ -88,21 +89,12 @@ class _OrganizacaoConfiguracoesScreenState
       await ref.read(organizacaoProvider.notifier).atualizarOrganizacaoAtual();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Configurações salvas com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        FeedbackService.showSuccess(
+            context, 'Configurações salvas com sucesso!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao salvar: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        FeedbackService.showError(context, ErrorHandler.toAppException(e));
       }
     } finally {
       if (mounted) {
@@ -198,4 +190,3 @@ class _OrganizacaoConfiguracoesScreenState
     );
   }
 }
-

@@ -28,7 +28,7 @@ class _ClaimCodeScreenState extends State<ClaimCodeScreen> {
 
     try {
       final code = _codeController.text.trim().toUpperCase();
-      
+
       if (code.isEmpty) {
         setState(() {
           _errorMessage = 'Por favor, digite o código';
@@ -40,7 +40,8 @@ class _ClaimCodeScreenState extends State<ClaimCodeScreen> {
       // Buscar perfil pelo código de vinculação na tabela perfis
       final perfilResponse = await Supabase.instance.client
           .from('perfis')
-          .select('id, nome, codigo_vinculacao, codigo_vinculacao_expira_em, is_virtual')
+          .select(
+              'id, nome, codigo_vinculacao, codigo_vinculacao_expira_em, is_virtual')
           .eq('codigo_vinculacao', code)
           .maybeSingle();
 
@@ -58,7 +59,8 @@ class _ClaimCodeScreenState extends State<ClaimCodeScreen> {
         final dataExpiracao = DateTime.parse(expiraEm);
         if (DateTime.now().isAfter(dataExpiracao)) {
           setState(() {
-            _errorMessage = 'Este código de vinculação expirou. Solicite um novo código à organização.';
+            _errorMessage =
+                'Este código de vinculação expirou. Solicite um novo código à organização.';
             _isLoading = false;
           });
           return;
@@ -137,22 +139,22 @@ class _ClaimCodeScreenState extends State<ClaimCodeScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              
+
               Text(
                 'Digite o Código de Vinculação',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              
+
               Text(
                 'Se uma organização criou um perfil virtual para você, '
                 'você receberá um código de vinculação. Digite-o abaixo para assumir o perfil.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
+                      color: Colors.grey[600],
+                    ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 48),
@@ -195,7 +197,8 @@ class _ClaimCodeScreenState extends State<ClaimCodeScreen> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.error_outline, color: Colors.red[700], size: 20),
+                      Icon(Icons.error_outline,
+                          color: Colors.red[700], size: 20),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -206,7 +209,7 @@ class _ClaimCodeScreenState extends State<ClaimCodeScreen> {
                     ],
                   ),
                 ),
-              
+
               if (_errorMessage != null) const SizedBox(height: 24),
 
               // Botão de ação
@@ -226,7 +229,8 @@ class _ClaimCodeScreenState extends State<ClaimCodeScreen> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
                     : const Text(
@@ -252,7 +256,8 @@ class _ClaimCodeScreenState extends State<ClaimCodeScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                        Icon(Icons.info_outline,
+                            color: Colors.blue[700], size: 20),
                         const SizedBox(width: 8),
                         Text(
                           'Como obter o código?',
@@ -282,4 +287,3 @@ class _ClaimCodeScreenState extends State<ClaimCodeScreen> {
     );
   }
 }
-

@@ -9,6 +9,7 @@ import '../../core/injection/injection.dart';
 import '../../services/ocr_service.dart';
 import '../../services/supabase_service.dart';
 import '../../core/errors/app_exception.dart';
+import '../../core/feedback/feedback_service.dart';
 
 /// Tela de Integrações com OCR
 /// Permite tirar foto de uma receita/caixa de remédio e preencher automaticamente
@@ -110,39 +111,39 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                   child: CareMindCard(
                     variant: CardVariant.glass,
                     padding: AppSpacing.paddingLarge,
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.camera_alt,
-                        size: 64,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Como usar',
-                        style: AppTextStyles.leagueSpartan(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.camera_alt,
+                          size: 64,
                           color: Colors.white,
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '1. Tire uma foto clara da caixa do remédio ou receita médica\n'
-                        '2. Aguarde a leitura automática do texto\n'
-                        '3. Revise e confirme as informações',
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.leagueSpartan(
-                          fontSize: 16,
-                          color: Colors.white.withValues(alpha: 0.9),
-                          height: 1.6,
+                        const SizedBox(height: 16),
+                        Text(
+                          'Como usar',
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 12),
+                        Text(
+                          '1. Tire uma foto clara da caixa do remédio ou receita médica\n'
+                          '2. Aguarde a leitura automática do texto\n'
+                          '3. Revise e confirme as informações',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 16,
+                            color: Colors.white.withValues(alpha: 0.9),
+                            height: 1.6,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
             ),
 
             SliverToBoxAdapter(child: SizedBox(height: AppSpacing.large)),
@@ -212,56 +213,56 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                       variant: CardVariant.glass,
                       padding: AppSpacing.paddingCard,
                       child: Column(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.file(
-                            _selectedImage!,
-                            height: 300,
-                            width: double.infinity,
-                            fit: BoxFit.contain,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.file(
+                              _selectedImage!,
+                              height: 300,
+                              width: double.infinity,
+                              fit: BoxFit.contain,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: _processImage,
-                                icon: const Icon(Icons.text_fields),
-                                label: Text(
-                                  'Ler Texto',
-                                  style: AppTextStyles.leagueSpartan(
-                                    fontWeight: FontWeight.w700,
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _processImage,
+                                  icon: const Icon(Icons.text_fields),
+                                  label: Text(
+                                    'Ler Texto',
+                                    style: AppTextStyles.leagueSpartan(
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0400BA),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF0400BA),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            IconButton(
-                              onPressed: _clearImage,
-                              icon: const Icon(Icons.delete_outline),
-                              color: Colors.white,
-                              iconSize: 28,
-                            ),
-                          ],
-                        ),
-                      ],
+                              const SizedBox(width: 12),
+                              IconButton(
+                                onPressed: _clearImage,
+                                icon: const Icon(Icons.delete_outline),
+                                color: Colors.white,
+                                iconSize: 28,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
 
             // Loading durante upload
             if (_isProcessing && !_isPolling)
@@ -273,34 +274,34 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                     child: CareMindCard(
                       variant: CardVariant.glass,
                       padding: AppSpacing.paddingXLarge,
-                    child: Column(
-                      children: [
-                        const CircularProgressIndicator(
-                          color: Colors.white,
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          'Enviando foto...',
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 18,
+                      child: Column(
+                        children: [
+                          const CircularProgressIndicator(
                             color: Colors.white,
-                            fontWeight: FontWeight.w600,
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Aguarde enquanto enviamos a imagem',
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 16,
-                            color: Colors.white.withValues(alpha: 0.8),
+                          const SizedBox(height: 24),
+                          Text(
+                            'Enviando foto...',
+                            style: AppTextStyles.leagueSpartan(
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Text(
+                            'Aguarde enquanto enviamos a imagem',
+                            style: AppTextStyles.leagueSpartan(
+                              fontSize: 16,
+                              color: Colors.white.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
 
             // Polling durante processamento OCR
             if (_isPolling)
@@ -312,54 +313,54 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                     child: CareMindCard(
                       variant: CardVariant.glass,
                       padding: AppSpacing.paddingXLarge,
-                    child: Column(
-                      children: [
-                        const CircularProgressIndicator(
-                          color: Colors.white,
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          _getStatusMessage(),
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 18,
+                      child: Column(
+                        children: [
+                          const CircularProgressIndicator(
                             color: Colors.white,
-                            fontWeight: FontWeight.w600,
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Aguardando processamento da receita...',
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 16,
-                            color: Colors.white.withValues(alpha: 0.8),
+                          const SizedBox(height: 24),
+                          Text(
+                            _getStatusMessage(),
+                            style: AppTextStyles.leagueSpartan(
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                        if (_currentStatus != null) ...[
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
+                          const SizedBox(height: 8),
+                          Text(
+                            'Aguardando processamento da receita...',
+                            style: AppTextStyles.leagueSpartan(
+                              fontSize: 16,
+                              color: Colors.white.withValues(alpha: 0.8),
                             ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              'Status: $_currentStatus',
-                              style: AppTextStyles.leagueSpartan(
-                                fontSize: 14,
-                                color: Colors.white.withValues(alpha: 0.9),
+                          ),
+                          if (_currentStatus != null) ...[
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                'Status: $_currentStatus',
+                                style: AppTextStyles.leagueSpartan(
+                                  fontSize: 14,
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
 
             // Erro
             if (_error != null)
@@ -371,48 +372,47 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                     child: CareMindCard(
                       variant: CardVariant.glass,
                       padding: AppSpacing.paddingLarge,
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 48,
-                          color: Colors.red.shade300,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Erro ao processar imagem',
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: Colors.red.shade300,
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _error!,
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 16,
-                            color: Colors.white.withValues(alpha: 0.8),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _processImage,
-                          child: Text(
-                            'Tentar Novamente',
+                          const SizedBox(height: 16),
+                          Text(
+                            'Erro ao processar imagem',
                             style: AppTextStyles.leagueSpartan(
+                              fontSize: 20,
                               fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Text(
+                            _error!,
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.leagueSpartan(
+                              fontSize: 16,
+                              color: Colors.white.withValues(alpha: 0.8),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _processImage,
+                            child: Text(
+                              'Tentar Novamente',
+                              style: AppTextStyles.leagueSpartan(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-
 
             SliverToBoxAdapter(child: SizedBox(height: AppSpacing.large)),
           ],
@@ -427,8 +427,8 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
         source: ImageSource.camera,
         imageQuality: 85,
       );
-      
-                      if (image != null) {
+
+      if (image != null) {
         setState(() {
           _selectedImage = File(image.path);
           _error = null;
@@ -450,8 +450,8 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
         source: ImageSource.gallery,
         imageQuality: 85,
       );
-      
-                      if (image != null) {
+
+      if (image != null) {
         setState(() {
           _selectedImage = File(image.path);
           _error = null;
@@ -492,33 +492,33 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
   Future<void> _processImage() async {
     if (_selectedImage == null) return;
 
-      final ocrService = getIt<OcrService>();
-      final supabaseService = getIt<SupabaseService>();
-      final user = supabaseService.currentUser;
+    final ocrService = getIt<OcrService>();
+    final supabaseService = getIt<SupabaseService>();
+    final user = supabaseService.currentUser;
 
-      if (user == null) {
-        setState(() {
-          _error = 'Usuário não autenticado';
-          _isProcessing = false;
-        });
-        return;
-      }
-
+    if (user == null) {
       setState(() {
-        _isProcessing = true;
-        _error = null;
-        _currentStatus = null;
+        _error = 'Usuário não autenticado';
+        _isProcessing = false;
       });
+      return;
+    }
 
-      try {
-        // 1. Upload da imagem e registro no banco
-        // Se idosoId foi fornecido (familiar), usar ele; senão usar userId
-        final targetId = widget.idosoId ?? user.id;
-        debugPrint('📤 Fazendo upload e registro...');
-        final ocrId = await ocrService.uploadImageAndRegister(
-          imageFile: _selectedImage!,
-          userId: targetId,
-        );
+    setState(() {
+      _isProcessing = true;
+      _error = null;
+      _currentStatus = null;
+    });
+
+    try {
+      // 1. Upload da imagem e registro no banco
+      // Se idosoId foi fornecido (familiar), usar ele; senão usar userId
+      final targetId = widget.idosoId ?? user.id;
+      debugPrint('📤 Fazendo upload e registro...');
+      final ocrId = await ocrService.uploadImageAndRegister(
+        imageFile: _selectedImage!,
+        userId: targetId,
+      );
 
       setState(() {
         _isProcessing = false;
@@ -545,7 +545,7 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
         if (resultado['success'] == true) {
           // Sucesso: medicamentos foram inseridos automaticamente
           final count = resultado['medicamentos_count'] as int? ?? 0;
-          
+
           setState(() {
             _isPolling = false;
             _currentStatus = resultado['status'] as String;
@@ -567,16 +567,16 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
 
           // Chamar callback para atualizar lista de medicamentos
           widget.onMedicamentosUpdated?.call();
-          
+
           // Retornar true para indicar sucesso
           if (mounted) {
             Navigator.pop(context, true);
           }
         } else {
           // Erro no processamento
-          final errorMsg = resultado['error_message'] as String? ?? 
+          final errorMsg = resultado['error_message'] as String? ??
               'Não foi possível processar a receita.';
-          
+
           setState(() {
             _isPolling = false;
             _error = errorMsg;
@@ -590,9 +590,8 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
         setState(() {
           _isProcessing = false;
           _isPolling = false;
-          _error = e is AppException 
-              ? e.message 
-              : 'Erro ao processar imagem: $e';
+          _error =
+              e is AppException ? e.message : 'Erro ao processar imagem: $e';
           _currentStatus = null;
         });
       }
@@ -600,20 +599,10 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
   }
 
   void _showSuccessMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: AppTextStyles.leagueSpartan(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 4),
-        behavior: SnackBarBehavior.floating,
-      ),
+    FeedbackService.showSuccess(
+      context,
+      message,
+      duration: const Duration(seconds: 4),
     );
   }
 }
-
-

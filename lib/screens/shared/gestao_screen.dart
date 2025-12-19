@@ -17,6 +17,7 @@ import '../compromissos/add_edit_compromisso_form.dart';
 import '../../services/medicamento_service.dart';
 import '../../services/rotina_service.dart';
 import '../../services/compromisso_service.dart';
+import '../../models/medicamento.dart';
 
 /// Tela central de Gestão
 /// Acesso rápido a Medicamentos, Rotinas e Compromissos
@@ -33,7 +34,7 @@ class _GestaoScreenState extends State<GestaoScreen> {
   GestaoView _currentView = GestaoView.hub;
   String? _perfilTipo;
   int _refreshKey = 0; // Key para forçar recriação das telas embedded
-  
+
   // Contadores para os cards
   int _medicamentosCount = 0;
   int _rotinasCount = 0;
@@ -46,33 +47,43 @@ class _GestaoScreenState extends State<GestaoScreen> {
     _loadUserProfile();
     _loadCounts();
   }
-  
+
   Future<void> _loadCounts() async {
     try {
       final supabaseService = getIt<SupabaseService>();
       final familiarState = getIt<FamiliarState>();
       final user = supabaseService.currentUser;
-      
+
       if (user == null) {
         setState(() => _isLoadingCounts = false);
         return;
       }
-      
+
       String? targetId;
       if (familiarState.hasIdosos && familiarState.idosoSelecionado != null) {
         targetId = familiarState.idosoSelecionado!.id;
       } else {
         targetId = user.id;
       }
-      
+
       final medicamentoService = getIt<MedicamentoService>();
       final rotinaService = getIt<RotinaService>();
       final compromissoService = getIt<CompromissoService>();
-      
-      final medicamentos = await medicamentoService.getMedicamentos(targetId);
+
+      final medicamentosResult =
+          await medicamentoService.getMedicamentos(targetId);
       final rotinas = await rotinaService.getRotinas(targetId);
       final compromissos = await compromissoService.getCompromissos(targetId);
-      
+
+      // Extrair dados do Result
+      final medicamentos = medicamentosResult.when(
+        success: (data) => data,
+        failure: (exception) {
+          // Em caso de erro, retornar lista vazia para não quebrar a UI
+          return <Medicamento>[];
+        },
+      );
+
       if (mounted) {
         setState(() {
           _medicamentosCount = medicamentos.length;
@@ -159,7 +170,8 @@ class _GestaoScreenState extends State<GestaoScreen> {
     }
 
     final familiarState = getIt<FamiliarState>();
-    final idosoId = familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null;
+    final idosoId =
+        familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null;
 
     switch (_currentView) {
       case GestaoView.medicamentos:
@@ -214,7 +226,8 @@ class _GestaoScreenState extends State<GestaoScreen> {
           icon: const Icon(Icons.add, color: Colors.white),
           label: const Text(
             'Adicionar',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+            style: TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
           ),
         );
       case GestaoView.compromissos:
@@ -259,7 +272,7 @@ class _GestaoScreenState extends State<GestaoScreen> {
 
     return PopScope(
       canPop: _currentView == GestaoView.hub,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (!didPop && _currentView != GestaoView.hub) {
           // Se não estiver no hub, voltar para o hub
           _navigateToView(GestaoView.hub);
@@ -300,91 +313,96 @@ class _GestaoScreenState extends State<GestaoScreen> {
       displacement: 40,
       child: CustomScrollView(
         slivers: [
-        // Banner de contexto para perfil familiar
-        if (isFamiliar)
+          // Banner de contexto para perfil familiar
+          if (isFamiliar)
+            SliverToBoxAdapter(
+              child: const BannerContextoFamiliar(),
+            ),
           SliverToBoxAdapter(
-            child: const BannerContextoFamiliar(),
-          ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Central de Gestão',
-                  style: AppTextStyles.leagueSpartan(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: -0.5,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Central de Gestão',
+                    style: AppTextStyles.leagueSpartan(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Gerencie medicamentos, rotinas e compromissos',
-                  style: AppTextStyles.leagueSpartan(
-                    fontSize: 16,
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(height: 8),
+                  Text(
+                    'Gerencie medicamentos, rotinas e compromissos',
+                    style: AppTextStyles.leagueSpartan(
+                      fontSize: 16,
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-        SliverPadding(
-          padding: EdgeInsets.only(left: 24, right: 24, top: 8, bottom: AppSpacing.bottomNavBarPadding),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.85, // Ajustado para melhor proporção com contadores
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
+          SliverPadding(
+            padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 8,
+                bottom: AppSpacing.bottomNavBarPadding),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio:
+                    0.85, // Ajustado para melhor proporção com contadores
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
+              delegate: SliverChildListDelegate([
+                _buildGestaoCard(
+                  title: 'Medicamentos',
+                  subtitle: _isLoadingCounts
+                      ? 'Carregando...'
+                      : _medicamentosCount == 0
+                          ? 'Nenhum medicamento'
+                          : '$_medicamentosCount cadastrado${_medicamentosCount > 1 ? 's' : ''}',
+                  icon: Icons.medication_liquid,
+                  color: const Color(0xFFE91E63),
+                  count: _medicamentosCount,
+                  isLoading: _isLoadingCounts,
+                  onTap: () => _navigateToView(GestaoView.medicamentos),
+                ),
+                _buildGestaoCard(
+                  title: 'Rotinas',
+                  subtitle: _isLoadingCounts
+                      ? 'Carregando...'
+                      : _rotinasCount == 0
+                          ? 'Nenhuma rotina'
+                          : '$_rotinasCount cadastrada${_rotinasCount > 1 ? 's' : ''}',
+                  icon: Icons.schedule_rounded,
+                  color: const Color(0xFFFF9800),
+                  count: _rotinasCount,
+                  isLoading: _isLoadingCounts,
+                  onTap: () => _navigateToView(GestaoView.rotinas),
+                ),
+                _buildGestaoCard(
+                  title: 'Compromissos',
+                  subtitle: _isLoadingCounts
+                      ? 'Carregando...'
+                      : _compromissosCount == 0
+                          ? 'Nenhum compromisso'
+                          : '$_compromissosCount cadastrado${_compromissosCount > 1 ? 's' : ''}',
+                  icon: Icons.calendar_today,
+                  color: const Color(0xFF2196F3),
+                  count: _compromissosCount,
+                  isLoading: _isLoadingCounts,
+                  onTap: () => _navigateToView(GestaoView.compromissos),
+                ),
+              ]),
             ),
-            delegate: SliverChildListDelegate([
-              _buildGestaoCard(
-                title: 'Medicamentos',
-                subtitle: _isLoadingCounts 
-                    ? 'Carregando...' 
-                    : _medicamentosCount == 0 
-                        ? 'Nenhum medicamento' 
-                        : '$_medicamentosCount cadastrado${_medicamentosCount > 1 ? 's' : ''}',
-                icon: Icons.medication_liquid,
-                color: const Color(0xFFE91E63),
-                count: _medicamentosCount,
-                isLoading: _isLoadingCounts,
-                onTap: () => _navigateToView(GestaoView.medicamentos),
-              ),
-              _buildGestaoCard(
-                title: 'Rotinas',
-                subtitle: _isLoadingCounts 
-                    ? 'Carregando...' 
-                    : _rotinasCount == 0 
-                        ? 'Nenhuma rotina' 
-                        : '$_rotinasCount cadastrada${_rotinasCount > 1 ? 's' : ''}',
-                icon: Icons.schedule_rounded,
-                color: const Color(0xFFFF9800),
-                count: _rotinasCount,
-                isLoading: _isLoadingCounts,
-                onTap: () => _navigateToView(GestaoView.rotinas),
-              ),
-              _buildGestaoCard(
-                title: 'Compromissos',
-                subtitle: _isLoadingCounts 
-                    ? 'Carregando...' 
-                    : _compromissosCount == 0 
-                        ? 'Nenhum compromisso' 
-                        : '$_compromissosCount cadastrado${_compromissosCount > 1 ? 's' : ''}',
-                icon: Icons.calendar_today,
-                color: const Color(0xFF2196F3),
-                count: _compromissosCount,
-                isLoading: _isLoadingCounts,
-                onTap: () => _navigateToView(GestaoView.compromissos),
-              ),
-            ]),
           ),
-        ),
         ],
       ),
     );
@@ -431,96 +449,96 @@ class _GestaoScreenState extends State<GestaoScreen> {
         onTap: onTap,
         padding: AppSpacing.paddingLarge,
         child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Top: Ícone e badge de contador
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: EdgeInsets.all(AppSpacing.small + 2),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-              // Badge de contador
-              if (!isLoading && count > 0)
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Top: Ícone e badge de contador
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.small - 2, vertical: AppSpacing.xsmall + 2),
+                  padding: EdgeInsets.all(AppSpacing.small + 2),
                   decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    color: color.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Text(
-                    count.toString(),
-                    style: AppTextStyles.leagueSpartan(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                  child: Icon(
+                    icon,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+                // Badge de contador
+                if (!isLoading && count > 0)
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: AppSpacing.small - 2,
+                        vertical: AppSpacing.xsmall + 2),
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: color.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      count.toString(),
+                      style: AppTextStyles.leagueSpartan(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  )
+                else if (isLoading)
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   ),
-                )
-              else if (isLoading)
-                const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ],
+            ),
+            const Spacer(),
+            // Bottom: Título e subtítulo
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.leagueSpartan(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-            ],
-          ),
-          const Spacer(),
-          // Bottom: Título e subtítulo
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                style: AppTextStyles.leagueSpartan(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.leagueSpartan(
+                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                subtitle,
-                style: AppTextStyles.leagueSpartan(
-                  fontSize: 13,
-                  color: Colors.white.withValues(alpha: 0.85),
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 }
-
-

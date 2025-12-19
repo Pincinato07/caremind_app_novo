@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../services/exportacao_service.dart';
 import '../../../core/injection/injection.dart';
+import '../../../core/feedback/feedback_service.dart';
+import '../../../core/errors/error_handler.dart';
 import 'package:share_plus/share_plus.dart';
 
 /// Tela de relatórios e exportação da organização
@@ -32,12 +34,7 @@ class _RelatoriosOrganizacaoScreenState
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao exportar: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        FeedbackService.showError(context, ErrorHandler.toAppException(e));
       }
     } finally {
       if (mounted) {
@@ -56,12 +53,7 @@ class _RelatoriosOrganizacaoScreenState
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao exportar: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        FeedbackService.showError(context, ErrorHandler.toAppException(e));
       }
     } finally {
       if (mounted) {
@@ -144,4 +136,3 @@ class _RelatoriosOrganizacaoScreenState
     );
   }
 }
-

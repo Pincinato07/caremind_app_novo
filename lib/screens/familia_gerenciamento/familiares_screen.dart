@@ -4,6 +4,8 @@ import '../../services/supabase_service.dart';
 import '../../services/convite_idoso_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
+import '../../core/feedback/feedback_service.dart';
+import '../../core/errors/error_handler.dart';
 import '../../core/state/familiar_state.dart';
 import '../../models/perfil.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
@@ -43,7 +45,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
       final supabaseService = getIt<SupabaseService>();
       final familiarState = getIt<FamiliarState>();
       final user = supabaseService.currentUser;
-      
+
       if (user != null) {
         // Carregar idosos e atualizar o FamiliarState
         await familiarState.carregarIdosos(user.id);
@@ -73,7 +75,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
       context: context,
       builder: (context) => const AdicionarIdosoForm(),
     );
-    
+
     if (result == true) {
       _loadIdosos();
     }
@@ -84,7 +86,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
       context: context,
       builder: (context) => EditarIdosoForm(idoso: idoso),
     );
-    
+
     if (result == true) {
       _loadIdosos();
     }
@@ -120,28 +122,15 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
     try {
       final supabaseService = getIt<SupabaseService>();
       await supabaseService.desvincularIdoso(idoso.id);
-      
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${idoso.nome ?? 'Idoso'} desvinculado com sucesso'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        FeedbackService.showSuccess(
+            context, '${idoso.nome ?? 'Idoso'} desvinculado com sucesso');
         _loadIdosos();
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              error is AppException
-                  ? error.message
-                  : 'Erro ao desvincular idoso: $error',
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
+        FeedbackService.showError(context, ErrorHandler.toAppException(error));
       }
     }
   }
@@ -177,49 +166,32 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
     try {
       final supabaseService = getIt<SupabaseService>();
       await supabaseService.removerIdoso(idoso.id);
-      
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${idoso.nome ?? 'Idoso'} removido com sucesso'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        FeedbackService.showSuccess(
+            context, '${idoso.nome ?? 'Idoso'} removido com sucesso');
         _loadIdosos();
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              error is AppException
-                  ? error.message
-                  : 'Erro ao remover idoso: $error',
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
+        FeedbackService.showError(context, ErrorHandler.toAppException(error));
       }
     }
   }
 
   Future<void> _gerarConvite(Perfil idoso) async {
     if (!mounted) return;
-    
+
     // Fechar o menu primeiro
     Navigator.pop(context);
-    
+
     // Validar dados do idoso
     if (idoso.id.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erro: ID do idoso inválido'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      FeedbackService.showError(context,
+          ErrorHandler.toAppException(Exception('ID do idoso inválido')));
       return;
     }
-    
+
     // Mostrar loading
     showDialog(
       context: context,
@@ -231,9 +203,17 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
 
     try {
       final conviteService = getIt<ConviteIdosoService>();
-      final convite = await conviteService.gerarConvite(idoso.id);
+      final result = await conviteService.gerarConvite(idoso.id);
 
       if (!mounted) return;
+
+      // Desempacotar o Result
+      final convite = result.when(
+        success: (data) => data,
+        failure: (exception) {
+          throw exception;
+        },
+      );
 
       // Validar dados do convite antes de exibir
       if (convite.codigoConvite.isEmpty || convite.linkCompleto.isEmpty) {
@@ -260,29 +240,10 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
       // Fechar loading
       Navigator.pop(context);
 
-      // Mensagens de erro mais específicas
-      String errorMessage;
-      if (error.message.contains('permissão') || error.message.contains('permission')) {
-        errorMessage = 'Você não tem permissão para gerar convite para este idoso.';
-      } else if (error.message.contains('não encontrado') || error.message.contains('not found')) {
-        errorMessage = 'Idoso não encontrado. Atualize a lista e tente novamente.';
-      } else if (error.message.contains('conexão') || error.message.contains('connection') || error.message.contains('timeout')) {
-        errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
-      } else {
-        errorMessage = error.message;
-      }
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-          action: SnackBarAction(
-            label: 'Tentar Novamente',
-            textColor: Colors.white,
-            onPressed: () => _gerarConvite(idoso),
-          ),
-        ),
+      FeedbackService.showError(
+        context,
+        ErrorHandler.toAppException(error),
+        onRetry: () => _gerarConvite(idoso),
       );
     } catch (error) {
       if (!mounted) return;
@@ -291,15 +252,10 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
       Navigator.pop(context);
 
       debugPrint('Erro inesperado ao gerar convite: $error');
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Erro inesperado ao gerar convite: ${error.toString()}',
-          ),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
+
+      FeedbackService.showError(
+        context,
+        ErrorHandler.toAppException(error),
       );
     }
   }
@@ -337,7 +293,8 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
               ListTile(
                 leading: const Icon(Icons.qr_code, color: AppColors.primary),
                 title: const Text('Gerar Convite'),
-                subtitle: const Text('Gera QR code e código de convite para login'),
+                subtitle:
+                    const Text('Gera QR code e código de convite para login'),
                 onTap: () {
                   _gerarConvite(idoso);
                 },
@@ -371,7 +328,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
   @override
   Widget build(BuildContext context) {
     final familiarState = getIt<FamiliarState>();
-    
+
     return AppScaffoldWithWaves(
       appBar: CareMindAppBar(
         title: 'Família',
@@ -394,40 +351,40 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                           variant: CardVariant.glass,
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: 64,
-                              color: Colors.red.shade300,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Erro ao carregar idosos',
-                              style: AppTextStyles.leagueSpartan(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                size: 64,
+                                color: Colors.red.shade300,
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _error!,
-                              textAlign: TextAlign.center,
-                              style: AppTextStyles.leagueSpartan(
-                                color: Colors.white.withValues(alpha: 0.9),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Erro ao carregar idosos',
+                                style: AppTextStyles.leagueSpartan(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            AppPrimaryButton(
-                              label: 'Tentar novamente',
-                              onPressed: _loadIdosos,
-                            ),
-                          ],
+                              const SizedBox(height: 8),
+                              Text(
+                                _error!,
+                                textAlign: TextAlign.center,
+                                style: AppTextStyles.leagueSpartan(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              AppPrimaryButton(
+                                label: 'Tentar novamente',
+                                onPressed: _loadIdosos,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                )
+                  )
                 : _idosos.isEmpty
                     ? SingleChildScrollView(
                         padding: const EdgeInsets.all(24.0),
@@ -443,7 +400,8 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                                     Icon(
                                       Icons.family_restroom,
                                       size: 64,
-                                      color: Colors.white.withValues(alpha: 0.9),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.9),
                                     ),
                                     const SizedBox(height: 16),
                                     Text(
@@ -460,7 +418,8 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                                       'Visualize os idosos vinculados à sua conta e adicione novos membros diretamente',
                                       style: AppTextStyles.leagueSpartan(
                                         fontSize: 16,
-                                        color: Colors.white.withValues(alpha: 0.9),
+                                        color:
+                                            Colors.white.withValues(alpha: 0.9),
                                         height: 1.4,
                                       ),
                                       textAlign: TextAlign.center,
@@ -476,71 +435,79 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                                 variant: CardVariant.glass,
                                 child: Column(
                                   children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.groups_rounded,
-                                        size: 32,
-                                        color: Colors.white.withValues(alpha: 0.9),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Text(
-                                        'Seus Idosos',
-                                        style: AppTextStyles.leagueSpartan(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Container(
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.white.withValues(alpha: 0.2),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Row(
+                                    Row(
                                       children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'Nenhum idoso vinculado ainda',
-                                                style: AppTextStyles.leagueSpartan(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.white,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                'Use o botão abaixo para adicionar o primeiro idoso',
-                                                style: AppTextStyles.leagueSpartan(
-                                                  fontSize: 14,
-                                                  color: Colors.white.withValues(alpha: 0.8),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
                                         Icon(
-                                          Icons.person_add_disabled,
-                                          color: Colors.white.withValues(alpha: 0.6),
+                                          Icons.groups_rounded,
                                           size: 32,
+                                          color: Colors.white
+                                              .withValues(alpha: 0.9),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Text(
+                                          'Seus Idosos',
+                                          style: AppTextStyles.leagueSpartan(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                          ),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(height: 16),
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            Colors.white.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.2),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Nenhum idoso vinculado ainda',
+                                                  style: AppTextStyles
+                                                      .leagueSpartan(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'Use o botão abaixo para adicionar o primeiro idoso',
+                                                  style: AppTextStyles
+                                                      .leagueSpartan(
+                                                    fontSize: 14,
+                                                    color: Colors.white
+                                                        .withValues(alpha: 0.8),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Icon(
+                                            Icons.person_add_disabled,
+                                            color: Colors.white
+                                                .withValues(alpha: 0.6),
+                                            size: 32,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
                             ),
                             const SizedBox(height: 24),
                             AppPrimaryButton(
@@ -574,7 +541,8 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                                       '${_idosos.length} idoso(s) vinculado(s)',
                                       style: AppTextStyles.leagueSpartan(
                                         fontSize: 16,
-                                        color: Colors.white.withValues(alpha: 0.9),
+                                        color:
+                                            Colors.white.withValues(alpha: 0.9),
                                       ),
                                     ),
                                   ],
@@ -590,17 +558,20 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                                       horizontal: 24,
                                       vertical: 8,
                                     ),
-                                    child: _buildIdosoCard(idoso, familiarState),
+                                    child:
+                                        _buildIdosoCard(idoso, familiarState),
                                   );
                                 },
                                 childCount: _idosos.length,
                               ),
                             ),
-                            SliverToBoxAdapter(child: SizedBox(height: AppSpacing.bottomNavBarPadding)),
+                            SliverToBoxAdapter(
+                                child: SizedBox(
+                                    height: AppSpacing.bottomNavBarPadding)),
                           ],
                         ),
                       ),
-                    ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _adicionarIdoso,
         backgroundColor: AppColors.primary,
@@ -618,7 +589,7 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
 
   Widget _buildIdosoCard(Perfil idoso, FamiliarState familiarState) {
     final isSelected = familiarState.idosoSelecionado?.id == idoso.id;
-    
+
     return AnimatedCard(
       index: 2,
       child: CareMindCard(
@@ -632,70 +603,70 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
         borderColor: isSelected ? Colors.green.withValues(alpha: 0.6) : null,
         padding: AppSpacing.paddingLarge,
         child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primary, AppColors.primaryLight],
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.primary, AppColors.primaryLight],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              child: const Icon(
+                Icons.person,
+                color: Colors.white,
+                size: 32,
+              ),
             ),
-            child: const Icon(
-              Icons.person,
-              color: Colors.white,
-              size: 32,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  idoso.nome ?? 'Idoso',
-                  style: AppTextStyles.leagueSpartan(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    'Idoso',
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    idoso.nome ?? 'Idoso',
                     style: AppTextStyles.leagueSpartan(
-                      fontSize: 12,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
                       color: Colors.white,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'Idoso',
+                      style: AppTextStyles.leagueSpartan(
+                        fontSize: 12,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            onPressed: () => _showOptionsMenu(idoso),
-            tooltip: 'Opções',
-          ),
-        ],
-      ),
+            IconButton(
+              icon: const Icon(Icons.more_vert, color: Colors.white),
+              onPressed: () => _showOptionsMenu(idoso),
+              tooltip: 'Opções',
+            ),
+          ],
+        ),
       ),
     );
   }

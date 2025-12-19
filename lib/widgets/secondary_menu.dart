@@ -284,7 +284,7 @@ class SecondaryMenu extends StatelessWidget {
     try {
       final supabaseService = getIt<SupabaseService>();
       await supabaseService.signOut();
-      
+
       if (context.mounted) {
         Navigator.of(context).pushNamedAndRemoveUntil(
           '/',
@@ -303,4 +303,3 @@ class SecondaryMenu extends StatelessWidget {
     }
   }
 }
-

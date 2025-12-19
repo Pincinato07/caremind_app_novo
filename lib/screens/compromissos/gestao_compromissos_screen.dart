@@ -27,7 +27,8 @@ class GestaoCompromissosScreen extends StatefulWidget {
   });
 
   @override
-  State<GestaoCompromissosScreen> createState() => _GestaoCompromissosScreenState();
+  State<GestaoCompromissosScreen> createState() =>
+      _GestaoCompromissosScreenState();
 }
 
 class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
@@ -43,7 +44,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
     super.initState();
     _loadUserProfile();
     _loadCompromissos();
-    
+
     final familiarState = getIt<FamiliarState>();
     familiarState.addListener(_onFamiliarStateChanged);
     _listenToConnectivity();
@@ -54,7 +55,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
       if (mounted) {
         final wasOffline = _isOffline;
         setState(() => _isOffline = !isOnline);
-        
+
         if (wasOffline && isOnline) {
           _loadCompromissos();
           if (mounted) {
@@ -111,19 +112,20 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
       final supabaseService = getIt<SupabaseService>();
       final compromissoService = getIt<CompromissoService>();
       final user = supabaseService.currentUser;
-      
+
       if (user != null) {
         final familiarState = getIt<FamiliarState>();
-        final targetId = widget.idosoId ?? 
-            (familiarState.hasIdosos && familiarState.idosoSelecionado != null 
-                ? familiarState.idosoSelecionado!.id 
+        final targetId = widget.idosoId ??
+            (familiarState.hasIdosos && familiarState.idosoSelecionado != null
+                ? familiarState.idosoSelecionado!.id
                 : user.id);
-        
+
         if (isOnline) {
-          final compromissos = await compromissoService.getCompromissos(targetId);
-          
+          final compromissos =
+              await compromissoService.getCompromissos(targetId);
+
           await OfflineCacheService.cacheCompromissos(targetId, compromissos);
-          
+
           setState(() {
             _compromissos = compromissos;
             _isLoading = false;
@@ -156,17 +158,19 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
 
   Future<void> _loadFromCache(String userId) async {
     try {
-      final cachedCompromissos = await OfflineCacheService.getCachedCompromissos(userId);
-      
+      final cachedCompromissos =
+          await OfflineCacheService.getCachedCompromissos(userId);
+
       if (cachedCompromissos.isNotEmpty) {
         setState(() {
           _compromissos = cachedCompromissos;
           _isLoading = false;
           _isOffline = true;
         });
-        
+
         if (mounted) {
-          FeedbackSnackbar.warning(context, 'Usando dados salvos (modo offline)');
+          FeedbackSnackbar.warning(
+              context, 'Usando dados salvos (modo offline)');
         }
       } else {
         setState(() {
@@ -187,7 +191,8 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmar exclusão'),
-        content: Text('Deseja realmente excluir o compromisso "${compromisso['titulo'] ?? 'Compromisso'}"?'),
+        content: Text(
+            'Deseja realmente excluir o compromisso "${compromisso['titulo'] ?? 'Compromisso'}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -229,7 +234,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
   Widget build(BuildContext context) {
     final familiarState = getIt<FamiliarState>();
     final isFamiliar = familiarState.hasIdosos && widget.idosoId == null;
-    
+
     final content = RefreshIndicator(
       onRefresh: _loadCompromissos,
       color: Colors.white,
@@ -274,7 +279,8 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                     ),
                   ),
                   child: const Center(
-                    child: Icon(Icons.calendar_today, size: 48, color: Colors.white),
+                    child: Icon(Icons.calendar_today,
+                        size: 48, color: Colors.white),
                   ),
                 ),
               ),
@@ -302,13 +308,16 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
             : FloatingActionButton.extended(
                 onPressed: () async {
                   final familiarState = getIt<FamiliarState>();
-                  final idosoId = widget.idosoId ?? 
-                      (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
-                  
+                  final idosoId = widget.idosoId ??
+                      (familiarState.hasIdosos
+                          ? familiarState.idosoSelecionado?.id
+                          : null);
+
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => AddEditCompromissoForm(idosoId: idosoId),
+                      builder: (context) =>
+                          AddEditCompromissoForm(idosoId: idosoId),
                     ),
                   );
                   if (result == true) {
@@ -334,8 +343,9 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
 
   Widget _buildBody() {
     // Toggle entre lista e calendário (só mostra se houver compromissos)
-    final showToggle = !_isLoading && _error == null && _compromissos.isNotEmpty;
-    
+    final showToggle =
+        !_isLoading && _error == null && _compromissos.isNotEmpty;
+
     if (showToggle) {
       return Column(
         children: [
@@ -354,11 +364,12 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildViewToggleButton('list', Icons.list, 'Lista'),
-                _buildViewToggleButton('calendar', Icons.calendar_today, 'Calendário'),
+                _buildViewToggleButton(
+                    'calendar', Icons.calendar_today, 'Calendário'),
               ],
             ),
           ),
-          
+
           // Conteúdo baseado no modo de visualização
           Expanded(
             child: _viewMode == 'calendar'
@@ -372,9 +383,12 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                           MaterialPageRoute(
                             builder: (context) {
                               final familiarState = getIt<FamiliarState>();
-                              final idosoId = widget.idosoId ?? 
-                                  (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
-                              return AddEditCompromissoForm(compromisso: compromisso, idosoId: idosoId);
+                              final idosoId = widget.idosoId ??
+                                  (familiarState.hasIdosos
+                                      ? familiarState.idosoSelecionado?.id
+                                      : null);
+                              return AddEditCompromissoForm(
+                                  compromisso: compromisso, idosoId: idosoId);
                             },
                           ),
                         );
@@ -389,7 +403,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
         ],
       );
     }
-    
+
     if (_isLoading) {
       return const Padding(
         padding: EdgeInsets.all(24),
@@ -410,144 +424,159 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
     if (_compromissos.isEmpty) {
       return SingleChildScrollView(
         child: Container(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withValues(alpha: 0.15),
-                      Colors.white.withValues(alpha: 0.1),
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.15),
+                        Colors.white.withValues(alpha: 0.1),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.2), width: 1),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.white.withValues(alpha: 0.3),
+                              Colors.white.withValues(alpha: 0.2),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(Icons.calendar_today,
+                            size: 48, color: Colors.white),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Nenhum compromisso encontrado',
+                        style: AppTextStyles.leagueSpartan(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _isIdoso
+                            ? 'Seus compromissos aparecerão aqui'
+                            : 'Toque no botão "+" para adicionar seu primeiro compromisso',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 16,
+                            height: 1.5),
+                      ),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
                 ),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.white.withValues(alpha: 0.3),
-                            Colors.white.withValues(alpha: 0.2),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(Icons.calendar_today, size: 48, color: Colors.white),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Nenhum compromisso encontrado',
-                      style: AppTextStyles.leagueSpartan(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primary),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _isIdoso
-                          ? 'Seus compromissos aparecerão aqui'
-                          : 'Toque no botão "+" para adicionar seu primeiro compromisso',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 16, height: 1.5),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
       );
     }
 
     return SingleChildScrollView(
       child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(24),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Colors.white, AppColors.primary.withValues(alpha: 0.02)],
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white,
+                    AppColors.primary.withValues(alpha: 0.02)
+                  ],
+                ),
+                borderRadius: AppBorderRadius.xlargeAll,
+                border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.1), width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-              borderRadius: AppBorderRadius.xlargeAll,
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.1), width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [AppColors.primary, AppColors.primaryLight]),
-                    borderRadius: AppBorderRadius.mediumAll,
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                          colors: [AppColors.primary, AppColors.primaryLight]),
+                      borderRadius: AppBorderRadius.mediumAll,
+                    ),
+                    child: const Icon(Icons.analytics_outlined,
+                        color: Colors.white, size: 24),
                   ),
-                  child: const Icon(Icons.analytics_outlined, color: Colors.white, size: 24),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Total de Compromissos',
-                        style: AppTextStyles.leagueSpartan(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Total de Compromissos',
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${_compromissos.length} compromisso(s)',
-                        style: AppTextStyles.leagueSpartan(
-                          fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.8),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_compromissos.length} compromisso(s)',
+                          style: AppTextStyles.leagueSpartan(
+                            fontSize: 14,
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            'Seus Compromissos',
-            style: AppTextStyles.leagueSpartan(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text(
+              'Seus Compromissos',
+              style: AppTextStyles.leagueSpartan(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-        ...(_compromissos.map((compromisso) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: _buildCompromissoCard(compromisso),
-            ))),
-        SizedBox(height: AppSpacing.bottomNavBarPadding),
-      ],
-    ),
+          const SizedBox(height: 16),
+          ...(_compromissos.map((compromisso) => Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: _buildCompromissoCard(compromisso),
+              ))),
+          SizedBox(height: AppSpacing.bottomNavBarPadding),
+        ],
+      ),
     );
   }
 
@@ -576,7 +605,9 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
             children: [
               Icon(
                 icon,
-                color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.3),
+                color: isActive
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.3),
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -585,7 +616,9 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                 style: AppTextStyles.leagueSpartan(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.3),
+                  color: isActive
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.3),
                 ),
               ),
             ],
@@ -645,21 +678,21 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
 
     return Container(
       decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: 0.15),
-                  Colors.white.withValues(alpha: 0.1),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isPassado
-                    ? Colors.red.shade300
-                    : Colors.white.withValues(alpha: 0.2),
-                width: 1,
-              ),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.15),
+            Colors.white.withValues(alpha: 0.1),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isPassado
+              ? Colors.red.shade300
+              : Colors.white.withValues(alpha: 0.2),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.1),
@@ -673,21 +706,24 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) {
-                        final familiarState = getIt<FamiliarState>();
-                        final idosoId = widget.idosoId ?? 
-                            (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
-                        return AddEditCompromissoForm(compromisso: compromisso, idosoId: idosoId);
-                      },
-                    ),
-                  );
-                  if (result == true) {
-                    _loadCompromissos();
-                  }
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) {
+                  final familiarState = getIt<FamiliarState>();
+                  final idosoId = widget.idosoId ??
+                      (familiarState.hasIdosos
+                          ? familiarState.idosoSelecionado?.id
+                          : null);
+                  return AddEditCompromissoForm(
+                      compromisso: compromisso, idosoId: idosoId);
                 },
+              ),
+            );
+            if (result == true) {
+              _loadCompromissos();
+            }
+          },
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -743,7 +779,8 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                             color: Colors.grey.shade100,
                             borderRadius: AppBorderRadius.smallAll,
                           ),
-                          child: const Icon(Icons.more_vert, color: Colors.grey, size: 20),
+                          child: const Icon(Icons.more_vert,
+                              color: Colors.grey, size: 20),
                         ),
                         onSelected: (value) {
                           switch (value) {
@@ -757,9 +794,11 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
                             value: 'delete',
                             child: Row(
                               children: [
-                                Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                                Icon(Icons.delete_outline,
+                                    size: 20, color: Colors.red),
                                 SizedBox(width: 12),
-                                Text('Excluir', style: TextStyle(color: Colors.red)),
+                                Text('Excluir',
+                                    style: TextStyle(color: Colors.red)),
                               ],
                             ),
                           ),

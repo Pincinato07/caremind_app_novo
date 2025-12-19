@@ -33,21 +33,20 @@ class ProfileService extends ChangeNotifier {
 
       final profile = await _supabaseService.getProfile(user.id);
       _currentProfile = profile;
-      
+
       // Anuncia carregamento do perfil com TTS
       if (profile != null) {
-        await AccessibilityService.speak(
-          'Perfil carregado: ${profile.nome}.'
-        );
+        await AccessibilityService.speak('Perfil carregado: ${profile.nome}.');
       } else {
         await AccessibilityService.speak('Nenhum perfil encontrado.');
       }
-      
+
       notifyListeners();
       return profile;
     } catch (e) {
       _setError(e.toString());
-      await AccessibilityService.speak('Erro ao carregar perfil: ${e.toString()}');
+      await AccessibilityService.speak(
+          'Erro ao carregar perfil: ${e.toString()}');
       return null;
     } finally {
       _setLoading(false);
@@ -92,12 +91,11 @@ class ProfileService extends ChangeNotifier {
           .single();
 
       _currentProfile = Perfil.fromMap(response);
-      
+
       // Anuncia sucesso
       await AccessibilityService.speak(
-        'Perfil criado com sucesso! Bem-vindo, $nome!'
-      );
-      
+          'Perfil criado com sucesso! Bem-vindo, $nome!');
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -144,17 +142,16 @@ class ProfileService extends ChangeNotifier {
           .single();
 
       _currentProfile = Perfil.fromMap(response);
-      
+
       // Anuncia sucesso
-      await AccessibilityService.speak(
-        'Perfil atualizado com sucesso!'
-      );
-      
+      await AccessibilityService.speak('Perfil atualizado com sucesso!');
+
       notifyListeners();
       return;
     } catch (e) {
       _setError(e.toString());
-      await AccessibilityService.speak('Erro ao atualizar perfil: ${e.toString()}');
+      await AccessibilityService.speak(
+          'Erro ao atualizar perfil: ${e.toString()}');
       return;
     } finally {
       _setLoading(false);
@@ -195,15 +192,16 @@ class ProfileService extends ChangeNotifier {
           .eq('id', _currentProfile!.id);
 
       _currentProfile = null;
-      
+
       // Anuncia sucesso
       await AccessibilityService.speak('Perfil excluído com sucesso.');
-      
+
       notifyListeners();
       return true;
     } catch (e) {
       _setError(e.toString());
-      await AccessibilityService.speak('Erro ao excluir perfil: ${e.toString()}');
+      await AccessibilityService.speak(
+          'Erro ao excluir perfil: ${e.toString()}');
       return false;
     } finally {
       _setLoading(false);
@@ -305,12 +303,22 @@ class ProfileService extends ChangeNotifier {
     final day = date.day;
     final month = date.month;
     final year = date.year;
-    
+
     final monthNames = [
-      'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
-      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+      'janeiro',
+      'fevereiro',
+      'março',
+      'abril',
+      'maio',
+      'junho',
+      'julho',
+      'agosto',
+      'setembro',
+      'outubro',
+      'novembro',
+      'dezembro'
     ];
-    
+
     return '$day de ${monthNames[month - 1]} de $year';
   }
 }

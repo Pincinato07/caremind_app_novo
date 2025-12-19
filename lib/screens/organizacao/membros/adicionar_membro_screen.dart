@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../services/membro_organizacao_service.dart';
 import '../../../core/injection/injection.dart';
+import '../../../core/feedback/feedback_service.dart';
+import '../../../core/errors/error_handler.dart';
 
 /// Tela para adicionar membro à organização
 class AdicionarMembroScreen extends StatefulWidget {
@@ -18,7 +20,8 @@ class AdicionarMembroScreen extends StatefulWidget {
 class _AdicionarMembroScreenState extends State<AdicionarMembroScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final MembroOrganizacaoService _membroService = getIt<MembroOrganizacaoService>();
+  final MembroOrganizacaoService _membroService =
+      getIt<MembroOrganizacaoService>();
   String _roleSelecionado = 'cuidador';
   bool _isLoading = false;
 
@@ -49,22 +52,12 @@ class _AdicionarMembroScreenState extends State<AdicionarMembroScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Convite enviado com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        FeedbackService.showSuccess(context, 'Convite enviado com sucesso!');
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao convidar membro: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        FeedbackService.showError(context, ErrorHandler.toAppException(e));
       }
     } finally {
       if (mounted) {
@@ -114,7 +107,7 @@ class _AdicionarMembroScreenState extends State<AdicionarMembroScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _roleSelecionado,
+                initialValue: _roleSelecionado,
                 decoration: const InputDecoration(
                   labelText: 'Função *',
                   border: OutlineInputBorder(),
@@ -169,4 +162,3 @@ class _AdicionarMembroScreenState extends State<AdicionarMembroScreen> {
     }
   }
 }
-

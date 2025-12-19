@@ -34,9 +34,7 @@ class ContextSelectorWidget extends ConsumerWidget {
       child: Row(
         children: [
           Icon(
-            organizacaoState.isModoOrganizacao
-                ? Icons.business
-                : Icons.person,
+            organizacaoState.isModoOrganizacao ? Icons.business : Icons.person,
             color: organizacaoState.isModoOrganizacao
                 ? Colors.blue.shade700
                 : Colors.green.shade700,
@@ -134,8 +132,7 @@ class _ContextSelectorSheet extends ConsumerWidget {
           ...organizacoes.map((org) => ListTile(
                 leading: Icon(
                   Icons.business,
-                  color: isModoOrganizacao &&
-                          organizacaoAtual?.id == org.id
+                  color: isModoOrganizacao && organizacaoAtual?.id == org.id
                       ? Colors.blue
                       : Colors.grey,
                 ),
@@ -154,4 +151,3 @@ class _ContextSelectorSheet extends ConsumerWidget {
     );
   }
 }
-

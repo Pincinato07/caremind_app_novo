@@ -4,7 +4,8 @@ import '../services/offline_cache_service.dart';
 import '../theme/app_theme.dart';
 
 /// Provider para contar ações pendentes
-final pendingActionsCountProvider = StreamProvider<Map<String, int>>((ref) async* {
+final pendingActionsCountProvider =
+    StreamProvider<Map<String, int>>((ref) async* {
   while (true) {
     final counts = await OfflineCacheService.getPendingActionsCount();
     yield counts;
@@ -13,7 +14,7 @@ final pendingActionsCountProvider = StreamProvider<Map<String, int>>((ref) async
 });
 
 /// Widget que exibe indicador discreto de dados pendentes de sincronização
-/// 
+///
 /// Mostra um ícone de nuvem com badge quando há dados salvos localmente
 /// aguardando sincronização
 class SyncPendingIndicator extends ConsumerWidget {
@@ -35,7 +36,7 @@ class SyncPendingIndicator extends ConsumerWidget {
     return pendingAsync.when(
       data: (counts) {
         final total = counts.values.fold<int>(0, (sum, count) => sum + count);
-        
+
         if (total == 0) {
           return const SizedBox.shrink();
         }
@@ -90,7 +91,8 @@ class SyncPendingIndicator extends ConsumerWidget {
       context: context,
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppBorderRadius.large)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppBorderRadius.large)),
       ),
       builder: (context) => Container(
         padding: AppSpacing.paddingLarge,
@@ -111,17 +113,20 @@ class SyncPendingIndicator extends ConsumerWidget {
             SizedBox(height: AppSpacing.medium),
             Text(
               'Os seguintes dados estão salvos localmente e serão sincronizados automaticamente quando voltar online:',
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.bodyMedium
+                  .copyWith(color: AppColors.textSecondary),
             ),
             SizedBox(height: AppSpacing.medium),
-            if (counts['add_medicamento'] != null && counts['add_medicamento']! > 0)
+            if (counts['add_medicamento'] != null &&
+                counts['add_medicamento']! > 0)
               _buildPendingItem(
                 context,
                 Icons.medication,
                 'Medicamentos a adicionar',
                 counts['add_medicamento']!,
               ),
-            if (counts['toggle_concluido'] != null && counts['toggle_concluido']! > 0)
+            if (counts['toggle_concluido'] != null &&
+                counts['toggle_concluido']! > 0)
               _buildPendingItem(
                 context,
                 Icons.check_circle,
@@ -196,4 +201,3 @@ class SyncPendingIndicator extends ConsumerWidget {
     );
   }
 }
-

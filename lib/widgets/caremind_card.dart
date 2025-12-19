@@ -4,8 +4,8 @@ import 'glass_card.dart';
 
 /// Variantes de card disponíveis
 enum CardVariant {
-  glass,    // Glassmorphism (para fundos com gradiente)
-  solid,    // Card sólido branco (para fundos claros)
+  glass, // Glassmorphism (para fundos com gradiente)
+  solid, // Card sólido branco (para fundos claros)
   elevated, // Card com elevação (para destaque)
 }
 
@@ -116,4 +116,3 @@ class CareMindCard extends StatelessWidget {
     );
   }
 }
-

@@ -260,6 +260,16 @@ Exemplos:
 4. **Performance**: Use `const` quando possível, evite rebuilds desnecessários
 5. **Acessibilidade**: Sempre considere acessibilidade (semantics)
 
+## 🚫 REGRAS CRÍTICAS - NUNCA VIOLAR
+
+### NÃO CRIAR DOCUMENTAÇÃO A CADA PROMPT
+- **NUNCA** criar arquivos .md a menos que explicitamente solicitado pelo usuário
+- **NUNCA** criar relatórios de status, resumos de progresso ou documentação automática
+- **NUNCA** criar arquivos como STATUS.md, PROGRESS.md, SUMMARY.md, etc
+- **FOQUE** exclusivamente em implementar código funcional
+- Documente apenas quando houver mudança arquitetural significativa E o usuário pedir
+- Se o usuário pedir "finalize tudo", implemente código, não documentação
+
 ## 🎯 Padrões Específicos do Projeto
 
 ### Providers

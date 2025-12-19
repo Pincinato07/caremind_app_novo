@@ -4,6 +4,8 @@ import '../../../providers/organizacao_provider.dart';
 import '../../../services/membro_organizacao_service.dart';
 import '../../../services/organizacao_service.dart';
 import '../../../core/injection/injection.dart';
+import '../../../core/feedback/feedback_service.dart';
+import '../../../core/errors/error_handler.dart';
 import 'adicionar_membro_screen.dart';
 import 'editar_membro_screen.dart';
 
@@ -21,7 +23,8 @@ class MembrosListaScreen extends ConsumerStatefulWidget {
 }
 
 class _MembrosListaScreenState extends ConsumerState<MembrosListaScreen> {
-  final MembroOrganizacaoService _membroService = getIt<MembroOrganizacaoService>();
+  final MembroOrganizacaoService _membroService =
+      getIt<MembroOrganizacaoService>();
   bool _isLoading = true;
   List<MembroOrganizacao> _membros = [];
 
@@ -37,9 +40,7 @@ class _MembrosListaScreenState extends ConsumerState<MembrosListaScreen> {
       _membros = await _membroService.listarMembros(widget.organizacaoId);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar membros: $e')),
-        );
+        FeedbackService.showError(context, ErrorHandler.toAppException(e));
       }
     } finally {
       if (mounted) {
@@ -94,7 +95,10 @@ class _MembrosListaScreenState extends ConsumerState<MembrosListaScreen> {
                         child: ListTile(
                           leading: CircleAvatar(
                             child: Text(
-                              membro.nomePerfil?.substring(0, 1).toUpperCase() ?? '?',
+                              membro.nomePerfil
+                                      ?.substring(0, 1)
+                                      .toUpperCase() ??
+                                  '?',
                             ),
                           ),
                           title: Text(membro.nomePerfil ?? 'Sem nome'),
@@ -112,7 +116,8 @@ class _MembrosListaScreenState extends ConsumerState<MembrosListaScreen> {
                             ],
                           ),
                           trailing: membro.ativo
-                              ? const Icon(Icons.check_circle, color: Colors.green)
+                              ? const Icon(Icons.check_circle,
+                                  color: Colors.green)
                               : const Icon(Icons.cancel, color: Colors.red),
                           onTap: podeGerenciar
                               ? () {
@@ -122,7 +127,8 @@ class _MembrosListaScreenState extends ConsumerState<MembrosListaScreen> {
                                       builder: (context) => EditarMembroScreen(
                                         membroId: membro.id,
                                         organizacaoId: widget.organizacaoId,
-                                        nomeMembro: membro.nomePerfil ?? 'Sem nome',
+                                        nomeMembro:
+                                            membro.nomePerfil ?? 'Sem nome',
                                         roleAtual: membro.role,
                                       ),
                                     ),
@@ -158,4 +164,3 @@ class _MembrosListaScreenState extends ConsumerState<MembrosListaScreen> {
     }
   }
 }
-

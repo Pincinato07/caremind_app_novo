@@ -23,6 +23,7 @@ import 'widgets/global_wave_background.dart';
 import 'widgets/accessibility_wrapper.dart';
 import 'widgets/in_app_notification.dart';
 import 'core/injection/injection.dart';
+import 'core/feedback/feedback_service.dart';
 import 'services/notification_service.dart';
 import 'services/fcm_token_service.dart';
 import 'services/notificacoes_app_service.dart';
@@ -35,6 +36,7 @@ import 'screens/auth/processar_convite_screen.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/medicamento_service.dart';
+import 'models/medicamento.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,15 +67,15 @@ void main() async {
 
   final supabaseUrl = dotenv.env['SUPABASE_URL'];
   final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
-  
+
   if (supabaseUrl == null || supabaseUrl.isEmpty) {
     throw Exception('SUPABASE_URL não encontrado');
   }
-  
+
   if (supabaseAnonKey == null || supabaseAnonKey.isEmpty) {
     throw Exception('SUPABASE_ANON_KEY não encontrado');
   }
-  
+
   await Supabase.initialize(
     url: supabaseUrl,
     anonKey: supabaseAnonKey,
@@ -81,7 +83,7 @@ void main() async {
   debugPrint('✅ Supabase inicializado');
 
   await configureDependencies();
-  
+
   if (!kIsWeb) {
     try {
       final fcmTokenService = GetIt.instance<FCMTokenService>();
@@ -91,7 +93,7 @@ void main() async {
       debugPrint('⚠️ Erro ao inicializar FCMTokenService: $e');
     }
   }
-  
+
   if (!kIsWeb) {
     try {
       final notificacoesService = GetIt.instance<NotificacoesAppService>();
@@ -101,7 +103,7 @@ void main() async {
       debugPrint('⚠️ Erro ao inicializar NotificacoesAppService: $e');
     }
   }
-  
+
   try {
     await AccessibilityService.initialize();
     debugPrint('✅ AccessibilityService inicializado');
@@ -110,10 +112,10 @@ void main() async {
   }
 
   await _syncDailyCacheIfNeeded();
-  
+
   // Re-agendar todas as notificações de medicamentos após inicialização
   await rescheduleAllMedications();
-  
+
   runApp(const CareMindApp());
 }
 
@@ -122,7 +124,7 @@ Future<void> _syncDailyCacheIfNeeded() async {
     final dailyCache = GetIt.instance<DailyCacheService>();
     final supabaseService = GetIt.instance<SupabaseService>();
     final user = supabaseService.currentUser;
-    
+
     if (user != null) {
       final perfil = await supabaseService.getProfile(user.id);
       if (perfil != null && dailyCache.shouldSync()) {
@@ -136,52 +138,67 @@ Future<void> _syncDailyCacheIfNeeded() async {
 }
 
 /// Re-agendar todas as notificações de medicamentos
-/// 
+///
 /// Esta função garante que todas as notificações sejam re-agendadas:
 /// - Na inicialização do app
 /// - Após reboot do dispositivo
 /// - Quando o app retorna do background
-/// 
+///
 /// Isso é crítico para garantir que as notificações não sejam perdidas
 /// mesmo após reinicializações do sistema.
 Future<void> rescheduleAllMedications() async {
   try {
     final supabaseService = GetIt.instance<SupabaseService>();
     final user = supabaseService.currentUser;
-    
+
     if (user == null) {
-      debugPrint('ℹ️ rescheduleAllMedications: Usuário não autenticado, pulando re-agendamento');
+      debugPrint(
+          'ℹ️ rescheduleAllMedications: Usuário não autenticado, pulando re-agendamento');
       return;
     }
-    
-    debugPrint('🔄 rescheduleAllMedications: Iniciando re-agendamento de notificações...');
-    
+
+    debugPrint(
+        '🔄 rescheduleAllMedications: Iniciando re-agendamento de notificações...');
+
     // Buscar todos os medicamentos do usuário
     final medicamentoService = MedicamentoService(supabaseService.client);
-    final medicamentos = await medicamentoService.getMedicamentos(user.id);
-    
+    final medicamentosResult =
+        await medicamentoService.getMedicamentos(user.id);
+
+    final medicamentos = medicamentosResult.when(
+      success: (data) => data,
+      failure: (exception) {
+        debugPrint(
+            '❌ rescheduleAllMedications: Erro ao buscar medicamentos - ${exception.message}');
+        return List<Medicamento>.empty();
+      },
+    );
+
     if (medicamentos.isEmpty) {
       debugPrint('ℹ️ rescheduleAllMedications: Nenhum medicamento encontrado');
       return;
     }
-    
-    debugPrint('📋 rescheduleAllMedications: ${medicamentos.length} medicamento(s) encontrado(s)');
-    
+
+    debugPrint(
+        '📋 rescheduleAllMedications: ${medicamentos.length} medicamento(s) encontrado(s)');
+
     // Re-agendar notificações para cada medicamento
     int sucessos = 0;
     int falhas = 0;
-    
+
     for (final medicamento in medicamentos) {
       try {
         await NotificationService.scheduleMedicationReminders(medicamento);
         sucessos++;
       } catch (e) {
         falhas++;
-        debugPrint('❌ rescheduleAllMedications: Erro ao re-agendar ${medicamento.nome}: $e');
+        debugPrint(
+            '❌ rescheduleAllMedications: Erro ao re-agendar ${medicamento.nome}: $e');
       }
     }
-    
-    debugPrint('✅ rescheduleAllMedications: Concluído - $sucessos sucesso(s), $falhas falha(s)');
+
+    debugPrint(
+        '✅ rescheduleAllMedications: Concluído - $sucessos sucesso(s), $falhas falha(s)');
   } catch (e, stackTrace) {
     debugPrint('❌ rescheduleAllMedications: Erro crítico - $e');
     debugPrint('Stack trace: $stackTrace');
@@ -194,30 +211,30 @@ class CareMindApp extends StatefulWidget {
 
   @override
   State<CareMindApp> createState() => _CareMindAppState();
-  
+
   // Método estático para mudar o tema de qualquer lugar do app
   static void changeThemeMode(ThemeMode mode) {
     _CareMindAppState.setThemeMode(mode);
   }
-  
+
   // Método estático para verificar DND bypass após login
   static Future<void> checkDndBypassOnLogin(BuildContext? context) async {
     if (context == null || !context.mounted) return;
-    
+
     try {
       // Verificar se o usuário está logado
       final supabaseService = GetIt.instance<SupabaseService>();
       final user = supabaseService.currentUser;
-      
+
       if (user == null) {
         debugPrint('ℹ️ DND Bypass: Usuário não logado, pulando verificação');
         return;
       }
-      
+
       // Verificar se já foi mostrado antes
       final prefs = await SharedPreferences.getInstance();
       final hasShownDndDialog = prefs.getBool('has_shown_dnd_dialog') ?? false;
-      
+
       // Mostrar apenas uma vez
       if (!hasShownDndDialog && context.mounted) {
         final isGranted = await NotificationService.isDndBypassGranted();
@@ -236,7 +253,8 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   late DeepLinkHandler _deepLinkHandler;
   ThemeMode _themeMode = ThemeMode.system; // Suporta system, light, dark
-  static final ValueNotifier<ThemeMode> _themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.system);
+  static final ValueNotifier<ThemeMode> _themeNotifier =
+      ValueNotifier<ThemeMode>(ThemeMode.system);
 
   @override
   void initState() {
@@ -249,9 +267,9 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
     _loadThemeMode();
     _checkDndBypassAfterInit();
   }
-  
+
   /// Verificar bypass de DND após inicialização do app
-  /// 
+  ///
   /// Aguarda um frame para garantir que o contexto está disponível,
   /// então verifica e mostra dialog se necessário.
   /// IMPORTANTE: Só mostra se o usuário estiver logado.
@@ -259,22 +277,23 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       // Aguardar um pouco para garantir que o app está totalmente inicializado
       await Future.delayed(const Duration(seconds: 2));
-      
+
       // Verificar se o usuário está logado antes de mostrar o dialog
       final supabaseService = GetIt.instance<SupabaseService>();
       final user = supabaseService.currentUser;
-      
+
       if (user == null) {
         debugPrint('ℹ️ DND Bypass: Usuário não logado, pulando verificação');
         return;
       }
-      
+
       final context = _navigatorKey.currentContext;
       if (context != null && context.mounted) {
         // Verificar se já foi mostrado antes (usar SharedPreferences)
         final prefs = await SharedPreferences.getInstance();
-        final hasShownDndDialog = prefs.getBool('has_shown_dnd_dialog') ?? false;
-        
+        final hasShownDndDialog =
+            prefs.getBool('has_shown_dnd_dialog') ?? false;
+
         // Mostrar apenas uma vez, a menos que o usuário queira ver novamente
         if (!hasShownDndDialog) {
           final isGranted = await NotificationService.isDndBypassGranted();
@@ -286,7 +305,7 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
       }
     });
   }
-  
+
   Future<void> _loadThemeMode() async {
     try {
       // Carregar preferência de tema do SharedPreferences
@@ -321,12 +340,12 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
 
   void _setupDeepLinks() {
     _deepLinkHandler = DeepLinkHandler();
-    
+
     // Processar link inicial se houver
     if (_deepLinkHandler.initialLink != null) {
       _processDeepLink(_deepLinkHandler.initialLink!);
     }
-    
+
     // Escutar novos deep links
     _deepLinkHandler.linkStream.listen((uri) {
       _processDeepLink(uri);
@@ -336,20 +355,20 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
   void _processDeepLink(Uri uri) {
     try {
       final route = DeepLinkHandler.parseRoute(uri);
-      
+
       if (route == null) {
         debugPrint('⚠️ DeepLink: Rota não reconhecida - $uri');
         return;
       }
-      
+
       if (route == DeepLinkRoute.conviteIdoso) {
         try {
           final token = DeepLinkHandler.extractConviteToken(uri);
           final codigo = DeepLinkHandler.extractConviteCodigo(uri);
-          
-      if (token != null || codigo != null) {
-        final tokenOuCodigo = token ?? codigo ?? '';
-        if (tokenOuCodigo.isEmpty) return;
+
+          if (token != null || codigo != null) {
+            final tokenOuCodigo = token ?? codigo ?? '';
+            if (tokenOuCodigo.isEmpty) return;
             final context = _navigatorKey.currentContext;
             if (context != null && context.mounted) {
               Navigator.of(context).push(
@@ -374,7 +393,8 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
           if (medicamentoId != null && medicamentoId > 0) {
             _navigateToMedication(medicamentoId);
           } else {
-            debugPrint('⚠️ DeepLink: ID de medicamento inválido ou não encontrado');
+            debugPrint(
+                '⚠️ DeepLink: ID de medicamento inválido ou não encontrado');
           }
         } catch (e) {
           debugPrint('❌ DeepLink: Erro ao processar medicamento - $e');
@@ -384,20 +404,20 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
       debugPrint('❌ DeepLink: Erro crítico ao processar deep link - $e');
     }
   }
-  
+
   void _navigateToMedication(int medicamentoId) {
     try {
       if (medicamentoId <= 0) {
         debugPrint('⚠️ DeepLink: ID de medicamento inválido: $medicamentoId');
         return;
       }
-      
+
       final context = _navigatorKey.currentContext;
       if (context == null || !context.mounted) {
         debugPrint('⚠️ DeepLink: Context não disponível para navegação');
         return;
       }
-      
+
       // Navegar para dashboard e destacar o medicamento
       // A navegação já está implementada com argumentos para destacar o medicamento
       // O dashboard pode usar esses argumentos para destacar o medicamento específico
@@ -406,7 +426,7 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
         (route) => false,
         arguments: {'highlightMedicationId': medicamentoId},
       );
-      
+
       // Log para debug
       debugPrint('✅ DeepLink: Navegando para medicamento ID: $medicamentoId');
     } catch (e) {
@@ -432,29 +452,30 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
       _checkDndBypassOnResume();
     }
   }
-  
+
   /// Verificar bypass de DND quando o app retorna do background
-  /// 
+  ///
   /// Só verifica se o usuário estiver logado.
   void _checkDndBypassOnResume() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       // Aguardar um pouco para garantir que o app está totalmente carregado
       await Future.delayed(const Duration(seconds: 1));
-      
+
       // Verificar se o usuário está logado
       final supabaseService = GetIt.instance<SupabaseService>();
       final user = supabaseService.currentUser;
-      
+
       if (user == null) {
         return; // Usuário não logado, não mostrar
       }
-      
+
       final context = _navigatorKey.currentContext;
       if (context != null && context.mounted) {
         // Verificar se já foi mostrado antes
         final prefs = await SharedPreferences.getInstance();
-        final hasShownDndDialog = prefs.getBool('has_shown_dnd_dialog') ?? false;
-        
+        final hasShownDndDialog =
+            prefs.getBool('has_shown_dnd_dialog') ?? false;
+
         // Mostrar apenas uma vez
         if (!hasShownDndDialog && context.mounted) {
           final isGranted = await NotificationService.isDndBypassGranted();
@@ -471,15 +492,15 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
     try {
       final supabaseService = GetIt.instance<SupabaseService>();
       final user = supabaseService.currentUser;
-      
+
       if (user == null) {
         // Se não há usuário, verificar se precisa redirecionar
         final context = _navigatorKey.currentContext;
         if (context != null) {
           final currentRoute = ModalRoute.of(context)?.settings.name;
           // Só redirecionar se não estiver já em uma tela de auth
-          if (currentRoute != '/' && 
-              currentRoute != '/login' && 
+          if (currentRoute != '/' &&
+              currentRoute != '/login' &&
               currentRoute != '/splash' &&
               currentRoute != '/onboarding') {
             debugPrint('🔒 Nenhum usuário autenticado ao retomar app');
@@ -491,7 +512,7 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
         }
         return;
       }
-      
+
       // Verificar se a sessão ainda é válida tentando buscar o perfil
       try {
         await supabaseService.getProfile(user.id);
@@ -511,7 +532,7 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
       final dailyCache = GetIt.instance<DailyCacheService>();
       final supabaseService = GetIt.instance<SupabaseService>();
       final user = supabaseService.currentUser;
-      
+
       if (user != null && dailyCache.shouldSync()) {
         final perfil = await supabaseService.getProfile(user.id);
         if (perfil != null) {
@@ -526,13 +547,13 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
 
   void _setupFCMForegroundHandler() {
     if (kIsWeb) return;
-    
+
     NotificationService.onForegroundMessage = (RemoteMessage message) {
       debugPrint('🔔 FCM recebida: ${message.notification?.title}');
       _showInAppNotification(message);
       _refreshNotifications();
     };
-    
+
     // Configurar callback para quando notificação é tocada
     NotificationService.onNotificationTapped = (int medicamentoId) {
       _navigateToMedication(medicamentoId);
@@ -541,22 +562,22 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
 
   void _setupFCMErrorHandlers() {
     if (kIsWeb) return;
-    
+
     // Handler para permissão negada
     NotificationService.onFcmPermissionDenied = (String message) {
       _showFCMErrorDialog(message, isPermission: true);
     };
-    
+
     // Handler para erro ao obter token
     NotificationService.onFcmTokenError = (String message) {
       _showFCMErrorSnackbar(message);
     };
-    
+
     // Handler para erro de inicialização
     NotificationService.onFcmInitializationError = (String message) {
       _showFCMErrorSnackbar(message);
     };
-    
+
     // Configurar callback de erro no FCMTokenService
     try {
       final fcmTokenService = GetIt.instance<FCMTokenService>();
@@ -571,7 +592,7 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
   void _showFCMErrorDialog(String message, {bool isPermission = false}) {
     final context = _navigatorKey.currentContext;
     if (context == null) return;
-    
+
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -600,17 +621,15 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
   void _showFCMErrorSnackbar(String message) {
     final context = _navigatorKey.currentContext;
     if (context == null) return;
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.orange,
-        duration: const Duration(seconds: 5),
-        action: SnackBarAction(
-          label: 'OK',
-          textColor: Colors.white,
-          onPressed: () {},
-        ),
+
+    FeedbackService.showWarning(
+      context,
+      message,
+      duration: const Duration(seconds: 5),
+      action: SnackBarAction(
+        label: 'OK',
+        textColor: Colors.white,
+        onPressed: () {},
       ),
     );
   }
@@ -621,15 +640,15 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
       supabaseService.authStateChanges.listen((data) {
         final event = data.event;
         final session = data.session;
-        
+
         debugPrint('🔄 AuthStateChange: $event');
-        
+
         // Se a sessão expirou ou foi invalidada
-        if (event == AuthChangeEvent.signedOut || 
+        if (event == AuthChangeEvent.signedOut ||
             event == AuthChangeEvent.tokenRefreshed && session == null) {
           _handleSessionExpired();
         }
-        
+
         // Se o token foi atualizado mas há sessão, verificar se ainda é válida
         if (event == AuthChangeEvent.tokenRefreshed && session != null) {
           _verifySessionValidity();
@@ -643,15 +662,17 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
   void _handleSessionExpired() {
     final context = _navigatorKey.currentContext;
     if (context == null) return;
-    
+
     // Verificar se já está na tela de login para evitar loops
     final currentRoute = ModalRoute.of(context)?.settings.name;
-    if (currentRoute == '/' || currentRoute == '/login' || currentRoute == '/splash') {
+    if (currentRoute == '/' ||
+        currentRoute == '/login' ||
+        currentRoute == '/splash') {
       return;
     }
-    
+
     debugPrint('🔒 Sessão expirada, redirecionando para login...');
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -680,12 +701,12 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
     try {
       final supabaseService = GetIt.instance<SupabaseService>();
       final user = supabaseService.currentUser;
-      
+
       if (user == null) {
         _handleSessionExpired();
         return;
       }
-      
+
       // Tentar fazer uma chamada simples para verificar se a sessão ainda é válida
       try {
         await supabaseService.getProfile(user.id);
@@ -759,7 +780,7 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
               }
             });
           }
-          
+
           return MaterialApp(
             navigatorKey: _navigatorKey,
             title: 'CareMind',
@@ -796,15 +817,21 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
               '/splash': (context) => const SplashScreen(),
               '/': (context) => const AuthShell(initialMode: AuthMode.login),
               '/onboarding': (context) => const OnboardingScreen(),
-              '/login': (context) => const AuthShell(initialMode: AuthMode.login),
-              '/register': (context) => const AuthShell(initialMode: AuthMode.register),
-              '/individual-dashboard': (context) => const IndividualDashboardScreen(),
-              '/familiar-dashboard': (context) => const FamiliarDashboardScreen(),
+              '/login': (context) =>
+                  const AuthShell(initialMode: AuthMode.login),
+              '/register': (context) =>
+                  const AuthShell(initialMode: AuthMode.register),
+              '/individual-dashboard': (context) =>
+                  const IndividualDashboardScreen(),
+              '/familiar-dashboard': (context) =>
+                  const FamiliarDashboardScreen(),
               '/configuracoes': (context) => const ConfiguracoesScreen(),
               '/perfil': (context) => const PerfilScreen(),
-              '/gestao-medicamentos': (context) => const GestaoMedicamentosScreen(),
+              '/gestao-medicamentos': (context) =>
+                  const GestaoMedicamentosScreen(),
               '/gestao-rotinas': (context) => const GestaoRotinasScreen(),
-              '/gestao-compromissos': (context) => const GestaoCompromissosScreen(),
+              '/gestao-compromissos': (context) =>
+                  const GestaoCompromissosScreen(),
               '/integracoes': (context) => const IntegracoesScreen(),
               '/alertas': (context) => const AlertasScreen(),
             },

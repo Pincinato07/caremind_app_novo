@@ -20,9 +20,9 @@ class AppPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-  return SizedBox(
-    height: height ?? 56,
-    width: width,
+    return SizedBox(
+      height: height ?? 56,
+      width: width,
       child: Semantics(
         label: label,
         hint: isLoading ? 'Carregando...' : 'Toque para executar ação',
@@ -38,25 +38,30 @@ class AppPrimaryButton extends StatelessWidget {
               if (states.contains(WidgetState.pressed)) {
                 return AppColors.primaryDark;
               }
-              if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
+              if (states.contains(WidgetState.hovered) ||
+                  states.contains(WidgetState.focused)) {
                 return AppColors.primaryLight;
               }
               return AppColors.primary;
             }),
             foregroundColor: WidgetStateProperty.all(AppColors.textOnPrimary),
-            overlayColor: WidgetStateProperty.all(Colors.white.withValues(alpha: 0.08)),
+            overlayColor:
+                WidgetStateProperty.all(Colors.white.withValues(alpha: 0.08)),
             elevation: WidgetStateProperty.resolveWith((states) {
               if (states.contains(WidgetState.disabled)) return 0;
               if (states.contains(WidgetState.pressed)) return 2;
               return 0;
             }),
-            shadowColor: WidgetStateProperty.all(Colors.black.withValues(alpha: 0.12)),
+            shadowColor:
+                WidgetStateProperty.all(Colors.black.withValues(alpha: 0.12)),
             shape: WidgetStateProperty.all(
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            padding: WidgetStateProperty.all(const EdgeInsets.symmetric(vertical: 16, horizontal: 24)),
+            padding: WidgetStateProperty.all(
+                const EdgeInsets.symmetric(vertical: 16, horizontal: 24)),
             textStyle: WidgetStateProperty.all(
-              AppTextStyles.leagueSpartan(fontSize: 16, fontWeight: FontWeight.w700),
+              AppTextStyles.leagueSpartan(
+                  fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ),
           child: isLoading
@@ -92,12 +97,14 @@ class AppOutlineButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-  return SizedBox(
-    height: height ?? 56,
-    width: width,
+    return SizedBox(
+      height: height ?? 56,
+      width: width,
       child: Semantics(
         label: label,
-        hint: onPressed == null ? 'Botão desabilitado' : 'Toque para executar ação',
+        hint: onPressed == null
+            ? 'Botão desabilitado'
+            : 'Toque para executar ação',
         button: true,
         enabled: onPressed != null,
         child: OutlinedButton(
@@ -108,10 +115,13 @@ class AppOutlineButton extends StatelessWidget {
               width: 2,
             ),
             backgroundColor: Colors.transparent,
-            foregroundColor: onPressed == null ? AppColors.disabledText : AppColors.primary,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            foregroundColor:
+                onPressed == null ? AppColors.disabledText : AppColors.primary,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-            textStyle: AppTextStyles.leagueSpartan(fontSize: 16, fontWeight: FontWeight.w700),
+            textStyle: AppTextStyles.leagueSpartan(
+                fontSize: 16, fontWeight: FontWeight.w700),
           ),
           child: Text(label),
         ),
@@ -119,4 +129,3 @@ class AppOutlineButton extends StatelessWidget {
     );
   }
 }
-

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:vibration/vibration.dart';
 import '../services/voice_service.dart';
 import '../services/medicamento_service.dart';
@@ -36,7 +35,7 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
   final VoiceService _voiceService = VoiceService();
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
-  
+
   bool _isListening = false;
   bool _isProcessing = false;
   bool _isAvailable = false;
@@ -46,12 +45,12 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
   void initState() {
     super.initState();
     _initializeVoice();
-    
+
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
-    
+
     _scaleAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
       CurvedAnimation(
         parent: _animationController,
@@ -71,7 +70,8 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
 
   Future<void> _toggleListening() async {
     if (!_isAvailable) {
-      await _showError('Serviço de voz não disponível. Verifique as permissões do microfone.');
+      await _showError(
+          'Serviço de voz não disponível. Verifique as permissões do microfone.');
       return;
     }
 
@@ -89,7 +89,7 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
         _lastMessage = null;
       });
       _animationController.repeat(reverse: true);
-      
+
       try {
         // Vibração para feedback tátil
         try {
@@ -133,7 +133,7 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
       _isListening = false;
       _isProcessing = true;
     });
-    
+
     _animationController.stop();
     _animationController.reset();
 
@@ -167,7 +167,7 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
       // Ignorar erro de TTS - não é crítico
       debugPrint('Erro ao falar resposta: $e');
     }
-    
+
     // Processar ações de navegação
     try {
       if (result.success && mounted) {
@@ -182,7 +182,7 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
         await _showError('Erro ao processar comando: $e');
       }
     }
-    
+
     setState(() {
       _isProcessing = false;
       _lastMessage = result.message;
@@ -207,7 +207,7 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
       _isListening = false;
       _isProcessing = false;
     });
-    
+
     _animationController.stop();
     _animationController.reset();
 
@@ -224,20 +224,22 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
           if (mounted) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const GestaoMedicamentosScreen()),
+              MaterialPageRoute(
+                  builder: (_) => const GestaoMedicamentosScreen()),
             );
           }
           break;
-          
+
         case VoiceAction.navigateToAppointments:
           if (mounted) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const CompromissosIdosoScreen()),
+              MaterialPageRoute(
+                  builder: (_) => const CompromissosIdosoScreen()),
             );
           }
           break;
-          
+
         case VoiceAction.navigateToDashboard:
           if (mounted) {
             Navigator.pushAndRemoveUntil(
@@ -247,7 +249,7 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
             );
           }
           break;
-          
+
         case VoiceAction.navigateToSettings:
           if (mounted) {
             Navigator.push(
@@ -256,11 +258,11 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
             );
           }
           break;
-          
+
         case VoiceAction.emergencyCall:
           await _makeEmergencyCall();
           break;
-          
+
         default:
           // Outras ações não requerem navegação
           break;
@@ -280,7 +282,8 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
         await launchUrl(uri);
       } else {
         try {
-          await _voiceService.speak('Não foi possível fazer a chamada de emergência');
+          await _voiceService
+              .speak('Não foi possível fazer a chamada de emergência');
         } catch (ttsError) {
           debugPrint('Erro ao falar mensagem de emergência: $ttsError');
         }
@@ -296,14 +299,15 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
         debugPrint('Erro ao falar mensagem de erro: $ttsError');
       }
       if (mounted) {
-        await _showError('Erro ao tentar chamar emergência. Tente ligar manualmente.');
+        await _showError(
+            'Erro ao tentar chamar emergência. Tente ligar manualmente.');
       }
     }
   }
 
   Future<void> _showError(String message) async {
     if (!mounted) return;
-    
+
     try {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -397,7 +401,8 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
                   Navigator.pop(context);
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const CompromissosIdosoScreen()),
+                    MaterialPageRoute(
+                        builder: (_) => const CompromissosIdosoScreen()),
                   );
                 },
               ),
@@ -487,7 +492,8 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
                     // Abrir configurações do app
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const ConfiguracoesScreen()),
+                      MaterialPageRoute(
+                          builder: (_) => const ConfiguracoesScreen()),
                     );
                   },
                   icon: Icon(Icons.settings, size: 28),
@@ -677,7 +683,8 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
               if (_lastMessage != null && !_isListening && !_isProcessing)
                 Container(
                   margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     color: Colors.black87,
                     borderRadius: BorderRadius.circular(20),
@@ -700,8 +707,8 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
                     scale: _isListening ? _scaleAnimation.value : 1.0,
                     child: FloatingActionButton.large(
                       onPressed: _isProcessing ? null : _toggleListening,
-                      backgroundColor: _isListening 
-                          ? listeningColor 
+                      backgroundColor: _isListening
+                          ? listeningColor
                           : (_isProcessing ? Colors.grey : buttonColor),
                       child: _buildIcon(),
                     ),
@@ -748,12 +755,12 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
                 child: ElevatedButton.icon(
                   onPressed: _isProcessing ? null : _toggleListening,
                   icon: _buildIcon(),
-                  label: Text(_isListening 
-                      ? 'Ouvindo...' 
+                  label: Text(_isListening
+                      ? 'Ouvindo...'
                       : (_isProcessing ? 'Processando...' : 'Falar')),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _isListening 
-                        ? listeningColor 
+                    backgroundColor: _isListening
+                        ? listeningColor
                         : (_isProcessing ? Colors.grey : buttonColor),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
@@ -781,7 +788,7 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
         ),
       );
     }
-    
+
     return Icon(
       _isListening ? Icons.mic : Icons.mic_none,
       color: Colors.white,
@@ -816,4 +823,3 @@ class VoiceInterfaceWrapper extends StatelessWidget {
     );
   }
 }
-

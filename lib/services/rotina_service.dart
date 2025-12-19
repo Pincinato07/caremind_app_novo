@@ -19,14 +19,14 @@ class RotinaService {
           .select('id')
           .eq('user_id', userId)
           .maybeSingle();
-      
+
       final perfilId = perfilResponse?['id'] as String?;
-      
+
       // Usar perfil_id se disponível, senão usar user_id (compatibilidade durante transição)
       final response = await _client
           .from('rotinas')
           .select()
-          .or(perfilId != null 
+          .or(perfilId != null
               ? 'perfil_id.eq.$perfilId'
               : 'perfil_id.eq.$userId')
           .order('created_at', ascending: false);
@@ -41,7 +41,8 @@ class RotinaService {
   Future<Map<String, dynamic>> addRotina(Map<String, dynamic> rotina) async {
     try {
       // Garantir que perfil_id ou user_id estejam presentes
-      if (rotina['perfil_id'] == null || (rotina['perfil_id'] as String).isEmpty) {
+      if (rotina['perfil_id'] == null ||
+          (rotina['perfil_id'] as String).isEmpty) {
         final userId = rotina['user_id'] as String?;
         if (userId != null && userId.isNotEmpty) {
           // Baseado no schema, buscar perfil usando user_id
@@ -50,7 +51,7 @@ class RotinaService {
               .select('id')
               .eq('user_id', userId)
               .maybeSingle();
-          
+
           if (perfilResponse != null) {
             rotina['perfil_id'] = perfilResponse['id'] as String;
           } else {
@@ -71,32 +72,31 @@ class RotinaService {
       if (rotina['concluida'] == null) {
         rotina['concluida'] = false;
       }
-      
+
       // Limpar dados antes de inserir (remove strings vazias, mas mantém campos obrigatórios)
       final cleanedData = DataCleaner.cleanData(
         rotina,
         fieldsToKeepEmpty: ['perfil_id'],
       );
-      
+
       // Garantir que pelo menos perfil_id ou user_id estejam presentes após limpeza
       if (cleanedData['perfil_id'] == null) {
         throw Exception('É necessário perfil_id para criar rotina');
       }
-      
+
       debugPrint('📤 RotinaService: Dados para inserção: $cleanedData');
-      
-      final response = await _client
-          .from('rotinas')
-          .insert(cleanedData)
-          .select()
-          .single();
+
+      final response =
+          await _client.from('rotinas').insert(cleanedData).select().single();
 
       return response;
     } catch (error) {
-      debugPrint('❌ RotinaService: Erro ao adicionar rotina: ${error.toString()}');
+      debugPrint(
+          '❌ RotinaService: Erro ao adicionar rotina: ${error.toString()}');
       debugPrint('❌ RotinaService: Tipo do erro: ${error.runtimeType}');
       if (error is PostgrestException) {
-        debugPrint('❌ RotinaService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
+        debugPrint(
+            '❌ RotinaService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
         if (error.details != null) {
           debugPrint('❌ RotinaService: Detalhes: ${error.details}');
         }
@@ -117,9 +117,9 @@ class RotinaService {
         updates,
         fieldsToKeepEmpty: ['perfil_id'],
       );
-      
+
       debugPrint('📤 RotinaService: Dados para atualização: $cleanedUpdates');
-      
+
       final response = await _client
           .from('rotinas')
           .update(cleanedUpdates)
@@ -129,10 +129,12 @@ class RotinaService {
 
       return response;
     } catch (error) {
-      debugPrint('❌ RotinaService: Erro ao atualizar rotina: ${error.toString()}');
+      debugPrint(
+          '❌ RotinaService: Erro ao atualizar rotina: ${error.toString()}');
       debugPrint('❌ RotinaService: Tipo do erro: ${error.runtimeType}');
       if (error is PostgrestException) {
-        debugPrint('❌ RotinaService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
+        debugPrint(
+            '❌ RotinaService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
         if (error.details != null) {
           debugPrint('❌ RotinaService: Detalhes: ${error.details}');
         }
@@ -156,8 +158,9 @@ class RotinaService {
     bool concluida,
   ) async {
     try {
-      debugPrint('📤 RotinaService: Marcando rotina $rotinaId como concluída: $concluida');
-      
+      debugPrint(
+          '📤 RotinaService: Marcando rotina $rotinaId como concluída: $concluida');
+
       final response = await _client
           .from('rotinas')
           .update({'concluida': concluida})
@@ -188,10 +191,12 @@ class RotinaService {
 
       return response;
     } catch (error) {
-      debugPrint('❌ RotinaService: Erro ao marcar rotina como concluída: ${error.toString()}');
+      debugPrint(
+          '❌ RotinaService: Erro ao marcar rotina como concluída: ${error.toString()}');
       debugPrint('❌ RotinaService: Tipo do erro: ${error.runtimeType}');
       if (error is PostgrestException) {
-        debugPrint('❌ RotinaService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
+        debugPrint(
+            '❌ RotinaService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
         if (error.details != null) {
           debugPrint('❌ RotinaService: Detalhes: ${error.details}');
         }

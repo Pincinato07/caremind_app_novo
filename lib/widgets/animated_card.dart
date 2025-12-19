@@ -8,7 +8,7 @@ class AnimatedCard extends StatefulWidget {
   final VoidCallback? onTap;
   final int index;
   final bool enableHover;
-  
+
   const AnimatedCard({
     super.key,
     required this.child,
@@ -17,20 +17,26 @@ class AnimatedCard extends StatefulWidget {
     this.index = 0,
     this.enableHover = true,
   });
-  
+
   @override
   State<AnimatedCard> createState() => _AnimatedCardState();
 }
 
 class _AnimatedCardState extends State<AnimatedCard> {
   bool _isPressed = false;
-  
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: widget.onTap != null ? (_) => setState(() => _isPressed = true) : null,
-      onTapUp: widget.onTap != null ? (_) => setState(() => _isPressed = false) : null,
-      onTapCancel: widget.onTap != null ? () => setState(() => _isPressed = false) : null,
+      onTapDown: widget.onTap != null
+          ? (_) => setState(() => _isPressed = true)
+          : null,
+      onTapUp: widget.onTap != null
+          ? (_) => setState(() => _isPressed = false)
+          : null,
+      onTapCancel: widget.onTap != null
+          ? () => setState(() => _isPressed = false)
+          : null,
       onTap: widget.onTap,
       child: AnimatedScale(
         scale: _isPressed ? 0.97 : 1.0,
@@ -62,7 +68,7 @@ class AnimatedListItem extends StatelessWidget {
   final int index;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
-  
+
   const AnimatedListItem({
     super.key,
     required this.child,
@@ -70,7 +76,7 @@ class AnimatedListItem extends StatelessWidget {
     this.onTap,
     this.onLongPress,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -97,22 +103,23 @@ class ScaleOnTapCard extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
   final double scaleDown;
-  
+
   const ScaleOnTapCard({
     super.key,
     required this.child,
     this.onTap,
     this.scaleDown = 0.95,
   });
-  
+
   @override
   State<ScaleOnTapCard> createState() => _ScaleOnTapCardState();
 }
 
-class _ScaleOnTapCardState extends State<ScaleOnTapCard> with SingleTickerProviderStateMixin {
+class _ScaleOnTapCardState extends State<ScaleOnTapCard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
-  
+
   @override
   void initState() {
     super.initState();
@@ -120,7 +127,7 @@ class _ScaleOnTapCardState extends State<ScaleOnTapCard> with SingleTickerProvid
       vsync: this,
       duration: const Duration(milliseconds: 100),
     );
-    
+
     _scaleAnimation = Tween<double>(
       begin: 1.0,
       end: widget.scaleDown,
@@ -129,13 +136,13 @@ class _ScaleOnTapCardState extends State<ScaleOnTapCard> with SingleTickerProvid
       curve: Curves.easeInOut,
     ));
   }
-  
+
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -162,19 +169,17 @@ class _ScaleOnTapCardState extends State<ScaleOnTapCard> with SingleTickerProvid
 class ShimmerOnLoad extends StatelessWidget {
   final Widget child;
   final bool isLoading;
-  
+
   const ShimmerOnLoad({
     super.key,
     required this.child,
     this.isLoading = false,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return child
-          .animate(onPlay: (controller) => controller.repeat())
-          .shimmer(
+      return child.animate(onPlay: (controller) => controller.repeat()).shimmer(
             duration: 1500.ms,
             color: Colors.white.withValues(alpha: 0.3),
           );
@@ -186,17 +191,17 @@ class ShimmerOnLoad extends StatelessWidget {
 class SuccessCheckAnimation extends StatelessWidget {
   final bool show;
   final VoidCallback? onComplete;
-  
+
   const SuccessCheckAnimation({
     super.key,
     this.show = false,
     this.onComplete,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     if (!show) return const SizedBox.shrink();
-    
+
     return Container(
       width: 60,
       height: 60,

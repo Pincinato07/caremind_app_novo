@@ -43,7 +43,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
     super.initState();
     _loadUserProfile();
     _loadRotinas();
-    
+
     final familiarState = getIt<FamiliarState>();
     familiarState.addListener(_onFamiliarStateChanged);
     _listenToConnectivity();
@@ -54,7 +54,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
       if (mounted) {
         final wasOffline = _isOffline;
         setState(() => _isOffline = !isOnline);
-        
+
         if (wasOffline && isOnline) {
           _loadRotinas();
           if (mounted) {
@@ -115,19 +115,19 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
       final supabaseService = getIt<SupabaseService>();
       final rotinaService = getIt<RotinaService>();
       final user = supabaseService.currentUser;
-      
+
       if (user != null) {
         final familiarState = getIt<FamiliarState>();
-        final targetId = widget.idosoId ?? 
-            (familiarState.hasIdosos && familiarState.idosoSelecionado != null 
-                ? familiarState.idosoSelecionado!.id 
+        final targetId = widget.idosoId ??
+            (familiarState.hasIdosos && familiarState.idosoSelecionado != null
+                ? familiarState.idosoSelecionado!.id
                 : user.id);
-        
+
         if (isOnline) {
           final rotinas = await rotinaService.getRotinas(targetId);
-          
+
           await OfflineCacheService.cacheRotinas(targetId, rotinas);
-          
+
           setState(() {
             _rotinas = rotinas;
             _isLoading = false;
@@ -161,16 +161,17 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
   Future<void> _loadFromCache(String userId) async {
     try {
       final cachedRotinas = await OfflineCacheService.getCachedRotinas(userId);
-      
+
       if (cachedRotinas.isNotEmpty) {
         setState(() {
           _rotinas = cachedRotinas;
           _isLoading = false;
           _isOffline = true;
         });
-        
+
         if (mounted) {
-          FeedbackSnackbar.warning(context, 'Usando dados salvos (modo offline)');
+          FeedbackSnackbar.warning(
+              context, 'Usando dados salvos (modo offline)');
         }
       } else {
         setState(() {
@@ -191,32 +192,32 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
       final rotinaService = getIt<RotinaService>();
       final supabaseService = getIt<SupabaseService>();
       final familiarState = getIt<FamiliarState>();
-      
+
       final rotinaId = rotina['id'] as int;
       final concluida = rotina['concluida'] as bool? ?? false;
       final titulo = rotina['titulo'] as String? ?? 'Rotina';
       final novoEstado = !concluida;
-      
+
       // Determinar o perfil_id do idoso (não do familiar)
       final user = supabaseService.currentUser;
       if (user == null) return;
-      
+
       // Se for familiar gerenciando idoso, usar o id do idoso; senão usar o user.id
-      final targetPerfilId = widget.idosoId ?? 
-          (familiarState.hasIdosos && familiarState.idosoSelecionado != null 
-              ? familiarState.idosoSelecionado!.id 
+      final targetPerfilId = widget.idosoId ??
+          (familiarState.hasIdosos && familiarState.idosoSelecionado != null
+              ? familiarState.idosoSelecionado!.id
               : user.id);
-      
+
       // Atualizar a rotina
       await rotinaService.toggleConcluida(rotinaId, novoEstado);
-      
+
       // Registrar evento no histórico
       try {
         await HistoricoEventosService.addEvento({
           'perfil_id': targetPerfilId,
           'tipo_evento': novoEstado ? 'rotina_concluida' : 'rotina_desmarcada',
           'data_hora': DateTime.now().toIso8601String(),
-          'descricao': novoEstado 
+          'descricao': novoEstado
               ? 'Rotina "$titulo" marcada como concluída'
               : 'Rotina "$titulo" desmarcada',
           'referencia_id': rotinaId.toString(),
@@ -226,7 +227,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
         // Log erro mas não interrompe o fluxo
         debugPrint('⚠️ Erro ao registrar evento no histórico: $e');
       }
-      
+
       _loadRotinas();
     } catch (error) {
       final errorMessage = error is AppException
@@ -241,7 +242,8 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmar exclusão'),
-        content: Text('Deseja realmente excluir a rotina "${rotina['titulo'] ?? 'Rotina'}"?'),
+        content: Text(
+            'Deseja realmente excluir a rotina "${rotina['titulo'] ?? 'Rotina'}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -283,7 +285,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
   Widget build(BuildContext context) {
     final familiarState = getIt<FamiliarState>();
     final isFamiliar = familiarState.hasIdosos && widget.idosoId == null;
-    
+
     final content = RefreshIndicator(
       onRefresh: _loadRotinas,
       color: Colors.white,
@@ -369,9 +371,11 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
             : FloatingActionButton.extended(
                 onPressed: () async {
                   final familiarState = getIt<FamiliarState>();
-                  final idosoId = widget.idosoId ?? 
-                      (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
-                  
+                  final idosoId = widget.idosoId ??
+                      (familiarState.hasIdosos
+                          ? familiarState.idosoSelecionado?.id
+                          : null);
+
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -387,7 +391,10 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                 icon: const Icon(Icons.add, color: Colors.white),
                 label: const Text(
                   'Adicionar',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16),
                 ),
               ),
       ),
@@ -430,22 +437,31 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                     ],
                   ),
                   borderRadius: AppBorderRadius.xlargeAll,
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2), width: 1),
+                  border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      width: 1),
                 ),
                 child: Column(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [AppColors.primary, AppColors.primaryLight]),
+                        gradient: const LinearGradient(colors: [
+                          AppColors.primary,
+                          AppColors.primaryLight
+                        ]),
                         borderRadius: AppBorderRadius.largeAll,
                       ),
-                      child: const Icon(Icons.schedule, size: 48, color: Colors.white),
+                      child: const Icon(Icons.schedule,
+                          size: 48, color: Colors.white),
                     ),
                     const SizedBox(height: 24),
                     const Text(
                       'Nenhuma rotina encontrada',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0400B9)),
+                      style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0400B9)),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
@@ -454,7 +470,10 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                           ? 'Suas rotinas aparecerão aqui'
                           : 'Toque no botão "+" para adicionar sua primeira rotina',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 16, height: 1.5),
+                      style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 16,
+                          height: 1.5),
                     ),
                   ],
                 ),
@@ -476,10 +495,15 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Colors.white, const Color(0xFF0400B9).withValues(alpha: 0.02)],
+                colors: [
+                  Colors.white,
+                  const Color(0xFF0400B9).withValues(alpha: 0.02)
+                ],
               ),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF0400B9).withValues(alpha: 0.1), width: 1),
+              border: Border.all(
+                  color: const Color(0xFF0400B9).withValues(alpha: 0.1),
+                  width: 1),
               boxShadow: [
                 BoxShadow(
                   color: const Color(0xFF0400B9).withValues(alpha: 0.1),
@@ -493,19 +517,27 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFF0400B9), Color(0xFF0600E0)]),
+                    gradient: const LinearGradient(
+                        colors: [Color(0xFF0400B9), Color(0xFF0600E0)]),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.analytics_outlined, color: Colors.white, size: 24),
+                  child: const Icon(Icons.analytics_outlined,
+                      color: Colors.white, size: 24),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Total de Rotinas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                      const Text('Total de Rotinas',
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87)),
                       const SizedBox(height: 4),
-                      Text('${_rotinas.length} rotina(s)', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                      Text('${_rotinas.length} rotina(s)',
+                          style: const TextStyle(
+                              fontSize: 14, color: Colors.grey)),
                     ],
                   ),
                 ),
@@ -515,7 +547,11 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: const Text('Suas Rotinas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+          child: const Text('Suas Rotinas',
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87)),
         ),
         const SizedBox(height: 16),
         ...(_rotinas.asMap().entries.map((entry) {
@@ -587,9 +623,12 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                       builder: (context) {
                         // Obter idosoId do FamiliarState se não foi fornecido via widget
                         final familiarState = getIt<FamiliarState>();
-                        final idosoId = widget.idosoId ?? 
-                            (familiarState.hasIdosos ? familiarState.idosoSelecionado?.id : null);
-                        return AddEditRotinaForm(rotina: rotina, idosoId: idosoId);
+                        final idosoId = widget.idosoId ??
+                            (familiarState.hasIdosos
+                                ? familiarState.idosoSelecionado?.id
+                                : null);
+                        return AddEditRotinaForm(
+                            rotina: rotina, idosoId: idosoId);
                       },
                     ),
                   );
@@ -610,7 +649,10 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                         gradient: LinearGradient(
                           colors: concluida
                               ? [Colors.green.shade400, Colors.green.shade600]
-                              : [const Color(0xFF0400B9), const Color(0xFF0600E0)],
+                              : [
+                                  const Color(0xFF0400B9),
+                                  const Color(0xFF0600E0)
+                                ],
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -630,8 +672,11 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: concluida ? Colors.grey.shade600 : Colors.black87,
-                              decoration: concluida ? TextDecoration.lineThrough : null,
+                              color: concluida
+                                  ? Colors.grey.shade600
+                                  : Colors.black87,
+                              decoration:
+                                  concluida ? TextDecoration.lineThrough : null,
                             ),
                           ),
                           if (horario != null) ...[
@@ -640,7 +685,9 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                               'Horário: $horario',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: concluida ? Colors.grey.shade500 : Colors.grey.shade700,
+                                color: concluida
+                                    ? Colors.grey.shade500
+                                    : Colors.grey.shade700,
                               ),
                             ),
                           ],
@@ -655,7 +702,8 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                             color: Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.more_vert, color: Colors.grey, size: 20),
+                          child: const Icon(Icons.more_vert,
+                              color: Colors.grey, size: 20),
                         ),
                         onSelected: (value) {
                           switch (value) {
@@ -675,10 +723,13 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                                 Icon(
                                   concluida ? Icons.undo : Icons.check,
                                   size: 20,
-                                  color: concluida ? Colors.orange : Colors.green,
+                                  color:
+                                      concluida ? Colors.orange : Colors.green,
                                 ),
                                 const SizedBox(width: 12),
-                                Text(concluida ? 'Marcar como pendente' : 'Marcar como concluída'),
+                                Text(concluida
+                                    ? 'Marcar como pendente'
+                                    : 'Marcar como concluída'),
                               ],
                             ),
                           ),
@@ -686,9 +737,11 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                             value: 'delete',
                             child: Row(
                               children: [
-                                Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                                Icon(Icons.delete_outline,
+                                    size: 20, color: Colors.red),
                                 SizedBox(width: 12),
-                                Text('Excluir', style: TextStyle(color: Colors.red)),
+                                Text('Excluir',
+                                    style: TextStyle(color: Colors.red)),
                               ],
                             ),
                           ),
@@ -707,11 +760,12 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                     ),
                     child: Text(
                       descricao,
-                      style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                      style:
+                          TextStyle(fontSize: 14, color: Colors.grey.shade700),
                     ),
                   ),
                 ],
-                
+
                 // Botão de ação rápida para familiares marcarem como concluída
                 if (_isFamiliar && !concluida) ...[
                   const SizedBox(height: 16),
@@ -736,11 +790,13 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                         onTap: () => _toggleConcluida(rotina),
                         borderRadius: BorderRadius.circular(12),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 14, horizontal: 16),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.check_circle, color: Colors.white, size: 24),
+                              const Icon(Icons.check_circle,
+                                  color: Colors.white, size: 24),
                               const SizedBox(width: 8),
                               Text(
                                 'Marcar como Concluída',
@@ -757,7 +813,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                     ),
                   ),
                 ],
-                
+
                 // Botão para desmarcar (se já estiver concluída e for familiar)
                 if (_isFamiliar && concluida) ...[
                   const SizedBox(height: 16),
@@ -780,11 +836,13 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                         onTap: () => _toggleConcluida(rotina),
                         borderRadius: BorderRadius.circular(12),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 14, horizontal: 16),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.undo, color: Colors.white, size: 24),
+                              const Icon(Icons.undo,
+                                  color: Colors.white, size: 24),
                               const SizedBox(width: 8),
                               Text(
                                 'Marcar como Pendente',

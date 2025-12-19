@@ -18,27 +18,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   late final PageController _pageController;
   int _currentPage = 0;
 
-
   final List<Map<String, String>> _pages = [
     {
       'image': 'welcome.svg',
       'title': 'Boas-vindas ao CareMind',
-      'subtitle': 'Seu assistente individual para uma rotina de saúde organizada, tranquila e conectada.',
+      'subtitle':
+          'Seu assistente individual para uma rotina de saúde organizada, tranquila e conectada.',
     },
     {
       'image': 'medicamentos.svg',
       'title': 'Lembretes e Rotinas',
-      'subtitle': 'Nunca mais esqueça um medicamento ou compromisso. Cadastre suas rotinas e nós organizamos sua agenda.',
+      'subtitle':
+          'Nunca mais esqueça um medicamento ou compromisso. Cadastre suas rotinas e nós organizamos sua agenda.',
     },
     {
       'image': 'cuidador.svg',
       'title': 'Para você ou sua família',
-      'subtitle': 'Use no modo Individual para sua própria saúde, ou no modo Familiar para acompanhar seus entes queridos.',
+      'subtitle':
+          'Use no modo Individual para sua própria saúde, ou no modo Familiar para acompanhar seus entes queridos.',
     },
     {
       'image': 'integracoes.svg',
       'title': 'Conectado à sua casa',
-      'subtitle': 'Integre com a Alexa para lembretes de voz e confirmação de tarefas sem tocar no celular.',
+      'subtitle':
+          'Integre com a Alexa para lembretes de voz e confirmação de tarefas sem tocar no celular.',
     },
   ];
 
@@ -68,7 +71,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => const AuthShell(),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const AuthShell(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           // Fade suave combinado com scale
           final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -77,7 +81,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               curve: const Interval(0.0, 0.7, curve: Curves.easeInOut),
             ),
           );
-          
+
           // Scale sutil para dar profundidade
           final scaleAnimation = Tween<double>(begin: 0.98, end: 1.0).animate(
             CurvedAnimation(
@@ -85,7 +89,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               curve: const Interval(0.0, 0.7, curve: Curves.easeOutCubic),
             ),
           );
-          
+
           // Slide horizontal muito suave (opcional, pode remover se preferir apenas fade+scale)
           final slideAnimation = Tween<Offset>(
             begin: const Offset(0.02, 0.0), // Muito sutil, quase imperceptível
@@ -96,7 +100,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               curve: const Interval(0.0, 0.7, curve: Curves.easeOutCubic),
             ),
           );
-          
+
           return FadeTransition(
             opacity: fadeAnimation,
             child: ScaleTransition(
@@ -138,13 +142,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     width: screenW * 0.85,
                     constraints: BoxConstraints(
                       maxWidth: 380,
-                      maxHeight: screenH * 0.75, // More restrictive height constraint
+                      maxHeight:
+                          screenH * 0.75, // More restrictive height constraint
                     ),
                     padding: EdgeInsets.all(pad),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.18), width: 1),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          width: 1),
                       boxShadow: const [
                         // subtle outer shadow around edges
                         BoxShadow(
@@ -166,7 +173,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         stops: const [0.0, 0.2, 0.6],
                       ),
                     ),
-                    child: child, // Remove the inner SingleChildScrollView and ConstrainedBox
+                    child:
+                        child, // Remove the inner SingleChildScrollView and ConstrainedBox
                   ),
                 ),
                 // Top 1px glow line
@@ -199,13 +207,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       height: 18,
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color(0x0F000000),
-                            Color(0x00000000),
-                          ]
-                        ),
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Color(0x0F000000),
+                              Color(0x00000000),
+                            ]),
                       ),
                     ),
                   ),
@@ -235,18 +242,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             if (states.contains(WidgetState.pressed)) {
               return const Color(0xFF020054); // 20% darker approx
             }
-            if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
+            if (states.contains(WidgetState.hovered) ||
+                states.contains(WidgetState.focused)) {
               return const Color(0xFF0600E0); // 10% darker/active
             }
             return baseColor;
           }),
           foregroundColor: WidgetStateProperty.all(Colors.white),
-          overlayColor: WidgetStateProperty.all(Colors.white.withValues(alpha: 0.06)),
+          overlayColor:
+              WidgetStateProperty.all(Colors.white.withValues(alpha: 0.06)),
           elevation: WidgetStateProperty.all(6),
-          shadowColor: WidgetStateProperty.all(baseColor.withValues(alpha: 0.2)),
-          padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 20, vertical: 10)), // Reduced padding
-          shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.5)), // Smaller font
+          shadowColor:
+              WidgetStateProperty.all(baseColor.withValues(alpha: 0.2)),
+          padding: WidgetStateProperty.all(const EdgeInsets.symmetric(
+              horizontal: 20, vertical: 10)), // Reduced padding
+          shape: WidgetStateProperty.all(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+          textStyle: WidgetStateProperty.all(const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5)), // Smaller font
         ),
         child: Text(label),
       ),
@@ -380,7 +395,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           children: [
                             // Page content
                             SizedBox(
-                              height: screenHeight * 0.42, // Taller height to display all text
+                              height: screenHeight *
+                                  0.42, // Taller height to display all text
                               child: PageView.builder(
                                 controller: _pageController,
                                 itemCount: _pages.length,
@@ -446,4 +462,3 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 }
-

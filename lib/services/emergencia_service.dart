@@ -5,7 +5,7 @@ import 'package:vibration/vibration.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import '../core/errors/app_exception.dart';
-import 'location_service.dart';
+import 'location_service.dart' hide TimeoutException;
 import 'vinculo_familiar_service.dart';
 
 /// Tipos de emergência suportados
@@ -22,16 +22,17 @@ enum TipoEmergencia {
 class EmergenciaService {
   final SupabaseClient _supabase = Supabase.instance.client;
   final LocationService _locationService = LocationService();
-  final VinculoFamiliarService _vinculoService = VinculoFamiliarService(Supabase.instance.client);
+  final VinculoFamiliarService _vinculoService =
+      VinculoFamiliarService(Supabase.instance.client);
   static const Duration _apiTimeout = Duration(seconds: 10);
   Timer? _alarmeTimer; // Timer para controlar repetição do som de alarme
 
   /// Aciona alerta de emergência
-  /// 
+  ///
   /// [tipoEmergencia] - Tipo da emergência (panico, queda, medicamento, outro)
   /// [mensagem] - Mensagem opcional personalizada
   /// [localizacao] - Coordenadas GPS opcionais
-  /// 
+  ///
   /// Retorna informações sobre o resultado do disparo
   /// Lança AppException em caso de erro
   Future<Map<String, dynamic>> acionarEmergencia({
@@ -59,33 +60,33 @@ class EmergenciaService {
         ).timeout(
           _apiTimeout,
           onTimeout: () {
-            throw TimeoutException('API timeout após 10 segundos');
+            throw TimeoutException(message: 'API timeout após 10 segundos');
           },
         );
 
         if (response.status != 200) {
           final errorData = response.data as Map<String, dynamic>?;
-          final errorMessage = errorData?['error'] as String? ?? 
-                              errorData?['message'] as String? ??
-                              'Erro ao acionar emergência';
-          
+          final errorMessage = errorData?['error'] as String? ??
+              errorData?['message'] as String? ??
+              'Erro ao acionar emergência';
+
           // API falhou, tentar fallback SMS
           await _tentarFallbackSMS(idosoId, tipoEmergencia, mensagem);
           throw UnknownException(message: errorMessage);
         }
 
         final data = response.data as Map<String, dynamic>?;
-        
+
         if (data == null) {
           // Resposta inválida, tentar fallback SMS
           await _tentarFallbackSMS(idosoId, tipoEmergencia, mensagem);
           throw UnknownException(message: 'Resposta inválida do servidor');
         }
-        
+
         if (data['success'] == false) {
-          final errorMessage = data['error'] as String? ?? 
-                              data['message'] as String? ??
-                              'Falha ao acionar emergência';
+          final errorMessage = data['error'] as String? ??
+              data['message'] as String? ??
+              'Falha ao acionar emergência';
           // API retornou falha, tentar fallback SMS
           await _tentarFallbackSMS(idosoId, tipoEmergencia, mensagem);
           throw UnknownException(message: errorMessage);
@@ -97,7 +98,8 @@ class EmergenciaService {
         // Timeout da API após 10s - acionar fallback SMS
         await _tentarFallbackSMS(idosoId, tipoEmergencia, mensagem);
         throw UnknownException(
-          message: 'Tempo esgotado ao acionar emergência. SMS de emergência foi enviado como fallback.',
+          message:
+              'Tempo esgotado ao acionar emergência. SMS de emergência foi enviado como fallback.',
         );
       } catch (apiError) {
         // Qualquer erro da API - tentar fallback SMS
@@ -108,7 +110,7 @@ class EmergenciaService {
       rethrow;
     } catch (e) {
       // Verificar se é erro de conexão
-      if (e.toString().contains('SocketException') || 
+      if (e.toString().contains('SocketException') ||
           e.toString().contains('NetworkException') ||
           e.toString().contains('Failed host lookup')) {
         // Sem conexão - tentar fallback SMS
@@ -119,10 +121,11 @@ class EmergenciaService {
           await _acionarAlarmeLocal();
         }
         throw UnknownException(
-          message: 'Sem conexão com a internet. SMS de emergência foi enviado como fallback.',
+          message:
+              'Sem conexão com a internet. SMS de emergência foi enviado como fallback.',
         );
       }
-      
+
       throw UnknownException(
         message: 'Erro ao acionar emergência: ${e.toString()}',
       );
@@ -141,7 +144,8 @@ class EmergenciaService {
     Map<String, double>? localizacaoFinal = localizacao;
     if (localizacaoFinal == null && capturarGPS) {
       try {
-        localizacaoFinal = await _locationService.getCurrentLocation()
+        localizacaoFinal = await _locationService
+            .getCurrentLocation()
             .timeout(const Duration(seconds: 8));
       } on LocationException {
         // Log do erro mas continuar sem localização
@@ -177,7 +181,8 @@ class EmergenciaService {
     Map<String, double>? localizacaoFinal = localizacao;
     if (localizacaoFinal == null && capturarGPS) {
       try {
-        localizacaoFinal = await _locationService.getCurrentLocation()
+        localizacaoFinal = await _locationService
+            .getCurrentLocation()
             .timeout(const Duration(seconds: 8));
       } on LocationException {
         // Log do erro mas continuar sem localização
@@ -210,7 +215,7 @@ class EmergenciaService {
     try {
       // Buscar vínculos familiares do idoso
       final vinculos = await _vinculoService.getVinculosByIdoso(idosoId);
-      
+
       if (vinculos.isEmpty) {
         // Sem contatos, acionar alarme local diretamente
         await _acionarAlarmeLocal();
@@ -226,7 +231,7 @@ class EmergenciaService {
               .select('id, nome, telefone')
               .eq('id', vinculo.idFamiliar)
               .maybeSingle();
-          
+
           if (perfilResponse != null) {
             final telefone = perfilResponse['telefone'] as String?;
             if (telefone != null && telefone.isNotEmpty) {
@@ -238,7 +243,8 @@ class EmergenciaService {
           }
         } catch (e) {
           // Erro ao buscar perfil deste familiar, continuar com próximo
-          debugPrint('Erro ao buscar perfil do familiar ${vinculo.idFamiliar}: $e');
+          debugPrint(
+              'Erro ao buscar perfil do familiar ${vinculo.idFamiliar}: $e');
           continue;
         }
       }
@@ -251,10 +257,10 @@ class EmergenciaService {
 
       // Preparar mensagem de emergência
       final tipoTexto = _getTipoEmergenciaTexto(tipoEmergencia);
-      final mensagemSMS = mensagem ?? 
+      final mensagemSMS = mensagem ??
           '🚨 EMERGÊNCIA: $tipoTexto - CareMind\n'
-          'O idoso precisa de ajuda imediata!\n'
-          'Verifique o aplicativo para mais detalhes.';
+              'O idoso precisa de ajuda imediata!\n'
+              'Verifique o aplicativo para mais detalhes.';
 
       // Tentar enviar SMS para cada familiar com telefone
       bool algumSMSEviado = false;
@@ -263,8 +269,9 @@ class EmergenciaService {
         try {
           // Limpar telefone (remover caracteres não numéricos, exceto +)
           final telefoneLimpo = telefone.replaceAll(RegExp(r'[^\d+]'), '');
-          final uri = Uri.parse('sms:$telefoneLimpo?body=${Uri.encodeComponent(mensagemSMS)}');
-          
+          final uri = Uri.parse(
+              'sms:$telefoneLimpo?body=${Uri.encodeComponent(mensagemSMS)}');
+
           if (await canLaunchUrl(uri)) {
             await launchUrl(uri);
             algumSMSEviado = true;
@@ -299,7 +306,14 @@ class EmergenciaService {
         // Padrão de vibração: 500ms ligado, 500ms desligado, repetir indefinidamente
         // Usar padrão longo para emergência
         await Vibration.vibrate(
-          pattern: [0, 500, 1000, 500, 1000, 500], // delay, vibrate, pause, vibrate, pause, vibrate
+          pattern: [
+            0,
+            500,
+            1000,
+            500,
+            1000,
+            500
+          ], // delay, vibrate, pause, vibrate, pause, vibrate
           repeat: 0, // Repetir do início após o padrão
         );
       }
@@ -308,10 +322,10 @@ class EmergenciaService {
       // Nota: SystemSound é limitado, mas funciona sem permissões especiais
       // Para alarme mais robusto, considere usar flutter_local_notifications com som customizado
       SystemSound.play(SystemSoundType.alert);
-      
+
       // Cancelar timer anterior se existir
       _alarmeTimer?.cancel();
-      
+
       // Repetir o som a cada 2 segundos (via timer)
       _alarmeTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
         SystemSound.play(SystemSoundType.alert);
@@ -348,4 +362,3 @@ class EmergenciaService {
     }
   }
 }
-

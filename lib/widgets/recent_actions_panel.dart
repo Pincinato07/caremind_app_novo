@@ -31,7 +31,7 @@ class MedicationAction {
   String get timeAgo {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
-    
+
     if (difference.inMinutes < 1) {
       return 'Agora';
     } else if (difference.inMinutes < 60) {
@@ -111,7 +111,7 @@ class RecentActionsPanel extends StatelessWidget {
           ...recentActions.asMap().entries.map((entry) {
             final index = entry.key;
             final action = entry.value;
-            
+
             return Padding(
               padding: EdgeInsets.only(
                 bottom: index < recentActions.length - 1 ? 12 : 0,
@@ -186,7 +186,8 @@ class RecentActionsPanel extends StatelessWidget {
                         try {
                           action.onUndo();
                         } catch (e) {
-                          debugPrint('❌ RecentActionsPanel: Erro ao desfazer ação - $e');
+                          debugPrint(
+                              '❌ RecentActionsPanel: Erro ao desfazer ação - $e');
                         }
                       },
                       style: TextButton.styleFrom(
@@ -221,4 +222,3 @@ class RecentActionsPanel extends StatelessWidget {
     );
   }
 }
-

@@ -3,6 +3,8 @@ import 'package:get_it/get_it.dart';
 import '../../services/ocr_service.dart';
 import '../../services/supabase_service.dart';
 import '../../theme/app_theme.dart';
+import '../../core/feedback/feedback_service.dart';
+import '../../core/errors/error_handler.dart';
 import '../../widgets/caremind_card.dart';
 import '../../widgets/animated_card.dart';
 import '../../widgets/wave_background.dart';
@@ -53,11 +55,9 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
         _medicamentos.removeAt(index);
       });
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Você precisa ter pelo menos um medicamento'),
-          backgroundColor: AppColors.warning,
-        ),
+      FeedbackService.showWarning(
+        context,
+        'Você precisa ter pelo menos um medicamento',
       );
     }
   }
@@ -66,16 +66,14 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     // Filtrar medicamentos com nome vazio
-    final medicamentosValidos = _medicamentos
-        .where((m) => m.nome.trim().isNotEmpty)
-        .toList();
+    final medicamentosValidos =
+        _medicamentos.where((m) => m.nome.trim().isNotEmpty).toList();
 
     if (medicamentosValidos.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Adicione pelo menos um medicamento com nome'),
-          backgroundColor: AppColors.error,
-        ),
+      FeedbackService.showError(
+        context,
+        ErrorHandler.toAppException(
+            Exception('Adicione pelo menos um medicamento com nome')),
       );
       return;
     }
@@ -108,26 +106,19 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
       if (!mounted) return;
 
       // Mostrar sucesso e voltar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${salvos.length} medicamento(s) importado(s) com sucesso!'),
-          backgroundColor: AppColors.success,
-        ),
+      FeedbackService.showSuccess(
+        context,
+        '${salvos.length} medicamento(s) importado(s) com sucesso!',
       );
 
       // Voltar para a tela anterior (gestão de medicamentos)
-      Navigator.of(context).popUntil((route) => route.isFirst || 
+      Navigator.of(context).popUntil((route) =>
+          route.isFirst ||
           route.settings.name == '/medicamentos' ||
           route.settings.name == '/gestao');
-      
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao salvar: $e'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      FeedbackService.showError(context, ErrorHandler.toAppException(e));
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -178,43 +169,43 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
                       variant: CardVariant.glass,
                       child: Row(
                         children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.success.withValues(alpha: 0.2),
-                            shape: BoxShape.circle,
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.check_circle,
+                              color: AppColors.success,
+                              size: 28,
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.check_circle,
-                            color: AppColors.success,
-                            size: 28,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${_medicamentos.length} medicamento(s) encontrado(s)',
-                                style: AppTextStyles.titleMedium.copyWith(
-                                  color: Colors.white,
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${_medicamentos.length} medicamento(s) encontrado(s)',
+                                  style: AppTextStyles.titleMedium.copyWith(
+                                    color: Colors.white,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Revise e edite os dados antes de salvar',
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.8),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Revise e edite os dados antes de salvar',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
                 ),
                 SizedBox(height: AppSpacing.medium),
 
@@ -224,7 +215,8 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
                     key: _formKey,
                     child: ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
-                      itemCount: _medicamentos.length + 1, // +1 para botão adicionar
+                      itemCount:
+                          _medicamentos.length + 1, // +1 para botão adicionar
                       itemBuilder: (context, index) {
                         if (index == _medicamentos.length) {
                           return _buildBotaoAdicionar();
@@ -246,7 +238,8 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
                         backgroundColor: Colors.white,
                         foregroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        disabledBackgroundColor: Colors.white.withValues(alpha: 0.5),
+                        disabledBackgroundColor:
+                            Colors.white.withValues(alpha: 0.5),
                       ),
                       child: _isSaving
                           ? const SizedBox(
@@ -274,7 +267,7 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
 
   Widget _buildMedicamentoCard(int index) {
     final medicamento = _medicamentos[index];
-    
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: AnimatedCard(
@@ -283,104 +276,107 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
           variant: CardVariant.glass,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header com número e botão remover
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'Medicamento ${index + 1}',
-                    style: AppTextStyles.labelMedium.copyWith(
-                      color: Colors.white,
+            children: [
+              // Header com número e botão remover
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'Medicamento ${index + 1}',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.delete_outline,
-                    color: AppColors.error.withValues(alpha: 0.8),
+                  IconButton(
+                    icon: Icon(
+                      Icons.delete_outline,
+                      color: AppColors.error.withValues(alpha: 0.8),
+                    ),
+                    onPressed: () => _removerMedicamento(index),
+                    tooltip: 'Remover medicamento',
                   ),
-                  onPressed: () => _removerMedicamento(index),
-                  tooltip: 'Remover medicamento',
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+                ],
+              ),
+              const SizedBox(height: 16),
 
-            // Nome
-            _buildCampo(
-              label: 'Nome do Medicamento',
-              value: medicamento.nome,
-              onChanged: (value) {
-                setState(() {
-                  _medicamentos[index] = medicamento.copyWith(nome: value);
-                });
-              },
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Nome é obrigatório';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
+              // Nome
+              _buildCampo(
+                label: 'Nome do Medicamento',
+                value: medicamento.nome,
+                onChanged: (value) {
+                  setState(() {
+                    _medicamentos[index] = medicamento.copyWith(nome: value);
+                  });
+                },
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Nome é obrigatório';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
 
-            // Dosagem e Quantidade
-            Row(
-              children: [
-                Expanded(
-                  child: _buildCampo(
-                    label: 'Dosagem',
-                    value: medicamento.dosagem,
-                    hint: 'Ex: 500mg',
-                    onChanged: (value) {
-                      setState(() {
-                        _medicamentos[index] = medicamento.copyWith(dosagem: value);
-                      });
-                    },
+              // Dosagem e Quantidade
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildCampo(
+                      label: 'Dosagem',
+                      value: medicamento.dosagem,
+                      hint: 'Ex: 500mg',
+                      onChanged: (value) {
+                        setState(() {
+                          _medicamentos[index] =
+                              medicamento.copyWith(dosagem: value);
+                        });
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildCampo(
-                    label: 'Quantidade',
-                    value: medicamento.quantidade.toString(),
-                    hint: 'Ex: 30',
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      setState(() {
-                        _medicamentos[index] = medicamento.copyWith(
-                          quantidade: int.tryParse(value) ?? 30,
-                        );
-                      });
-                    },
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildCampo(
+                      label: 'Quantidade',
+                      value: medicamento.quantidade.toString(),
+                      hint: 'Ex: 30',
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        setState(() {
+                          _medicamentos[index] = medicamento.copyWith(
+                            quantidade: int.tryParse(value) ?? 30,
+                          );
+                        });
+                      },
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+                ],
+              ),
+              const SizedBox(height: 12),
 
-            // Frequência
-            _buildCampo(
-              label: 'Frequência',
-              value: medicamento.frequencia,
-              hint: 'Ex: 2x ao dia, 8/8h',
-              onChanged: (value) {
-                setState(() {
-                  _medicamentos[index] = medicamento.copyWith(frequencia: value);
-                });
-              },
-            ),
-          ],
+              // Frequência
+              _buildCampo(
+                label: 'Frequência',
+                value: medicamento.frequencia,
+                hint: 'Ex: 2x ao dia, 8/8h',
+                onChanged: (value) {
+                  setState(() {
+                    _medicamentos[index] =
+                        medicamento.copyWith(frequencia: value);
+                  });
+                },
+              ),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 
@@ -464,5 +460,3 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
     );
   }
 }
-
-

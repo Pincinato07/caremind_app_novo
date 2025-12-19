@@ -76,10 +76,9 @@ class AdherenceLineChart extends StatelessWidget {
   Widget _buildAverageInfo() {
     if (data.isEmpty) return const SizedBox.shrink();
 
-    final average = data
-            .map((d) => d.adherencePercentage)
-            .reduce((a, b) => a + b) /
-        data.length;
+    final average =
+        data.map((d) => d.adherencePercentage).reduce((a, b) => a + b) /
+            data.length;
 
     Color averageColor;
     String averageLabel;
@@ -225,7 +224,8 @@ class AdherenceLineChart extends StatelessWidget {
       lineTouchData: LineTouchData(
         enabled: true,
         touchTooltipData: LineTouchTooltipData(
-          getTooltipColor: (touchedSpot) => AppColors.primary.withValues(alpha: 0.9),
+          getTooltipColor: (touchedSpot) =>
+              AppColors.primary.withValues(alpha: 0.9),
           tooltipPadding: const EdgeInsets.all(8),
           tooltipMargin: 8,
           getTooltipItems: (touchedSpots) {
@@ -256,4 +256,3 @@ class AdherenceLineChart extends StatelessWidget {
     );
   }
 }
-

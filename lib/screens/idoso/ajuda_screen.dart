@@ -8,6 +8,8 @@ import '../../services/emergencia_service.dart';
 import '../../services/accessibility_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
+import '../../core/feedback/feedback_service.dart';
+import '../../core/errors/error_handler.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/caremind_card.dart';
 import '../../widgets/animated_card.dart';
@@ -46,10 +48,10 @@ class _AjudaScreenState extends State<AjudaScreen> {
     try {
       final supabaseService = getIt<SupabaseService>();
       final user = supabaseService.currentUser;
-      
+
       if (user != null) {
         final cuidador = await supabaseService.getCuidadorPrincipal(user.id);
-        
+
         if (mounted) {
           setState(() {
             _telefoneCuidador = cuidador?['telefone'] as String?;
@@ -209,15 +211,10 @@ class _AjudaScreenState extends State<AjudaScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '🚨 Alerta enviado para ${resultado['familiares_notificados']} familiar(es)!',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 4),
-          ),
+        FeedbackService.showSuccess(
+          context,
+          '🚨 Alerta enviado para ${resultado['familiares_notificados']} familiar(es)!',
+          duration: const Duration(seconds: 4),
         );
       }
     } catch (e) {
@@ -229,7 +226,7 @@ class _AjudaScreenState extends State<AjudaScreen> {
       if (e is AppException) {
         errorMessage = e.message;
         // Verificar se é erro de rede
-        if (e.message.contains('conexão') || 
+        if (e.message.contains('conexão') ||
             e.message.contains('internet') ||
             e.message.contains('Tempo esgotado')) {
           isNetworkError = true;
@@ -237,23 +234,25 @@ class _AjudaScreenState extends State<AjudaScreen> {
         }
       } else {
         final errorStr = e.toString().toLowerCase();
-        if (errorStr.contains('socket') || 
+        if (errorStr.contains('socket') ||
             errorStr.contains('network') ||
             errorStr.contains('connection') ||
             errorStr.contains('timeout')) {
-          errorMessage = 'Sem conexão com a internet. Verifique sua conexão e tente novamente.';
+          errorMessage =
+              'Sem conexão com a internet. Verifique sua conexão e tente novamente.';
           isNetworkError = true;
           canRetry = true;
         } else {
-          errorMessage = 'Erro ao acionar emergência. Tente ligar diretamente para seu familiar.';
+          errorMessage =
+              'Erro ao acionar emergência. Tente ligar diretamente para seu familiar.';
         }
       }
 
       // Feedback de voz
       await AccessibilityService.speak(
-        isNetworkError 
-          ? 'Erro de conexão. Tente novamente ou ligue diretamente.'
-          : 'Erro ao acionar emergência. Tente ligar diretamente.',
+        isNetworkError
+            ? 'Erro de conexão. Tente novamente ou ligue diretamente.'
+            : 'Erro ao acionar emergência. Tente ligar diretamente.',
       );
 
       if (mounted) {
@@ -264,7 +263,9 @@ class _AjudaScreenState extends State<AjudaScreen> {
               borderRadius: BorderRadius.circular(20),
             ),
             title: Text(
-              isNetworkError ? '⚠️ Erro de Conexão' : '❌ Erro ao Acionar Emergência',
+              isNetworkError
+                  ? '⚠️ Erro de Conexão'
+                  : '❌ Erro ao Acionar Emergência',
               style: AppTextStyles.leagueSpartan(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
@@ -436,15 +437,12 @@ class _AjudaScreenState extends State<AjudaScreen> {
       }
     } catch (e) {
       if (mounted) {
-        final errorMessage = e is AppException
-            ? e.message
-            : 'Erro ao iniciar chamada: $e';
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
+        final errorMessage =
+            e is AppException ? e.message : 'Erro ao iniciar chamada: $e';
+
+        FeedbackService.showError(
+          context,
+          ErrorHandler.toAppException(Exception(errorMessage)),
         );
       }
     }
@@ -453,11 +451,9 @@ class _AjudaScreenState extends State<AjudaScreen> {
   Future<void> _abrirWhatsApp() async {
     if (_telefoneCuidador == null || _telefoneCuidador!.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Número de telefone não disponível para WhatsApp'),
-            backgroundColor: Colors.orange,
-          ),
+        FeedbackService.showWarning(
+          context,
+          'Número de telefone não disponível para WhatsApp',
         );
       }
       return;
@@ -484,22 +480,15 @@ class _AjudaScreenState extends State<AjudaScreen> {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('WhatsApp não está instalado ou não está disponível'),
-              backgroundColor: Colors.orange,
-            ),
+          FeedbackService.showWarning(
+            context,
+            'WhatsApp não está instalado ou não está disponível',
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao abrir WhatsApp: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        FeedbackService.showError(context, ErrorHandler.toAppException(e));
       }
     }
   }
@@ -586,35 +575,41 @@ class _AjudaScreenState extends State<AjudaScreen> {
                             width: double.infinity,
                             height: 100, // Botão GIGANTE para acessibilidade
                             child: ElevatedButton(
-                              onPressed: _isDisparandoEmergencia ? null : () {
-                                // Clique simples também funciona (para acessibilidade)
-                                _acionarPanico();
-                              },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
+                              onPressed: _isDisparandoEmergencia
+                                  ? null
+                                  : () {
+                                      // Clique simples também funciona (para acessibilidade)
+                                      _acionarPanico();
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                elevation: 8,
+                                shadowColor: Colors.red.withValues(alpha: 0.5),
                               ),
-                              elevation: 8,
-                              shadowColor: Colors.red.withValues(alpha: 0.5),
-                            ),
                               child: _isDisparandoEmergencia
                                   ? const SizedBox(
                                       width: 40,
                                       height: 40,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 4,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                Colors.white),
                                       ),
                                     )
                                   : _isHoldingButton
                                       ? Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             Text(
                                               '$_holdCountdown',
-                                              style: AppTextStyles.leagueSpartan(
+                                              style:
+                                                  AppTextStyles.leagueSpartan(
                                                 fontSize: 48,
                                                 fontWeight: FontWeight.w700,
                                                 color: Colors.white,
@@ -623,15 +618,18 @@ class _AjudaScreenState extends State<AjudaScreen> {
                                             const SizedBox(height: 4),
                                             Text(
                                               'Segure para confirmar',
-                                              style: AppTextStyles.leagueSpartan(
+                                              style:
+                                                  AppTextStyles.leagueSpartan(
                                                 fontSize: 14,
-                                                color: Colors.white.withValues(alpha: 0.9),
+                                                color: Colors.white
+                                                    .withValues(alpha: 0.9),
                                               ),
                                             ),
                                           ],
                                         )
                                       : Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             const Icon(Icons.warning, size: 36),
@@ -641,7 +639,8 @@ class _AjudaScreenState extends State<AjudaScreen> {
                                                 fit: BoxFit.scaleDown,
                                                 child: Text(
                                                   'ACIONAR EMERGÊNCIA',
-                                                  style: AppTextStyles.leagueSpartan(
+                                                  style: AppTextStyles
+                                                      .leagueSpartan(
                                                     fontSize: 22,
                                                     fontWeight: FontWeight.w700,
                                                     letterSpacing: 1.5,
@@ -708,7 +707,8 @@ class _AjudaScreenState extends State<AjudaScreen> {
                             ),
                           ),
                         ),
-                        if (_telefoneCuidador != null && _telefoneCuidador!.isNotEmpty) ...[
+                        if (_telefoneCuidador != null &&
+                            _telefoneCuidador!.isNotEmpty) ...[
                           const SizedBox(height: 12),
                           // Botão WhatsApp
                           SizedBox(
@@ -726,7 +726,8 @@ class _AjudaScreenState extends State<AjudaScreen> {
                                 ),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF25D366), // Cor do WhatsApp
+                                backgroundColor:
+                                    const Color(0xFF25D366), // Cor do WhatsApp
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
@@ -784,14 +785,16 @@ class _AjudaScreenState extends State<AjudaScreen> {
                                   color: Colors.white,
                                 ),
                               ),
-                              if (_telefoneCuidador != null && _telefoneCuidador!.isNotEmpty)
+                              if (_telefoneCuidador != null &&
+                                  _telefoneCuidador!.isNotEmpty)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 8),
                                   child: Text(
                                     'Telefone: $_telefoneCuidador',
                                     style: AppTextStyles.leagueSpartan(
                                       fontSize: 16,
-                                      color: Colors.white.withValues(alpha: 0.9),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.9),
                                     ),
                                   ),
                                 )
@@ -833,12 +836,11 @@ class _AjudaScreenState extends State<AjudaScreen> {
               ),
             ),
 
-            SliverToBoxAdapter(child: SizedBox(height: AppSpacing.bottomNavBarPadding)),
+            SliverToBoxAdapter(
+                child: SizedBox(height: AppSpacing.bottomNavBarPadding)),
           ],
         ),
       ),
     );
   }
 }
-
-

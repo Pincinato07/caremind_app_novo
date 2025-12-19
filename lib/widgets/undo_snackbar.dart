@@ -33,14 +33,14 @@ class UndoSnackbar extends StatefulWidget {
         debugPrint('⚠️ UndoSnackbar: Context não está montado');
         return;
       }
-      
+
       if (message.isEmpty) {
         debugPrint('⚠️ UndoSnackbar: Mensagem vazia');
         return;
       }
-      
+
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: UndoSnackbar(
@@ -129,7 +129,7 @@ class _UndoSnackbarState extends State<UndoSnackbar> {
   @override
   Widget build(BuildContext context) {
     final config = _getConfig(widget.type);
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -238,4 +238,3 @@ class _SnackbarConfig {
 
   _SnackbarConfig({required this.color, required this.icon});
 }
-

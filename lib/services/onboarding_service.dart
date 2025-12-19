@@ -12,7 +12,8 @@ class OnboardingService {
   /// Verifica se é o primeiro acesso do usuário
   static Future<bool> isFirstAccess(String userId) async {
     try {
-      if (userId.isEmpty) return true; // Se não tem userId, considera primeiro acesso
+      if (userId.isEmpty)
+        return true; // Se não tem userId, considera primeiro acesso
       final prefs = await SharedPreferences.getInstance();
       final key = '${_keyFirstAccess}_$userId';
       final value = prefs.getBool(key);
@@ -57,7 +58,8 @@ class OnboardingService {
   static Future<void> markFirstMedicamento(String userId) async {
     try {
       if (userId.isEmpty) {
-        debugPrint('⚠️ Tentativa de marcar primeiro medicamento com userId vazio');
+        debugPrint(
+            '⚠️ Tentativa de marcar primeiro medicamento com userId vazio');
         return;
       }
       final prefs = await SharedPreferences.getInstance();
@@ -114,7 +116,8 @@ class OnboardingService {
   static Future<void> markOnboardingCompleted(String userId) async {
     try {
       if (userId.isEmpty) {
-        debugPrint('⚠️ Tentativa de marcar onboarding completado com userId vazio');
+        debugPrint(
+            '⚠️ Tentativa de marcar onboarding completado com userId vazio');
         return;
       }
       final prefs = await SharedPreferences.getInstance();
@@ -126,19 +129,20 @@ class OnboardingService {
   }
 
   /// Verifica se deve mostrar onboarding (evita spam)
-  static Future<bool> shouldShowOnboarding(String userId, {Duration cooldown = const Duration(hours: 24)}) async {
+  static Future<bool> shouldShowOnboarding(String userId,
+      {Duration cooldown = const Duration(hours: 24)}) async {
     try {
       if (userId.isEmpty) return true; // Se não tem userId, pode mostrar
       final prefs = await SharedPreferences.getInstance();
       final lastShownKey = '${_keyLastOnboardingShown}_$userId';
       final lastShown = prefs.getInt(lastShownKey);
-      
+
       if (lastShown == null) return true;
-      
+
       final lastShownDate = DateTime.fromMillisecondsSinceEpoch(lastShown);
       final now = DateTime.now();
       final difference = now.difference(lastShownDate);
-      
+
       return difference >= cooldown;
     } catch (e) {
       debugPrint('⚠️ Erro ao verificar se deve mostrar onboarding: $e');
@@ -150,7 +154,8 @@ class OnboardingService {
   static Future<void> markOnboardingShown(String userId) async {
     try {
       if (userId.isEmpty) {
-        debugPrint('⚠️ Tentativa de marcar onboarding mostrado com userId vazio');
+        debugPrint(
+            '⚠️ Tentativa de marcar onboarding mostrado com userId vazio');
         return;
       }
       final prefs = await SharedPreferences.getInstance();
@@ -180,4 +185,3 @@ class OnboardingService {
     }
   }
 }
-

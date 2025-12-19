@@ -7,9 +7,9 @@ import 'in_app_notification.dart';
 
 /// Widget wrapper que configura o handler de FCM foreground
 /// e mostra in-app notifications quando o app está aberto.
-/// 
+///
 /// Deve envolver o widget principal do app (geralmente MaterialApp ou similar).
-/// 
+///
 /// Exemplo de uso:
 /// ```dart
 /// FCMForegroundHandler(
@@ -18,10 +18,10 @@ import 'in_app_notification.dart';
 /// ```
 class FCMForegroundHandler extends StatefulWidget {
   final Widget child;
-  
+
   /// Callback opcional quando uma notificação é recebida
   final void Function(RemoteMessage message)? onNotificationReceived;
-  
+
   /// Se deve mostrar in-app notification automaticamente
   final bool showInAppNotification;
 
@@ -49,15 +49,15 @@ class _FCMForegroundHandlerState extends State<FCMForegroundHandler> {
     // Configurar o callback para notificações em foreground
     NotificationService.onForegroundMessage = (RemoteMessage message) {
       debugPrint('🔔 FCMForegroundHandler: Notificação recebida');
-      
+
       // Chamar callback opcional
       widget.onNotificationReceived?.call(message);
-      
+
       // Mostrar in-app notification se habilitado
       if (widget.showInAppNotification && mounted) {
         _showInAppNotification(message);
       }
-      
+
       // Atualizar contagem de notificações não lidas
       _refreshNotificationsCount();
     };
@@ -132,14 +132,14 @@ class _FCMForegroundHandlerState extends State<FCMForegroundHandler> {
 }
 
 /// Mixin para adicionar suporte a in-app notifications em qualquer StatefulWidget
-/// 
+///
 /// Exemplo de uso:
 /// ```dart
 /// class MyScreen extends StatefulWidget {
 ///   @override
 ///   State<MyScreen> createState() => _MyScreenState();
 /// }
-/// 
+///
 /// class _MyScreenState extends State<MyScreen> with InAppNotificationMixin {
 ///   @override
 ///   Widget build(BuildContext context) {
@@ -191,4 +191,3 @@ mixin InAppNotificationMixin<T extends StatefulWidget> on State<T> {
     );
   }
 }
-

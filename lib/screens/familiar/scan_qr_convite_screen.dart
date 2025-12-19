@@ -24,7 +24,7 @@ class _ScanQrConviteScreenState extends State<ScanQrConviteScreen> {
 
   void _processarCodigo(String codigo) {
     if (_isProcessing) return;
-    
+
     setState(() {
       _isProcessing = true;
     });
@@ -34,7 +34,7 @@ class _ScanQrConviteScreenState extends State<ScanQrConviteScreen> {
     if (uri != null && uri.scheme == 'caremind' && uri.host == 'convite') {
       final token = DeepLinkHandler.extractConviteToken(uri);
       final codigoConvite = DeepLinkHandler.extractConviteCodigo(uri);
-      
+
       if (token != null || codigoConvite != null) {
         final tokenOuCodigo = token ?? codigoConvite!;
         Navigator.of(context).pushReplacement(
@@ -129,7 +129,8 @@ class _ScanQrConviteScreenState extends State<ScanQrConviteScreen> {
                 color: Colors.black.withValues(alpha: 0.5),
                 child: const Center(
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppColors.primary),
                   ),
                 ),
               ),
@@ -218,12 +219,14 @@ class _ScannerOverlayPainter extends CustomPainter {
 
     // Canto inferior direito
     canvas.drawLine(
-      Offset(scanAreaLeft + scanAreaSize - cornerLength, scanAreaTop + scanAreaSize),
+      Offset(scanAreaLeft + scanAreaSize - cornerLength,
+          scanAreaTop + scanAreaSize),
       Offset(scanAreaLeft + scanAreaSize, scanAreaTop + scanAreaSize),
       cornerPaint,
     );
     canvas.drawLine(
-      Offset(scanAreaLeft + scanAreaSize, scanAreaTop + scanAreaSize - cornerLength),
+      Offset(scanAreaLeft + scanAreaSize,
+          scanAreaTop + scanAreaSize - cornerLength),
       Offset(scanAreaLeft + scanAreaSize, scanAreaTop + scanAreaSize),
       cornerPaint,
     );
@@ -232,4 +235,3 @@ class _ScannerOverlayPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-

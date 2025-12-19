@@ -86,12 +86,13 @@ class TermosPrivacidadeScreen extends StatelessWidget {
                         // Botão para ver versão completa no site
                         ElevatedButton.icon(
                           onPressed: () async {
-                            final url = showTerms 
+                            final url = showTerms
                                 ? 'https://caremind.com.br/termos'
                                 : 'https://caremind.com.br/politica-privacidade';
                             final uri = Uri.parse(url);
                             if (await canLaunchUrl(uri)) {
-                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              await launchUrl(uri,
+                                  mode: LaunchMode.externalApplication);
                             }
                           },
                           icon: const Icon(Icons.open_in_browser),
@@ -103,7 +104,8 @@ class TermosPrivacidadeScreen extends StatelessWidget {
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white.withValues(alpha: 0.2),
+                            backgroundColor:
+                                Colors.white.withValues(alpha: 0.2),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 20,
@@ -111,7 +113,8 @@ class TermosPrivacidadeScreen extends StatelessWidget {
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                              side: BorderSide(
+                                  color: Colors.white.withValues(alpha: 0.3)),
                             ),
                           ),
                         ),
@@ -254,5 +257,3 @@ class TermosPrivacidadeScreen extends StatelessWidget {
     );
   }
 }
-
-

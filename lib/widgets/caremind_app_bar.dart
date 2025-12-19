@@ -18,7 +18,8 @@ import 'secondary_menu.dart';
 class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
   final bool isFamiliar; // Se true, mostra seletor de idoso no título
-  final bool showBackButton; // Se true, força mostrar back button mesmo se não puder voltar
+  final bool
+      showBackButton; // Se true, força mostrar back button mesmo se não puder voltar
   final Widget? leading; // Widget customizado para o leading
   final bool showSearchButton;
   final bool showVoiceButton;
@@ -52,7 +53,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
     if (leading != null) {
       return leading!;
     }
-    
+
     // Mostrar botão de voltar APENAS se explicitamente solicitado
     if (showBackButton) {
       return Padding(
@@ -120,7 +121,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     const iconColor = AppColors.textPrimary;
     const iconSize = 28.0;
-    
+
     return AppBar(
       title: isFamiliar
           ? _buildIdosoSelector(context)
@@ -154,7 +155,8 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: IconButton(
-              icon: const Icon(Icons.search_rounded, color: iconColor, size: iconSize),
+              icon: const Icon(Icons.search_rounded,
+                  color: iconColor, size: iconSize),
               padding: const EdgeInsets.all(12),
               constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               onPressed: onSearchTap,
@@ -165,7 +167,8 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: IconButton(
-              icon: const Icon(Icons.mic_none_rounded, color: iconColor, size: iconSize),
+              icon: const Icon(Icons.mic_none_rounded,
+                  color: iconColor, size: iconSize),
               padding: const EdgeInsets.all(12),
               constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               onPressed: onVoiceTap,
@@ -183,35 +186,35 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
           )
         else
           // Botão de perfil apenas se menu secundário estiver desabilitado
-        Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: Semantics(
-            label: 'Perfil',
-            hint: 'Toque para abrir perfil',
-            button: true,
-            child: IconButton(
-              icon: const Icon(
-                Icons.person_outline_rounded,
-                color: iconColor,
-                size: iconSize,
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Semantics(
+              label: 'Perfil',
+              hint: 'Toque para abrir perfil',
+              button: true,
+              child: IconButton(
+                icon: const Icon(
+                  Icons.person_outline_rounded,
+                  color: iconColor,
+                  size: iconSize,
+                ),
+                padding: const EdgeInsets.all(12),
+                constraints: const BoxConstraints(
+                  minWidth: 48,
+                  minHeight: 48,
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    AppNavigation.smoothRoute(
+                      const PerfilScreen(),
+                    ),
+                  );
+                },
+                tooltip: 'Perfil',
               ),
-              padding: const EdgeInsets.all(12),
-              constraints: const BoxConstraints(
-                minWidth: 48,
-                minHeight: 48,
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  AppNavigation.smoothRoute(
-                    const PerfilScreen(),
-                  ),
-                );
-              },
-              tooltip: 'Perfil',
             ),
           ),
-        ),
       ],
     );
   }
@@ -219,7 +222,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// Constrói o seletor de idoso para perfil familiar
   Widget _buildIdosoSelector(BuildContext context) {
     final familiarState = getIt<FamiliarState>();
-    
+
     return ListenableBuilder(
       listenable: familiarState,
       builder: (context, _) {
@@ -250,7 +253,8 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
 
         // Se houver múltiplos idosos, mostra dropdown com ProfileSwitchDialog
         return GestureDetector(
-          onTap: () => _showProfileSwitchDialog(context, familiarState, idosos, idosoSelecionado),
+          onTap: () => _showProfileSwitchDialog(
+              context, familiarState, idosos, idosoSelecionado),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -294,4 +298,3 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 }
-

@@ -6,7 +6,7 @@ class PullToRefreshWrapper extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final Color? backgroundColor;
   final Color? color;
-  
+
   const PullToRefreshWrapper({
     super.key,
     required this.child,
@@ -14,7 +14,7 @@ class PullToRefreshWrapper extends StatelessWidget {
     this.backgroundColor,
     this.color,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
@@ -34,7 +34,7 @@ class AnimatedPullToRefresh extends StatefulWidget {
   final Future<void> Function() onRefresh;
   final String? refreshingText;
   final String? pullText;
-  
+
   const AnimatedPullToRefresh({
     super.key,
     required this.child,
@@ -42,15 +42,16 @@ class AnimatedPullToRefresh extends StatefulWidget {
     this.refreshingText,
     this.pullText,
   });
-  
+
   @override
   State<AnimatedPullToRefresh> createState() => _AnimatedPullToRefreshState();
 }
 
-class _AnimatedPullToRefreshState extends State<AnimatedPullToRefresh> with SingleTickerProviderStateMixin {
+class _AnimatedPullToRefreshState extends State<AnimatedPullToRefresh>
+    with SingleTickerProviderStateMixin {
   bool _isRefreshing = false;
   late AnimationController _rotationController;
-  
+
   @override
   void initState() {
     super.initState();
@@ -59,17 +60,17 @@ class _AnimatedPullToRefreshState extends State<AnimatedPullToRefresh> with Sing
       duration: const Duration(milliseconds: 1000),
     );
   }
-  
+
   @override
   void dispose() {
     _rotationController.dispose();
     super.dispose();
   }
-  
+
   Future<void> _handleRefresh() async {
     setState(() => _isRefreshing = true);
     _rotationController.repeat();
-    
+
     try {
       await widget.onRefresh();
     } finally {
@@ -80,7 +81,7 @@ class _AnimatedPullToRefreshState extends State<AnimatedPullToRefresh> with Sing
       }
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
@@ -129,4 +130,3 @@ class _AnimatedPullToRefreshState extends State<AnimatedPullToRefresh> with Sing
     );
   }
 }
-

@@ -36,7 +36,15 @@ class LgpdService {
       // Buscar medicamentos com tratamento de erro específico
       List<Medicamento> medicamentos = [];
       try {
-        medicamentos = await _medicamentoService.getMedicamentos(userId);
+        final medicamentosResult =
+            await _medicamentoService.getMedicamentos(userId);
+        medicamentos = medicamentosResult.when(
+          success: (data) => data,
+          failure: (exception) {
+            throw Exception(
+                'Erro ao buscar medicamentos: ${exception.message}');
+          },
+        );
       } catch (e) {
         // Log do erro mas continua a exportação
         print('⚠️ Aviso: Erro ao buscar medicamentos: $e');
@@ -71,7 +79,8 @@ class LgpdService {
           'total_medicamentos': medicamentos.length,
           'total_compromissos': compromissos.length,
         },
-        'nota_legal': 'Dados exportados conforme LGPD - Lei Geral de Proteção de Dados',
+        'nota_legal':
+            'Dados exportados conforme LGPD - Lei Geral de Proteção de Dados',
       };
 
       return data;
@@ -88,7 +97,7 @@ class LgpdService {
   Future<String> exportUserDataAsJson(String userId) async {
     try {
       final data = await exportUserData(userId);
-      
+
       // Validar se há dados para exportar
       if (data.isEmpty) {
         throw Exception('Nenhum dado encontrado para exportar');
@@ -96,7 +105,7 @@ class LgpdService {
 
       const encoder = JsonEncoder.withIndent('  ');
       final jsonString = encoder.convert(data);
-      
+
       // Validar se o JSON foi gerado corretamente
       if (jsonString.isEmpty) {
         throw Exception('Erro ao gerar arquivo JSON');
@@ -116,7 +125,14 @@ class LgpdService {
   Future<void> deleteUserData(String userId) async {
     try {
       // Deletar medicamentos
-      final medicamentos = await _medicamentoService.getMedicamentos(userId);
+      final medicamentosResult =
+          await _medicamentoService.getMedicamentos(userId);
+      final medicamentos = medicamentosResult.when(
+        success: (data) => data,
+        failure: (exception) {
+          throw Exception('Erro ao buscar medicamentos: ${exception.message}');
+        },
+      );
       for (final medicamento in medicamentos) {
         if (medicamento.id != null) {
           await _medicamentoService.deleteMedicamento(medicamento.id!);

@@ -28,8 +28,7 @@ class NavItem extends StatefulWidget {
   State<NavItem> createState() => _NavItemState();
 }
 
-class _NavItemState extends State<NavItem>
-    with SingleTickerProviderStateMixin {
+class _NavItemState extends State<NavItem> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -74,7 +73,9 @@ class _NavItemState extends State<NavItem>
     return Expanded(
       child: Semantics(
         label: widget.label,
-        hint: widget.isSelected ? 'Selecionado. Toque para navegar' : 'Toque para navegar para ${widget.label}',
+        hint: widget.isSelected
+            ? 'Selecionado. Toque para navegar'
+            : 'Toque para navegar para ${widget.label}',
         button: true,
         selected: widget.isSelected,
         child: GestureDetector(
@@ -109,7 +110,8 @@ class _NavItemState extends State<NavItem>
                       widget.icon,
                       key: ValueKey(widget.isSelected),
                       size: iconSize,
-                      color: widget.isSelected ? selectedColor : unselectedColor,
+                      color:
+                          widget.isSelected ? selectedColor : unselectedColor,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -117,8 +119,10 @@ class _NavItemState extends State<NavItem>
                     duration: const Duration(milliseconds: 200),
                     style: AppTextStyles.leagueSpartan(
                       fontSize: fontSize,
-                      fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w400,
-                      color: widget.isSelected ? selectedColor : unselectedColor,
+                      fontWeight:
+                          widget.isSelected ? FontWeight.w700 : FontWeight.w400,
+                      color:
+                          widget.isSelected ? selectedColor : unselectedColor,
                     ),
                     child: Text(widget.label),
                   ),
@@ -131,4 +135,3 @@ class _NavItemState extends State<NavItem>
     );
   }
 }
-

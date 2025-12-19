@@ -19,7 +19,8 @@ class ConfirmMedicationButton extends StatefulWidget {
   });
 
   @override
-  State<ConfirmMedicationButton> createState() => _ConfirmMedicationButtonState();
+  State<ConfirmMedicationButton> createState() =>
+      _ConfirmMedicationButtonState();
 }
 
 class _ConfirmMedicationButtonState extends State<ConfirmMedicationButton>
@@ -83,7 +84,8 @@ class _ConfirmMedicationButtonState extends State<ConfirmMedicationButton>
             // WCAG: Altura mínima de 48px, ideal 56px para idosos com tremores
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             constraints: const BoxConstraints(
-              minHeight: 56, // WCAG AAA: Área de toque de pelo menos 44x44px, ideal 56px
+              minHeight:
+                  56, // WCAG AAA: Área de toque de pelo menos 44x44px, ideal 56px
             ),
             decoration: BoxDecoration(
               color: widget.isConfirmed
@@ -126,7 +128,8 @@ class _ConfirmMedicationButtonState extends State<ConfirmMedicationButton>
                       Text(
                         widget.isConfirmed ? 'Tomado' : 'Marcar como tomado',
                         style: AppTextStyles.leagueSpartan(
-                          fontSize: 16, // WCAG: Mínimo 16px para textos secundários
+                          fontSize:
+                              16, // WCAG: Mínimo 16px para textos secundários
                           fontWeight: FontWeight.w600,
                           color: widget.isConfirmed
                               ? AppColors.success
@@ -183,7 +186,7 @@ class _CompactConfirmButtonState extends State<CompactConfirmButton>
 
   void _handleTap() {
     if (widget.isLoading) return;
-    
+
     HapticFeedback.lightImpact();
     _controller.forward().then((_) => _controller.reverse());
     widget.onTap();
@@ -244,4 +247,3 @@ class _CompactConfirmButtonState extends State<CompactConfirmButton>
     );
   }
 }
-

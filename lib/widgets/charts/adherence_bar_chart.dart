@@ -262,4 +262,3 @@ class DailyAdherence {
     return (taken / total) * 100;
   }
 }
-

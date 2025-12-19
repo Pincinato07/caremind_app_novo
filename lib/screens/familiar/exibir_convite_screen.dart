@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import '../../core/feedback/feedback_service.dart';
+import '../../core/errors/error_handler.dart';
 
 class ExibirConviteScreen extends StatelessWidget {
   final String codigoConvite;
   final String deepLink;
 
-  const ExibirConviteScreen({
-    Key? key,
-    required this.codigoConvite,
-    required this.deepLink
-  }) : super(key: key);
+  const ExibirConviteScreen(
+      {Key? key, required this.codigoConvite, required this.deepLink})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -91,11 +90,10 @@ class ExibirConviteScreen extends StatelessWidget {
                   // Validar dados antes de compartilhar
                   if (deepLink.isEmpty || codigoConvite.isEmpty) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Erro: Dados do convite inválidos'),
-                          backgroundColor: Colors.red,
-                        ),
+                      FeedbackService.showError(
+                        context,
+                        ErrorHandler.toAppException(
+                            Exception('Dados do convite inválidos')),
                       );
                     }
                     return;
@@ -108,28 +106,24 @@ class ExibirConviteScreen extends StatelessWidget {
                 } on PlatformException catch (e) {
                   debugPrint('Erro ao compartilhar: $e');
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Erro ao compartilhar: ${e.message ?? "Erro desconhecido"}'),
-                        backgroundColor: Colors.orange,
-                        action: SnackBarAction(
-                          label: 'Copiar Link',
-                          textColor: Colors.white,
-                          onPressed: () {
-                            // Copiar para clipboard seria implementado aqui se necessário
-                          },
-                        ),
+                    FeedbackService.showWarning(
+                      context,
+                      'Erro ao compartilhar: ${e.message ?? "Erro desconhecido"}',
+                      action: SnackBarAction(
+                        label: 'Copiar Link',
+                        textColor: Colors.white,
+                        onPressed: () {
+                          // Copiar para clipboard seria implementado aqui se necessário
+                        },
                       ),
                     );
                   }
                 } catch (e) {
                   debugPrint('Erro inesperado ao compartilhar: $e');
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Erro ao compartilhar. Tente novamente.'),
-                        backgroundColor: Colors.red,
-                      ),
+                    FeedbackService.showError(
+                      context,
+                      ErrorHandler.toAppException(e),
                     );
                   }
                 }
@@ -137,7 +131,8 @@ class ExibirConviteScreen extends StatelessWidget {
               icon: const Icon(Icons.share),
               label: const Text('Compartilhar Link'),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
 

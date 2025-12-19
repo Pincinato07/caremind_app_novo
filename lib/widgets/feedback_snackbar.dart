@@ -70,11 +70,13 @@ class FeedbackSnackbar {
     );
   }
 
-  static void success(BuildContext context, String message, {VoidCallback? onUndo}) {
+  static void success(BuildContext context, String message,
+      {VoidCallback? onUndo}) {
     show(context, message: message, type: SnackbarType.success, onUndo: onUndo);
   }
 
-  static void error(BuildContext context, String message, {VoidCallback? onRetry}) {
+  static void error(BuildContext context, String message,
+      {VoidCallback? onRetry}) {
     show(
       context,
       message: message,
@@ -125,4 +127,3 @@ class _SnackbarConfig {
 
   _SnackbarConfig({required this.color, required this.icon});
 }
-
