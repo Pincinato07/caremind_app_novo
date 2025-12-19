@@ -270,7 +270,7 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                                               if (account.fotoUrl != null && account.fotoUrl!.isNotEmpty) {
                                                 return ClipOval(
                                                   child: Hero(
-                                                    tag: 'profile_image_${account.userId ?? 'unknown'}',
+                                                    tag: 'profile_image_${account.userId}',
                                                     child: Image.network(
                                                       account.fotoUrl!,
                                                       fit: BoxFit.cover,
@@ -300,7 +300,7 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                                                 );
                                               } else {
                                                 return Hero(
-                                                  tag: 'profile_image_${account.userId ?? 'unknown'}',
+                                                  tag: 'profile_image_${account.userId}',
                                                   child: Icon(
                                                     Icons.person,
                                                     color: Colors.white,
@@ -312,7 +312,7 @@ class _TrocarContaScreenState extends State<TrocarContaScreen> {
                                               debugPrint('❌ Erro ao construir avatar da conta: $e');
                                               debugPrint('Stack trace: $stackTrace');
                                               return Hero(
-                                                tag: 'profile_image_${account.userId ?? 'unknown'}',
+                                                tag: 'profile_image_${account.userId}',
                                                 child: Icon(
                                                   Icons.person,
                                                   color: Colors.white,

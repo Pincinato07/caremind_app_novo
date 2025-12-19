@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -419,9 +418,8 @@ class _AuthShellState extends State<AuthShell> with SingleTickerProviderStateMix
               }
               
               // Mostrar onboarding contextual
-              String? action;
               try {
-                action = await Navigator.push<String>(
+                await Navigator.push<String>(
                   context,
                   MaterialPageRoute(
                     builder: (_) => OnboardingContextualScreen(perfil: perfil),

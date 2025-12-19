@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../services/supabase_service.dart';
+import '../../services/convite_idoso_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
+import '../familiar/exibir_convite_screen.dart';
 
 class AdicionarIdosoForm extends StatefulWidget {
   const AdicionarIdosoForm({super.key});
@@ -42,13 +45,89 @@ class _AdicionarIdosoFormState extends State<AdicionarIdosoForm> {
       if (!mounted) return;
 
       if (response['success'] == true) {
-        Navigator.of(context).pop(true); // Retorna true para indicar sucesso
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Idoso "${_nomeController.text}" adicionado com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        // Tentar gerar convite após criar idoso
+        // A Edge Function retorna: { success: true, idoso: { id: ..., ... } }
+        final idosoData = response['idoso'] as Map<String, dynamic>?;
+        final idIdoso = idosoData?['id'] as String?;
+        if (idIdoso != null && mounted) {
+          try {
+            final conviteService = getIt<ConviteIdosoService>();
+            final convite = await conviteService.gerarConvite(idIdoso);
+            
+            // Validar dados do convite antes de exibir
+            if (convite.codigoConvite.isEmpty || convite.linkCompleto.isEmpty) {
+              throw Exception('Convite gerado com dados inválidos');
+            }
+            
+            // Fechar o diálogo de adicionar idoso
+            if (mounted) {
+              Navigator.of(context).pop(true);
+            }
+            
+            // Exibir tela de convite
+            if (mounted) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ExibirConviteScreen(
+                    codigoConvite: convite.codigoConvite,
+                    deepLink: convite.linkCompleto,
+                  ),
+                ),
+              );
+            }
+          } catch (e) {
+            // Se falhar ao gerar convite, apenas fecha o diálogo
+            // O idoso já foi criado, então não é crítico
+            debugPrint('Erro ao gerar convite após criar idoso: $e');
+            
+            if (!mounted) return;
+            
+            // Fechar diálogo
+            Navigator.of(context).pop(true);
+            
+            // Mostrar mensagem informando que o idoso foi criado mas o convite falhou
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Idoso "${_nomeController.text}" adicionado com sucesso!',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Não foi possível gerar o convite automaticamente. Você pode gerar um convite manualmente pelo menu do idoso.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 5),
+                action: SnackBarAction(
+                  label: 'OK',
+                  textColor: Colors.white,
+                  onPressed: () {},
+                ),
+              ),
+            );
+          }
+        } else {
+          // Se não tiver id_idoso, apenas fecha normalmente
+          // Isso pode acontecer se a resposta da Edge Function não tiver o formato esperado
+          debugPrint('Aviso: Resposta da Edge Function não contém id_idoso. Estrutura: ${response.keys}');
+          
+          if (mounted) {
+            Navigator.of(context).pop(true);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Idoso "${_nomeController.text}" adicionado com sucesso!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

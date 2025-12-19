@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
+import '../../services/convite_idoso_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
 import '../../core/state/familiar_state.dart';
@@ -12,6 +13,7 @@ import '../../widgets/app_button.dart';
 import '../../widgets/caremind_app_bar.dart';
 import 'adicionar_idoso_form.dart';
 import 'editar_idoso_form.dart';
+import '../familiar/exibir_convite_screen.dart';
 
 class FamiliaresScreen extends StatefulWidget {
   const FamiliaresScreen({super.key});
@@ -201,6 +203,107 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
     }
   }
 
+  Future<void> _gerarConvite(Perfil idoso) async {
+    if (!mounted) return;
+    
+    // Fechar o menu primeiro
+    Navigator.pop(context);
+    
+    // Validar dados do idoso
+    if (idoso.id.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro: ID do idoso inválido'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    // Mostrar loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final conviteService = getIt<ConviteIdosoService>();
+      final convite = await conviteService.gerarConvite(idoso.id);
+
+      if (!mounted) return;
+
+      // Validar dados do convite antes de exibir
+      if (convite.codigoConvite.isEmpty || convite.linkCompleto.isEmpty) {
+        throw Exception('Convite gerado com dados inválidos');
+      }
+
+      // Fechar loading
+      Navigator.pop(context);
+
+      if (!mounted) return;
+
+      // Exibir tela de convite
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ExibirConviteScreen(
+            codigoConvite: convite.codigoConvite,
+            deepLink: convite.linkCompleto,
+          ),
+        ),
+      );
+    } on AppException catch (error) {
+      if (!mounted) return;
+
+      // Fechar loading
+      Navigator.pop(context);
+
+      // Mensagens de erro mais específicas
+      String errorMessage;
+      if (error.message.contains('permissão') || error.message.contains('permission')) {
+        errorMessage = 'Você não tem permissão para gerar convite para este idoso.';
+      } else if (error.message.contains('não encontrado') || error.message.contains('not found')) {
+        errorMessage = 'Idoso não encontrado. Atualize a lista e tente novamente.';
+      } else if (error.message.contains('conexão') || error.message.contains('connection') || error.message.contains('timeout')) {
+        errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+      } else {
+        errorMessage = error.message;
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'Tentar Novamente',
+            textColor: Colors.white,
+            onPressed: () => _gerarConvite(idoso),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      // Fechar loading
+      Navigator.pop(context);
+
+      debugPrint('Erro inesperado ao gerar convite: $error');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Erro inesperado ao gerar convite: ${error.toString()}',
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
   void _showOptionsMenu(Perfil idoso) {
     showModalBottomSheet(
       context: context,
@@ -229,6 +332,14 @@ class _FamiliaresScreenState extends State<FamiliaresScreen> {
                 onTap: () {
                   Navigator.pop(context);
                   _editarIdoso(idoso);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.qr_code, color: AppColors.primary),
+                title: const Text('Gerar Convite'),
+                subtitle: const Text('Gera QR code e código de convite para login'),
+                onTap: () {
+                  _gerarConvite(idoso);
                 },
               ),
               ListTile(

@@ -94,16 +94,6 @@ class DailyCacheService {
   }
 
   Future<void> _schedulePersonalizedMedicationNotification(Medicamento med) async {
-    final hora = DateTime.now().hour;
-    String saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
-    
-    String titulo = '💊 $saudacao! Hora do ${med.nome}';
-    String corpo = 'Tome ${med.dosagem ?? "sua dose"} agora. Cuide-se bem! 🌟';
-    
-    if (med.quantidade != null && med.quantidade! <= 5) {
-      corpo += '\n⚠️ Estoque baixo: ${med.quantidade} unidade(s) restante(s)';
-    }
-
     await NotificationService.scheduleMedicationReminders(med);
   }
 
@@ -111,7 +101,6 @@ class DailyCacheService {
     try {
       final dataHora = DateTime.parse(comp['data_hora'] as String);
       final titulo = comp['titulo'] as String? ?? 'Compromisso';
-      final local = comp['local'] as String?;
       final lembreteMinutos = comp['lembrete_minutos'] as int? ?? 60;
 
       final horaNotif = dataHora.subtract(Duration(minutes: lembreteMinutos));

@@ -399,13 +399,16 @@ class _CareMindAppState extends State<CareMindApp> with WidgetsBindingObserver {
       }
       
       // Navegar para dashboard e destacar o medicamento
-      // TODO: Implementar navegação específica para o medicamento
-      // Por enquanto, navegar para dashboard
+      // A navegação já está implementada com argumentos para destacar o medicamento
+      // O dashboard pode usar esses argumentos para destacar o medicamento específico
       Navigator.of(context).pushNamedAndRemoveUntil(
         '/dashboard',
         (route) => false,
         arguments: {'highlightMedicationId': medicamentoId},
       );
+      
+      // Log para debug
+      debugPrint('✅ DeepLink: Navegando para medicamento ID: $medicamentoId');
     } catch (e) {
       debugPrint('❌ DeepLink: Erro ao navegar para medicamento - $e');
     }

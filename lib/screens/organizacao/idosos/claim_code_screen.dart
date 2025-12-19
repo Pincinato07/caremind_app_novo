@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'claim_profile_screen.dart';
 
 /// Tela para digitar código de claim profile
@@ -26,20 +27,24 @@ class _ClaimCodeScreenState extends State<ClaimCodeScreen> {
     });
 
     try {
-      // TODO: Implementar validação do código via API
-      // Por enquanto, vamos assumir que o código é válido e navegar
-      // Na implementação real, você deve:
-      // 1. Chamar API para validar o código
-      // 2. Obter perfil_id e nome_perfil da resposta
-      // 3. Navegar para ClaimProfileScreen com esses dados
+      final code = _codeController.text.trim().toUpperCase();
       
-      final code = _codeController.text.trim();
-      
-      // Simulação - substituir por chamada real à API
-      // final perfilData = await _idosoService.validateClaimCode(code);
-      
-      // Por enquanto, vamos mostrar um erro se o código não tiver formato válido
-      if (code.length < 6) {
+      if (code.isEmpty) {
+        setState(() {
+          _errorMessage = 'Por favor, digite o código';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Buscar perfil pelo código de vinculação na tabela perfis
+      final perfilResponse = await Supabase.instance.client
+          .from('perfis')
+          .select('id, nome, codigo_vinculacao, codigo_vinculacao_expira_em, is_virtual')
+          .eq('codigo_vinculacao', code)
+          .maybeSingle();
+
+      if (perfilResponse == null) {
         setState(() {
           _errorMessage = 'Código inválido. Verifique e tente novamente.';
           _isLoading = false;
@@ -47,15 +52,40 @@ class _ClaimCodeScreenState extends State<ClaimCodeScreen> {
         return;
       }
 
-      // Navegar para a tela de claim profile
-      // Em produção, você deve passar os dados reais do perfil
+      // Verificar se o código expirou
+      final expiraEm = perfilResponse['codigo_vinculacao_expira_em'] as String?;
+      if (expiraEm != null) {
+        final dataExpiracao = DateTime.parse(expiraEm);
+        if (DateTime.now().isAfter(dataExpiracao)) {
+          setState(() {
+            _errorMessage = 'Este código de vinculação expirou. Solicite um novo código à organização.';
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+
+      // Verificar se é um perfil virtual (gerenciado)
+      final isVirtual = perfilResponse['is_virtual'] as bool? ?? false;
+      if (!isVirtual) {
+        setState(() {
+          _errorMessage = 'Este código não é válido para perfis gerenciados.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final perfilId = perfilResponse['id'] as String;
+      final nomePerfil = perfilResponse['nome'] as String? ?? 'Perfil Virtual';
+
+      // Navegar para a tela de claim profile com os dados reais
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => ClaimProfileScreen(
-              perfilId: code, // Em produção, usar perfil_id real
-              nomePerfil: 'Perfil Virtual', // Em produção, usar nome real
+              perfilId: perfilId,
+              nomePerfil: nomePerfil,
             ),
           ),
         );

@@ -138,11 +138,11 @@ Future<void> configureDependencies() async {
   );
 
   getIt.registerLazySingleton<MembroOrganizacaoService>(
-    () => MembroOrganizacaoService(getIt<SupabaseService>()),
+    () => MembroOrganizacaoService(),
   );
 
   getIt.registerLazySingleton<IdosoOrganizacaoService>(
-    () => IdosoOrganizacaoService(getIt<SupabaseService>()),
+    () => IdosoOrganizacaoService(),
   );
 
   getIt.registerLazySingleton<ExportacaoService>(

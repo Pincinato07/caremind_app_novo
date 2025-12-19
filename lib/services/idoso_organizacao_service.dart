@@ -1,14 +1,10 @@
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:postgrest/postgrest.dart';
 import 'organizacao_service.dart';
-import 'supabase_service.dart';
 
 /// Serviço para gerenciar idosos da organização
 class IdosoOrganizacaoService {
-  final SupabaseService _supabaseService;
-
-  IdosoOrganizacaoService(this._supabaseService);
+  IdosoOrganizacaoService();
 
   /// Listar idosos da organização
   Future<List<IdosoOrganizacao>> listarIdosos(String organizacaoId) async {
@@ -34,8 +30,8 @@ class IdosoOrganizacaoService {
       if (e.code == 'PGRST301' || e.code == 'PGRST116') {
         throw Exception('Organização não encontrada ou sem permissão');
       }
-      throw Exception('Erro ao buscar idosos: ${e.message ?? e.toString()}');
-    } on SocketException catch (e) {
+      throw Exception('Erro ao buscar idosos: ${e.message}');
+    } on SocketException {
       throw Exception('Erro de conexão. Verifique sua internet e tente novamente.');
     } catch (e) {
       throw Exception('Erro ao listar idosos: ${e.toString()}');
@@ -112,7 +108,7 @@ class IdosoOrganizacaoService {
       // Criar perfil virtual
       final perfilId = DateTime.now().millisecondsSinceEpoch.toString();
       
-      final perfilResponse = await Supabase.instance.client
+      await Supabase.instance.client
           .from('perfis')
           .insert({
             'id': perfilId,
@@ -127,10 +123,6 @@ class IdosoOrganizacaoService {
           .select()
           .single();
 
-      if (perfilResponse == null) {
-        throw Exception('Erro ao criar perfil virtual');
-      }
-
       // Vincular à organização
       final idosoOrgResponse = await Supabase.instance.client
           .from('idosos_organizacao')
@@ -144,10 +136,6 @@ class IdosoOrganizacaoService {
           .select('*, perfil:perfis(nome, telefone, data_nascimento, is_virtual)')
           .single();
 
-      if (idosoOrgResponse == null) {
-        throw Exception('Erro ao vincular idoso à organização');
-      }
-
       return {
         'idoso': IdosoOrganizacao.fromJson(idosoOrgResponse as Map<String, dynamic>)
       };
@@ -157,8 +145,8 @@ class IdosoOrganizacaoService {
       } else if (e.code == 'PGRST301' || e.code == 'PGRST116') {
         throw Exception('Organização não encontrada ou sem permissão');
       }
-      throw Exception('Erro ao adicionar idoso: ${e.message ?? e.toString()}');
-    } on SocketException catch (e) {
+      throw Exception('Erro ao adicionar idoso: ${e.message}');
+    } on SocketException {
       throw Exception('Erro de conexão. Verifique sua internet e tente novamente.');
     } catch (e) {
       final errorMsg = e.toString();
@@ -212,11 +200,7 @@ class IdosoOrganizacaoService {
           .eq('id', idosoId)
           .single();
 
-      if (idosoResponse == null) {
-        throw Exception('Idoso não encontrado');
-      }
-
-      final idoso = idosoResponse as Map<String, dynamic>;
+      final idoso = idosoResponse;
       final perfilId = idoso['perfil_id'] as String;
 
       // Atualizar perfil
@@ -254,11 +238,7 @@ class IdosoOrganizacaoService {
           .eq('id', idosoId)
           .single();
 
-      if (idosoAtualizadoResponse == null) {
-        throw Exception('Erro ao buscar idoso atualizado');
-      }
-
-      return IdosoOrganizacao.fromJson(idosoAtualizadoResponse as Map<String, dynamic>);
+      return IdosoOrganizacao.fromJson(idosoAtualizadoResponse);
     } catch (e) {
       throw Exception('Erro ao atualizar idoso: $e');
     }
@@ -291,7 +271,7 @@ class IdosoOrganizacaoService {
         
         // Verificar se é erro de bloqueio
         if (response.status == 429 || errorMessage.toString().contains('bloqueado')) {
-          final bloqueioData = error as Map<String, dynamic>?;
+          final bloqueioData = error;
           throw Exception(
             'BLOQUEADO:${bloqueioData?['message'] ?? errorMessage}\n'
             'MINUTOS:${bloqueioData?['minutos_restantes'] ?? 15}'
@@ -301,8 +281,8 @@ class IdosoOrganizacaoService {
         throw Exception(errorMessage);
       }
 
-      return response.data as Map<String, dynamic>;
-    } on SocketException catch (e) {
+      return response.data;
+    } on SocketException {
       throw Exception('Erro de conexão. Verifique sua internet e tente novamente.');
     } catch (e) {
       // Verificar se é erro de função do Supabase
@@ -340,11 +320,7 @@ class IdosoOrganizacaoService {
           .eq('id', idosoId)
           .single();
 
-      if (idosoResponse == null) {
-        throw Exception('Idoso não encontrado');
-      }
-
-      final idoso = idosoResponse as Map<String, dynamic>;
+      final idoso = idosoResponse;
       final perfilId = idoso['perfil_id'] as String;
 
       // Remover vínculo
@@ -361,14 +337,12 @@ class IdosoOrganizacaoService {
             .eq('id', perfilId)
             .single();
 
-        if (perfilResponse != null) {
-          final perfil = perfilResponse as Map<String, dynamic>;
-          if (perfil['is_virtual'] == true) {
-            await Supabase.instance.client
-                .from('perfis')
-                .delete()
-                .eq('id', perfilId);
-          }
+        final perfil = perfilResponse;
+        if (perfil['is_virtual'] == true) {
+          await Supabase.instance.client
+              .from('perfis')
+              .delete()
+              .eq('id', perfilId);
         }
       } catch (e) {
         // Ignorar erro se perfil não existir

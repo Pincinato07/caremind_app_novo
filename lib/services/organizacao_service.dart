@@ -214,11 +214,7 @@ class OrganizacaoService {
           .eq('user_id', user.id)
           .single();
 
-      if (perfilResponse == null) {
-        return [];
-      }
-
-      final perfil = perfilResponse as Map<String, dynamic>;
+      final perfil = perfilResponse;
       final perfilId = perfil['id'] as String;
 
       // Buscar organizações onde o usuário é membro
@@ -228,7 +224,7 @@ class OrganizacaoService {
           .eq('perfil_id', perfilId)
           .eq('ativo', true);
 
-      if (membrosResponse == null || membrosResponse.isEmpty) {
+      if (membrosResponse.isEmpty) {
         return [];
       }
 
@@ -256,11 +252,7 @@ class OrganizacaoService {
           .eq('id', organizacaoId)
           .single();
 
-      if (response == null) {
-        throw Exception('Organização não encontrada');
-      }
-
-      return Organizacao.fromJson(response as Map<String, dynamic>);
+      return Organizacao.fromJson(response);
     } catch (e) {
       throw Exception('Erro ao obter organização: $e');
     }
@@ -291,11 +283,7 @@ class OrganizacaoService {
           .select()
           .single();
 
-      if (response == null) {
-        throw Exception('Erro ao atualizar organização');
-      }
-
-      return Organizacao.fromJson(response as Map<String, dynamic>);
+      return Organizacao.fromJson(response);
     } catch (e) {
       throw Exception('Erro ao atualizar organização: $e');
     }
@@ -313,9 +301,7 @@ class OrganizacaoService {
           .eq('user_id', user.id)
           .single();
 
-      if (perfilResponse == null) return null;
-
-      final perfil = perfilResponse as Map<String, dynamic>;
+      final perfil = perfilResponse;
       final perfilId = perfil['id'] as String;
 
       final membroResponse = await Supabase.instance.client
@@ -326,9 +312,7 @@ class OrganizacaoService {
           .eq('ativo', true)
           .single();
 
-      if (membroResponse == null) return null;
-
-      final membro = membroResponse as Map<String, dynamic>;
+      final membro = membroResponse;
       return membro['role'] as String?;
     } catch (e) {
       return null;

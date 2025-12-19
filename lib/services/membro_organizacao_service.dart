@@ -2,13 +2,9 @@ import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:postgrest/postgrest.dart';
 import 'organizacao_service.dart';
-import 'supabase_service.dart';
 
 /// Serviço para gerenciar membros da organização
 class MembroOrganizacaoService {
-  final SupabaseService _supabaseService;
-
-  MembroOrganizacaoService(this._supabaseService);
 
   /// Listar membros da organização
   Future<List<MembroOrganizacao>> listarMembros(String organizacaoId) async {
@@ -30,8 +26,8 @@ class MembroOrganizacaoService {
       if (e.code == 'PGRST301' || e.code == 'PGRST116') {
         throw Exception('Organização não encontrada ou sem permissão');
       }
-      throw Exception('Erro ao buscar membros: ${e.message ?? e.toString()}');
-    } on SocketException catch (e) {
+      throw Exception('Erro ao buscar membros: ${e.message}');
+    } on SocketException {
       throw Exception('Erro de conexão. Verifique sua internet e tente novamente.');
     } catch (e) {
       throw Exception('Erro ao listar membros: ${e.toString()}');
@@ -110,13 +106,13 @@ class MembroOrganizacaoService {
           .eq('id', membroId)
           .single();
       
-      if (membroResponse == null) {
-        throw Exception('Membro não encontrado');
-      }
-      
       final perfilIdRemovido = membroResponse['perfil_id'] as String;
       
       // Verificar se é o próprio usuário que está sendo removido
+      if (currentUserId == null) {
+        throw Exception('Usuário não autenticado');
+      }
+      
       final perfilAtualResponse = await Supabase.instance.client
           .from('perfis')
           .select('id')
@@ -133,7 +129,7 @@ class MembroOrganizacaoService {
           .eq('id', membroId);
       
       // Se o usuário atual foi removido, verificar se ainda é membro de outra organização
-      if (usuarioFoiRemovido && currentUserId != null && perfilAtualId != null) {
+      if (usuarioFoiRemovido && perfilAtualId != null) {
         final outrasOrganizacoes = await Supabase.instance.client
             .from('membros_organizacao')
             .select('id')
@@ -152,8 +148,8 @@ class MembroOrganizacaoService {
       if (e.code == 'PGRST301' || e.code == 'PGRST116') {
         throw Exception('Membro não encontrado ou sem permissão');
       }
-      throw Exception('Erro ao remover membro: ${e.message ?? e.toString()}');
-    } on SocketException catch (e) {
+      throw Exception('Erro ao remover membro: ${e.message}');
+    } on SocketException {
       throw Exception('Erro de conexão. Verifique sua internet e tente novamente.');
     } catch (e) {
       throw Exception('Erro ao remover membro: ${e.toString()}');

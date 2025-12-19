@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/organizacao_provider.dart';
 import '../../services/organizacao_service.dart';
-import '../../core/injection/injection.dart';
 import 'criar_organizacao_screen.dart';
 import 'organizacao_dashboard_screen.dart';
 
@@ -17,8 +16,6 @@ class OrganizacaoListaScreen extends ConsumerStatefulWidget {
 
 class _OrganizacaoListaScreenState
     extends ConsumerState<OrganizacaoListaScreen> {
-  final OrganizacaoService _organizacaoService = getIt<OrganizacaoService>();
-
   @override
   void initState() {
     super.initState();

@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/organizacao_service.dart';
-import '../services/membro_organizacao_service.dart';
 import '../core/injection/injection.dart';
 
 /// State class para organização

@@ -17,13 +17,16 @@ import '../../core/accessibility/tts_enhancer.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/error_widget_with_retry.dart';
 import '../../widgets/feedback_snackbar.dart';
-import '../../widgets/confirm_medication_button.dart';
 import '../../widgets/offline_indicator.dart';
 import '../../widgets/undo_snackbar.dart';
 import '../../widgets/recent_actions_panel.dart';
 import '../../widgets/quick_action_fab.dart';
 import '../../widgets/batch_medication_selector.dart';
 import '../../services/notification_service.dart';
+import '../../services/onboarding_service.dart';
+import '../../widgets/empty_state.dart';
+import '../medication/gestao_medicamentos_screen.dart';
+import '../medication/add_edit_medicamento_form.dart';
 
 class IndividualDashboardScreen extends StatefulWidget {
   const IndividualDashboardScreen({super.key});
@@ -1007,20 +1010,25 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   bottom: 80,
                   right: 24,
                   child: QuickActionFAB(
-                    onMedicationTap: () {
+                    onMedicationTap: () async {
                       // Navegar para tela de adicionar medicamento rápido
-                      // TODO: Implementar navegação
-                      FeedbackSnackbar.info(context, 'Funcionalidade em desenvolvimento');
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AddEditMedicamentoForm(),
+                        ),
+                      );
+                      if (result == true && mounted) {
+                        _loadUserData();
+                      }
                     },
                     onVitalSignTap: () {
                       // Navegar para tela de registrar sinal vital
-                      // TODO: Implementar navegação
-                      FeedbackSnackbar.info(context, 'Funcionalidade em desenvolvimento');
+                      _showVitalSignDialog();
                     },
                     onEventTap: () {
                       // Navegar para tela de registrar evento
-                      // TODO: Implementar navegação
-                      FeedbackSnackbar.info(context, 'Funcionalidade em desenvolvimento');
+                      _showEventDialog();
                     },
                   ),
                 ),
@@ -1433,7 +1441,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
               // Navegar para tela de medicamentos
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => const GestaoMedicamentosScreen(),
+                  builder: (_) => GestaoMedicamentosScreen(),
                 ),
               );
             },
@@ -1457,7 +1465,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
             if (mounted) {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => const GestaoMedicamentosScreen(),
+                  builder: (_) => GestaoMedicamentosScreen(),
                 ),
               );
             }
@@ -1465,6 +1473,110 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
         );
       },
     );
+  }
+
+  /// Mostra diálogo para registrar sinal vital
+  void _showVitalSignDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Registrar Sinal Vital'),
+        content: const Text(
+          'A funcionalidade de registro de sinais vitais está em desenvolvimento. '
+          'Em breve você poderá registrar pressão arterial, temperatura, glicemia e outros sinais vitais.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Mostra diálogo para registrar evento
+  Future<void> _showEventDialog() async {
+    final descricaoController = TextEditingController();
+    final tipoController = TextEditingController();
+    
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Registrar Evento'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: tipoController,
+                decoration: const InputDecoration(
+                  labelText: 'Tipo de Evento',
+                  hintText: 'Ex: Consulta, Exame, Sintoma',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descricaoController,
+                decoration: const InputDecoration(
+                  labelText: 'Descrição',
+                  hintText: 'Descreva o evento',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (tipoController.text.trim().isNotEmpty && 
+                  descricaoController.text.trim().isNotEmpty) {
+                Navigator.pop(context, true);
+              }
+            },
+            child: const Text('Registrar'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && mounted) {
+      try {
+        final supabaseService = getIt<SupabaseService>();
+        final user = supabaseService.currentUser;
+        
+        if (user != null) {
+          final perfil = await supabaseService.getProfile(user.id);
+          if (perfil != null) {
+            await HistoricoEventosService.addEvento({
+              'perfil_id': perfil.id,
+              'tipo': tipoController.text.trim(),
+              'descricao': descricaoController.text.trim(),
+              'data': DateTime.now().toIso8601String(),
+            });
+            
+            if (mounted) {
+              FeedbackSnackbar.success(context, 'Evento registrado com sucesso!');
+              _loadUserData(); // Recarregar dados
+            }
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          FeedbackSnackbar.error(context, 'Erro ao registrar evento: $e');
+        }
+      }
+    }
+    
+    descricaoController.dispose();
+    tipoController.dispose();
   }
 }
 

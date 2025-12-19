@@ -197,10 +197,7 @@ class MedicamentoService {
         throw Exception('Medicamento não encontrado');
       }
 
-      final perfilId = medicamentoAtual.perfilId ?? medicamentoAtual.userId;
-      if (perfilId == null) {
-        throw Exception('perfil_id não encontrado para o medicamento');
-      }
+      final perfilId = medicamentoAtual.perfilId;
 
       // Buscar ou criar evento no historico_eventos
       final eventosResponse = await _client

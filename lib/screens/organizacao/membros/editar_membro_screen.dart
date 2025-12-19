@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../services/membro_organizacao_service.dart';
 import '../../../core/injection/injection.dart';
-import '../../../services/organizacao_service.dart';
 
 /// Tela para editar membro da organização
 class EditarMembroScreen extends StatefulWidget {
@@ -102,7 +101,7 @@ class _EditarMembroScreenState extends State<EditarMembroScreen> {
             ),
             const SizedBox(height: 24),
             DropdownButtonFormField<String>(
-              value: _roleSelecionado,
+              initialValue: _roleSelecionado,
               decoration: const InputDecoration(
                 labelText: 'Função *',
                 border: OutlineInputBorder(),

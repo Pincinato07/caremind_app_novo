@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
-// import 'package:qr_flutter/qr_flutter.dart'; // TODO: Adicionar dependência qr_flutter no pubspec.yaml
+import 'package:qr_flutter/qr_flutter.dart';
 
 class ExibirConviteScreen extends StatelessWidget {
   final String codigoConvite;
@@ -16,7 +18,7 @@ class ExibirConviteScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Convite de Vínculo'),
+        title: const Text('Convite de Login'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -24,37 +26,46 @@ class ExibirConviteScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              'Compartilhe este código com o familiar para vincular à conta:',
+              'Compartilhe este código ou QR code com o idoso para que ele possa fazer login no aplicativo pela primeira vez:',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 18),
             ),
             const SizedBox(height: 24),
 
             // QR Code com o deep link
-            // TODO: Descomentar quando qr_flutter for adicionado ao pubspec.yaml
-            // Container(
-            //   padding: const EdgeInsets.all(16),
-            //   decoration: BoxDecoration(
-            //     border: Border.all(color: Colors.blue, width: 2),
-            //     borderRadius: BorderRadius.circular(8),
-            //   ),
-            //   child: QrImageView(
-            //     data: deepLink,
-            //     version: QrVersions.auto,
-            //     size: 200.0,
-            //   ),
-            // ),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.blue, width: 2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.qr_code,
-                size: 200.0,
-                color: Colors.blue,
-              ),
+            Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.blue, width: 2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: deepLink.isNotEmpty
+                      ? QrImageView(
+                          data: deepLink,
+                          version: QrVersions.auto,
+                          size: 200.0,
+                          errorCorrectionLevel: QrErrorCorrectLevel.H,
+                        )
+                      : const Center(
+                          child: Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: Colors.red,
+                          ),
+                        ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Escaneie com a câmera do dispositivo ou com o app CareMind',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
             ),
 
             const SizedBox(height: 16),
@@ -76,10 +87,52 @@ class ExibirConviteScreen extends StatelessWidget {
 
             ElevatedButton.icon(
               onPressed: () async {
-                await Share.share(
-                  'Use este link para se conectar à nossa família no CareMind: $deepLink\n\nCódigo alternativo: $codigoConvite',
-                  subject: 'Convite para o CareMind',
-                );
+                try {
+                  // Validar dados antes de compartilhar
+                  if (deepLink.isEmpty || codigoConvite.isEmpty) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Erro: Dados do convite inválidos'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                    return;
+                  }
+
+                  await Share.share(
+                    'Use este link para fazer login no CareMind: $deepLink\n\nCódigo alternativo: $codigoConvite',
+                    subject: 'Convite de Login - CareMind',
+                  );
+                } on PlatformException catch (e) {
+                  debugPrint('Erro ao compartilhar: $e');
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao compartilhar: ${e.message ?? "Erro desconhecido"}'),
+                        backgroundColor: Colors.orange,
+                        action: SnackBarAction(
+                          label: 'Copiar Link',
+                          textColor: Colors.white,
+                          onPressed: () {
+                            // Copiar para clipboard seria implementado aqui se necessário
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  debugPrint('Erro inesperado ao compartilhar: $e');
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Erro ao compartilhar. Tente novamente.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
               },
               icon: const Icon(Icons.share),
               label: const Text('Compartilhar Link'),
@@ -97,10 +150,10 @@ class ExibirConviteScreen extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
-                '1. Compartilhe este código ou link com o familiar que deseja vincular\n'
-                '2. Peça para a pessoa abrir o aplicativo e selecionar "Sou um familiar"\n'
-                '3. Na tela de login, selecione "Já tenho um código de convite"\n'
-                '4. Insira o código ou use o link para concluir o vínculo',
+                '1. Compartilhe o QR code ou link com o idoso\n'
+                '2. O idoso pode escanear o QR code com a câmera do celular ou abrir o link\n'
+                '3. O app abrirá automaticamente e fará o login\n'
+                '4. Após o primeiro login, o idoso poderá usar email e senha normalmente',
                 style: TextStyle(fontSize: 14),
               ),
             ),

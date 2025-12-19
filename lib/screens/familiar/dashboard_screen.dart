@@ -70,14 +70,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
   Future<void> _loadUserData() async {
     try {
       final supabaseService = getIt<SupabaseService>();
-      if (supabaseService == null) {
-        throw Exception('SupabaseService não disponível');
-      }
-      
       final familiarState = getIt<FamiliarState>();
-      if (familiarState == null) {
-        throw Exception('FamiliarState não disponível');
-      }
       
       final user = supabaseService.currentUser;
       if (user == null) {
@@ -286,7 +279,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                 );
                 
                 if (horarioDateTime.isBefore(agora)) {
-                  final nomeMed = med.nome ?? 'Medicamento';
+                  final nomeMed = med.nome;
                   alertas.add({
                     'tipo': 'atraso',
                     'mensagem': '$nomeMed Atrasado',
@@ -307,7 +300,7 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
           try {
             final quantidade = med.quantidade ?? 0;
             if (quantidade < 10 && quantidade >= 0) {
-              final nomeMed = med.nome ?? 'Medicamento';
+              final nomeMed = med.nome;
               alertas.add({
                 'tipo': 'estoque',
                 'mensagem': '$nomeMed - Estoque baixo',

@@ -51,7 +51,6 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
   String? _error;
   String? _perfilTipo;
   bool _isOffline = false;
-  DateTime? _lastSync;
 
   @override
   void initState() {
@@ -158,7 +157,6 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
           
           // Salvar no cache offline
           await OfflineCacheService.cacheMedicamentos(targetId, medicamentos);
-          _lastSync = DateTime.now();
           
           Map<int, bool> status = {};
           if (medicamentos.isNotEmpty) {
@@ -202,7 +200,6 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
   Future<void> _loadFromCache(String userId) async {
     try {
       final cachedMedicamentos = await OfflineCacheService.getCachedMedicamentos(userId);
-      _lastSync = await OfflineCacheService.getCacheTimestamp(userId, 'medicamentos');
       
       if (cachedMedicamentos.isNotEmpty) {
         setState(() {
@@ -344,169 +341,179 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
       String? option;
       try {
         option = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFA8B8FF), Color(0xFF9B7EFF)],
-          ),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Como deseja adicionar?',
-                  style: AppTextStyles.leagueSpartan(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Opção: Formulário
-                AnimatedCard(
-                  index: 0,
-                  child: CareMindCard(
-                    variant: CardVariant.glass,
-                    onTap: () => Navigator.pop(context, 'formulario'),
-                    padding: AppSpacing.paddingLarge,
-                    child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.25),
-                          borderRadius: AppBorderRadius.mediumAll,
-                        ),
-                        child: const Icon(
-                          Icons.edit_note,
-                          color: Colors.white,
-                          size: 28,
-                        ),
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (context) => Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFA8B8FF), Color(0xFF9B7EFF)],
+              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Como deseja adicionar?',
+                      style: AppTextStyles.leagueSpartan(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    ),
+                    const SizedBox(height: 24),
+                    // Opção: Formulário
+                    AnimatedCard(
+                      index: 0,
+                      child: CareMindCard(
+                        variant: CardVariant.glass,
+                        onTap: () => Navigator.pop(context, 'formulario'),
+                        padding: AppSpacing.paddingLarge,
+                        child: Row(
                           children: [
-                            Text(
-                              'Formulário',
-                              style: AppTextStyles.leagueSpartan(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.25),
+                                borderRadius: AppBorderRadius.mediumAll,
+                              ),
+                              child: const Icon(
+                                Icons.edit_note,
                                 color: Colors.white,
+                                size: 28,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Preencher manualmente',
-                              style: AppTextStyles.leagueSpartan(
-                                fontSize: 14,
-                                color: Colors.white.withValues(alpha: 0.9),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Formulário',
+                                    style: AppTextStyles.leagueSpartan(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Preencher manualmente',
+                                    style: AppTextStyles.leagueSpartan(
+                                      fontSize: 14,
+                                      color: Colors.white.withValues(alpha: 0.9),
+                                    ),
+                                  ),
+                                ],
                               ),
+                            ),
+                            const Icon(
+                              Icons.arrow_forward_ios,
+                              color: Colors.white,
+                              size: 18,
                             ),
                           ],
                         ),
                       ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-                SizedBox(height: AppSpacing.small + 4),
-                // Opção: OCR
-                PremiumGuard(
-                  isEnabled: getIt<SubscriptionService>().canUseOCR,
-                  mode: PremiumGuardMode.blockTouch,
-                  child: AnimatedCard(
-                    index: 1,
-                    child: CareMindCard(
-                      variant: CardVariant.glass,
-                      onTap: () async {
-                        final subscriptionService = getIt<SubscriptionService>();
-                        await subscriptionService.getPermissions();
-                        if (subscriptionService.canUseOCR && mounted) {
-                          Navigator.pop(context, 'ocr');
-                        }
-                      },
-                      padding: AppSpacing.paddingLarge,
-                      child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.25),
-                            borderRadius: AppBorderRadius.mediumAll,
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                    ),
+                    SizedBox(height: AppSpacing.small + 4),
+                    // Opção: OCR
+                    PremiumGuard(
+                      isEnabled: getIt<SubscriptionService>().canUseOCR,
+                      mode: PremiumGuardMode.blockTouch,
+                      child: AnimatedCard(
+                        index: 1,
+                        child: CareMindCard(
+                          variant: CardVariant.glass,
+                          onTap: () async {
+                            final subscriptionService = getIt<SubscriptionService>();
+                            await subscriptionService.getPermissions();
+                            if (subscriptionService.canUseOCR && mounted) {
+                              Navigator.pop(context, 'ocr');
+                            }
+                          },
+                          padding: AppSpacing.paddingLarge,
+                          child: Row(
                             children: [
-                              Text(
-                                'Por Foto',
-                                style: AppTextStyles.leagueSpartan(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                  borderRadius: AppBorderRadius.mediumAll,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
                                   color: Colors.white,
+                                  size: 28,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Ler receita com inteligência artificial',
-                                style: AppTextStyles.leagueSpartan(
-                                  fontSize: 14,
-                                  color: Colors.white.withValues(alpha: 0.9),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Por Foto',
+                                      style: AppTextStyles.leagueSpartan(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Ler receita com inteligência artificial',
+                                      style: AppTextStyles.leagueSpartan(
+                                        fontSize: 14,
+                                        color: Colors.white.withValues(alpha: 0.9),
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                              ),
+                              const Icon(
+                                Icons.arrow_forward_ios,
+                                color: Colors.white,
+                                size: 18,
                               ),
                             ],
                           ),
                         ),
-                        const Icon(
-                          Icons.arrow_forward_ios,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    SizedBox(height: AppSpacing.medium),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        'Cancelar',
+                        style: AppTextStyles.leagueSpartan(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-                SizedBox(height: AppSpacing.medium),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'Cancelar',
-                    style: AppTextStyles.leagueSpartan(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
-                  ),
-                ),
-              ],
             ),
           ),
-        ),
-      ),
-    );
+        );
+      } catch (e) {
+        debugPrint('⚠️ Erro ao mostrar opções de adicionar medicamento: $e');
+        if (mounted) {
+          FeedbackSnackbar.error(
+            context,
+            'Erro ao abrir opções. Tente novamente.',
+          );
+        }
+        return;
+      }
 
       if (option == null) return;
 

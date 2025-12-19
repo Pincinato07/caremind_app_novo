@@ -75,9 +75,8 @@ class _PremiumSalesModalState extends State<PremiumSalesModal> {
       final returnUrl = 'caremind://premium/success?user_id=${user.id}';
       
       // Chama a Edge Function correta (com tratamento de erro)
-      FunctionResponse response;
       try {
-        response = await supabase.functions.invoke(
+        final response = await supabase.functions.invoke(
           'asaas-create-subscription',
           body: {
             'user_id': user.id,
@@ -86,68 +85,68 @@ class _PremiumSalesModalState extends State<PremiumSalesModal> {
             'return_url': returnUrl, // ✅ Deep link de retorno
           },
         );
+
+        // Verificar se houve erro (status != 200)
+        if (response.status != 200) {
+          final errorData = response.data as Map<String, dynamic>?;
+          final errorMessage = errorData?['error'] as String? ?? 
+                             errorData?['message'] as String? ??
+                             'Erro ao criar checkout';
+          throw Exception(errorMessage);
+        }
+
+        final responseData = response.data as Map<String, dynamic>?;
+        final url = responseData?['url'] as String?;
+        
+        if (url == null || url.isEmpty) {
+          throw Exception('URL de checkout não retornada. Tente novamente.');
+        }
+
+        // Validar URL antes de abrir
+        Uri? uri;
+        try {
+          uri = Uri.parse(url);
+          if (!uri.hasScheme || (!uri.scheme.startsWith('http'))) {
+            throw Exception('URL de checkout inválida');
+          }
+        } catch (e) {
+          debugPrint('⚠️ URL de checkout inválida: $url');
+          throw Exception('URL de checkout inválida. Tente novamente.');
+        }
+
+        if (mounted) {
+          // Fecha o modal
+          Navigator.pop(context);
+          
+          // Abre o navegador com o link de pagamento (com tratamento de erro)
+          try {
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            } else {
+              throw Exception('Não foi possível abrir o link de pagamento');
+            }
+          } catch (e) {
+            debugPrint('⚠️ Erro ao abrir URL: $e');
+            throw Exception('Não foi possível abrir o navegador. Verifique as configurações do dispositivo.');
+          }
+
+          // Callback customizado (se fornecido)
+          if (widget.onSubscribeTapped != null) {
+            widget.onSubscribeTapped!();
+          }
+
+          // Mostra mensagem informativa
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Redirecionando para pagamento...'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       } catch (e) {
         debugPrint('⚠️ Erro ao chamar Edge Function: $e');
         throw Exception('Erro de conexão. Verifique sua internet e tente novamente.');
-      }
-
-      // Verificar se houve erro (status != 200)
-      if (response.status != 200) {
-        final errorData = response.data as Map<String, dynamic>?;
-        final errorMessage = errorData?['error'] as String? ?? 
-                           errorData?['message'] as String? ??
-                           'Erro ao criar checkout';
-        throw Exception(errorMessage);
-      }
-
-      final responseData = response.data as Map<String, dynamic>?;
-      final url = responseData?['url'] as String?;
-      
-      if (url == null || url.isEmpty) {
-        throw Exception('URL de checkout não retornada. Tente novamente.');
-      }
-
-      // Validar URL antes de abrir
-      Uri? uri;
-      try {
-        uri = Uri.parse(url);
-        if (!uri.hasScheme || (!uri.scheme.startsWith('http'))) {
-          throw Exception('URL de checkout inválida');
-        }
-      } catch (e) {
-        debugPrint('⚠️ URL de checkout inválida: $url');
-        throw Exception('URL de checkout inválida. Tente novamente.');
-      }
-
-      if (mounted) {
-        // Fecha o modal
-        Navigator.pop(context);
-        
-        // Abre o navegador com o link de pagamento (com tratamento de erro)
-        try {
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          } else {
-            throw Exception('Não foi possível abrir o link de pagamento');
-          }
-        } catch (e) {
-          debugPrint('⚠️ Erro ao abrir URL: $e');
-          throw Exception('Não foi possível abrir o navegador. Verifique as configurações do dispositivo.');
-        }
-
-        // Callback customizado (se fornecido)
-        if (widget.onSubscribeTapped != null) {
-          widget.onSubscribeTapped!();
-        }
-
-        // Mostra mensagem informativa
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Redirecionando para pagamento...'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
       }
     } catch (e) {
       if (mounted) {
