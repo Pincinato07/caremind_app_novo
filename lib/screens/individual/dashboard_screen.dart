@@ -16,7 +16,9 @@ import '../../services/historico_eventos_service.dart';
 import '../../core/accessibility/tts_enhancer.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/error_widget_with_retry.dart';
-import '../../widgets/feedback_snackbar.dart';
+import '../../core/feedback/feedback_service.dart';
+import '../../core/errors/error_handler.dart';
+import '../../core/errors/app_exception.dart';
 import '../../widgets/offline_indicator.dart';
 import '../../widgets/undo_snackbar.dart';
 import '../../widgets/recent_actions_panel.dart';
@@ -102,7 +104,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
 
       if (mounted) {
         try {
-          FeedbackSnackbar.info(context,
+          FeedbackService.showInfo(context,
               'Conexão restaurada! Sincronizando ${pendingActions.length} ação(ões)...');
         } catch (e) {
           debugPrint('⚠️ Erro ao mostrar feedback de sincronização: $e');
@@ -188,10 +190,10 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
       if (mounted) {
         try {
           if (failed == 0) {
-            FeedbackSnackbar.success(
+            FeedbackService.showSuccess(
                 context, '$synced ação(ões) sincronizada(s) com sucesso!');
           } else {
-            FeedbackSnackbar.warning(context,
+            FeedbackService.showWarning(context,
                 '$synced sincronizada(s), $failed falharam. Tente novamente.');
           }
         } catch (e) {
@@ -203,8 +205,8 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
       debugPrint('Stack trace: $stackTrace');
       if (mounted) {
         try {
-          FeedbackSnackbar.error(
-              context, 'Erro ao sincronizar ações pendentes');
+          FeedbackService.showError(context,
+              UnknownException(message: 'Erro ao sincronizar ações pendentes'));
         } catch (e2) {
           debugPrint('⚠️ Erro ao mostrar feedback de erro: $e2');
         }
@@ -274,7 +276,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
         });
 
         if (mounted) {
-          FeedbackSnackbar.warning(
+          FeedbackService.showWarning(
               context, 'Usando dados salvos (modo offline)');
         }
       } else {
@@ -404,7 +406,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
         });
 
         if (mounted) {
-          FeedbackSnackbar.info(
+          FeedbackService.showInfo(
               context, 'Salvo offline. Será sincronizado quando conectar.');
         }
       } else {
@@ -454,7 +456,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
         } else {
           _addRecentAction(medicamento, DateTime.now(), false);
           if (mounted) {
-            FeedbackSnackbar.info(context, '${medicamento.nome} desmarcado');
+            FeedbackService.showInfo(context, '${medicamento.nome} desmarcado');
           }
         }
       }
@@ -493,7 +495,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
           });
 
           if (mounted) {
-            FeedbackSnackbar.info(
+            FeedbackService.showInfo(
                 context, 'Salvo offline. Será sincronizado quando conectar.');
           }
         } catch (saveError) {
@@ -516,9 +518,10 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   : 'Você tomou tudo hoje.';
             });
 
-            FeedbackSnackbar.error(
+            FeedbackService.showError(
               context,
-              'Erro ao salvar. Verifique sua conexão.',
+              NetworkException(
+                  message: 'Erro ao salvar. Verifique sua conexão.'),
               onRetry: () => _confirmarMedicamento(medicamento),
             );
           }
@@ -541,9 +544,9 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                 : 'Você tomou tudo hoje.';
           });
 
-          FeedbackSnackbar.error(
+          FeedbackService.showError(
             context,
-            'Erro ao atualizar medicamento: ${e.toString()}',
+            ErrorHandler.toAppException(e),
             onRetry: () => _confirmarMedicamento(medicamento),
           );
         }
@@ -580,7 +583,8 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                 } catch (e) {
                   debugPrint('❌ Dashboard: Erro ao desfazer ação recente - $e');
                   if (mounted) {
-                    FeedbackSnackbar.error(context, 'Erro ao desfazer ação');
+                    FeedbackService.showError(context,
+                        UnknownException(message: 'Erro ao desfazer ação'));
                   }
                 }
               },
@@ -612,7 +616,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     if (validMedicamentos.isEmpty) {
       debugPrint('⚠️ Dashboard: Nenhum medicamento válido para confirmar');
       if (mounted) {
-        FeedbackSnackbar.warning(
+        FeedbackService.showWarning(
             context, 'Todos os medicamentos selecionados já foram confirmados');
       }
       setState(() => _isSelectionMode = false);
@@ -718,15 +722,16 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
       if (mounted) {
         if (failedMedicamentos.isNotEmpty && confirmedMedicamentos.isNotEmpty) {
           // Parcialmente sucesso
-          FeedbackSnackbar.warning(
+          FeedbackService.showWarning(
             context,
             '${confirmedMedicamentos.length} confirmado(s), ${failedMedicamentos.length} falhou(ram)',
           );
         } else if (failedMedicamentos.isNotEmpty) {
           // Todos falharam
-          FeedbackSnackbar.error(
+          FeedbackService.showError(
             context,
-            'Erro ao confirmar medicamentos. Tente novamente.',
+            UnknownException(
+                message: 'Erro ao confirmar medicamentos. Tente novamente.'),
             onRetry: () => _confirmarMedicamentosBatch(validMedicamentos),
           );
           return;
@@ -748,7 +753,8 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
               } catch (e) {
                 debugPrint('❌ Dashboard: Erro ao desfazer lote - $e');
                 if (mounted) {
-                  FeedbackSnackbar.error(context, 'Erro ao desfazer ações');
+                  FeedbackService.showError(context,
+                      UnknownException(message: 'Erro ao desfazer ações'));
                 }
               }
             },
@@ -759,9 +765,11 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     } catch (e) {
       debugPrint('❌ Dashboard: Erro crítico ao confirmar lote - $e');
       if (mounted) {
-        FeedbackSnackbar.error(
+        FeedbackService.showError(
           context,
-          'Erro ao confirmar medicamentos em lote. Tente novamente.',
+          UnknownException(
+              message:
+                  'Erro ao confirmar medicamentos em lote. Tente novamente.'),
           onRetry: () => _confirmarMedicamentosBatch(validMedicamentos),
         );
       }
@@ -1654,7 +1662,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
             });
 
             if (mounted) {
-              FeedbackSnackbar.success(
+              FeedbackService.showSuccess(
                   context, 'Evento registrado com sucesso!');
               _loadUserData(); // Recarregar dados
             }
@@ -1662,7 +1670,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
         }
       } catch (e) {
         if (mounted) {
-          FeedbackSnackbar.error(context, 'Erro ao registrar evento: $e');
+          FeedbackService.showError(context, ErrorHandler.toAppException(e));
         }
       }
     }

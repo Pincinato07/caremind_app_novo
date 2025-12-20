@@ -12,7 +12,7 @@ import '../../widgets/banner_contexto_familiar.dart';
 import '../../widgets/compromissos_calendar.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/error_widget_with_retry.dart';
-import '../../widgets/feedback_snackbar.dart';
+import '../../core/feedback/feedback_service.dart';
 import '../../widgets/offline_indicator.dart';
 import 'add_edit_compromisso_form.dart';
 
@@ -59,7 +59,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
         if (wasOffline && isOnline) {
           _loadCompromissos();
           if (mounted) {
-            FeedbackSnackbar.success(context, 'Conexão restaurada!');
+            FeedbackService.showSuccess(context, 'Conexão restaurada!');
           }
         }
       }
@@ -169,7 +169,7 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
         });
 
         if (mounted) {
-          FeedbackSnackbar.warning(
+          FeedbackService.showWarning(
               context, 'Usando dados salvos (modo offline)');
         }
       } else {
@@ -223,11 +223,12 @@ class _GestaoCompromissosScreenState extends State<GestaoCompromissosScreen> {
   }
 
   void _showError(String message) {
-    FeedbackSnackbar.error(context, message, onRetry: _loadCompromissos);
+    FeedbackService.showError(context, UnknownException(message: message),
+        onRetry: _loadCompromissos);
   }
 
   void _showSuccess(String message) {
-    FeedbackSnackbar.success(context, message);
+    FeedbackService.showSuccess(context, message);
   }
 
   @override

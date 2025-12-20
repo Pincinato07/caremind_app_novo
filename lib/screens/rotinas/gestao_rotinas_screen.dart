@@ -13,7 +13,7 @@ import '../../widgets/banner_contexto_familiar.dart';
 import '../../widgets/voice_interface_widget.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/error_widget_with_retry.dart';
-import '../../widgets/feedback_snackbar.dart';
+import '../../core/feedback/feedback_service.dart';
 import '../../widgets/offline_indicator.dart';
 import 'add_edit_rotina_form.dart';
 
@@ -58,7 +58,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
         if (wasOffline && isOnline) {
           _loadRotinas();
           if (mounted) {
-            FeedbackSnackbar.success(context, 'Conexão restaurada!');
+            FeedbackService.showSuccess(context, 'Conexão restaurada!');
           }
         }
       }
@@ -170,7 +170,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
         });
 
         if (mounted) {
-          FeedbackSnackbar.warning(
+          FeedbackService.showWarning(
               context, 'Usando dados salvos (modo offline)');
         }
       } else {
@@ -274,11 +274,12 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
   }
 
   void _showError(String message) {
-    FeedbackSnackbar.error(context, message, onRetry: _loadRotinas);
+    FeedbackService.showError(context, UnknownException(message: message),
+        onRetry: _loadRotinas);
   }
 
   void _showSuccess(String message) {
-    FeedbackSnackbar.success(context, message);
+    FeedbackService.showSuccess(context, message);
   }
 
   @override

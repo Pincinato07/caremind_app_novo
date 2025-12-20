@@ -22,7 +22,7 @@ import '../../widgets/banner_contexto_familiar.dart';
 import '../../widgets/voice_interface_widget.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/error_widget_with_retry.dart';
-import '../../widgets/feedback_snackbar.dart';
+import '../../core/feedback/feedback_service.dart';
 import '../../widgets/offline_indicator.dart';
 import '../../widgets/premium/premium_guard.dart';
 import '../../widgets/premium/premium_sales_modal.dart';
@@ -75,7 +75,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
         if (wasOffline && isOnline) {
           _loadMedicamentos();
           if (mounted) {
-            FeedbackSnackbar.success(context, 'Conexão restaurada!');
+            FeedbackService.showSuccess(context, 'Conexão restaurada!');
           }
         }
       }
@@ -225,7 +225,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
         });
 
         if (mounted) {
-          FeedbackSnackbar.warning(
+          FeedbackService.showWarning(
               context, 'Usando dados salvos (modo offline)');
         }
       } else {
@@ -322,11 +322,12 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
   }
 
   void _showError(String message) {
-    FeedbackSnackbar.error(context, message, onRetry: _loadMedicamentos);
+    FeedbackService.showError(context, UnknownException(message: message),
+        onRetry: _loadMedicamentos);
   }
 
   void _showSuccess(String message) {
-    FeedbackSnackbar.success(context, message);
+    FeedbackService.showSuccess(context, message);
   }
 
   /// Mostra diálogo com opções: Formulário ou OCR
@@ -531,9 +532,9 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
       } catch (e) {
         debugPrint('⚠️ Erro ao mostrar opções de adicionar medicamento: $e');
         if (mounted) {
-          FeedbackSnackbar.error(
+          FeedbackService.showError(
             context,
-            'Erro ao abrir opções. Tente novamente.',
+            UnknownException(message: 'Erro ao abrir opções. Tente novamente.'),
           );
         }
         return;
@@ -574,9 +575,10 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
         } catch (e) {
           debugPrint('⚠️ Erro ao abrir formulário: $e');
           if (mounted) {
-            FeedbackSnackbar.error(
+            FeedbackService.showError(
               context,
-              'Erro ao abrir formulário. Tente novamente.',
+              UnknownException(
+                  message: 'Erro ao abrir formulário. Tente novamente.'),
             );
           }
         }
@@ -588,9 +590,10 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
         } catch (e) {
           debugPrint('⚠️ Erro ao mostrar opções OCR: $e');
           if (mounted) {
-            FeedbackSnackbar.error(
+            FeedbackService.showError(
               context,
-              'Erro ao abrir opções de câmera. Tente novamente.',
+              UnknownException(
+                  message: 'Erro ao abrir opções de câmera. Tente novamente.'),
             );
           }
         }
@@ -598,9 +601,9 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
     } catch (e) {
       debugPrint('⚠️ Erro no fluxo de adicionar medicamento: $e');
       if (mounted) {
-        FeedbackSnackbar.error(
+        FeedbackService.showError(
           context,
-          'Erro ao processar. Tente novamente.',
+          UnknownException(message: 'Erro ao processar. Tente novamente.'),
         );
       }
     }
