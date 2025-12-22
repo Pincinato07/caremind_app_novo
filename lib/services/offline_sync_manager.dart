@@ -16,6 +16,7 @@ import 'package:get_it/get_it.dart';
 class OfflineSyncManager {
   static bool _initialized = false;
   static StreamSubscription<bool>? _connectivitySubscription;
+  static bool _isProcessing = false; // CORRIGIDO: Flag para evitar processamento concorrente
 
   /// Inicializar gerenciador de sincronização
   ///
@@ -70,7 +71,15 @@ class OfflineSyncManager {
   ///
   /// - Imagens OCR pendentes
   /// - Ações de medicamentos pendentes
+  /// CORRIGIDO: Proteção contra execução concorrente
   static Future<void> processPendingData(String userId) async {
+    // Evitar processamento concorrente
+    if (_isProcessing) {
+      debugPrint('⚠️ OfflineSyncManager: Processamento já em andamento, ignorando...');
+      return;
+    }
+
+    _isProcessing = true;
     try {
       debugPrint('🔄 OfflineSyncManager: Processando dados pendentes...');
 
@@ -97,6 +106,8 @@ class OfflineSyncManager {
       debugPrint('✅ OfflineSyncManager: Processamento de pendências concluído');
     } catch (e) {
       debugPrint('❌ OfflineSyncManager: Erro ao processar dados pendentes: $e');
+    } finally {
+      _isProcessing = false; // Sempre liberar flag, mesmo em caso de erro
     }
   }
 

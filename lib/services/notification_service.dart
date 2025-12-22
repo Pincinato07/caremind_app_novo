@@ -1102,10 +1102,11 @@ class NotificationService {
       final client = Supabase.instance.client;
 
       // Chamar Edge Function para enviar push
+      // familiarId é o perfil_id do familiar (vinculo.idFamiliar)
       final response = await client.functions.invoke(
         'enviar-push-notification',
         body: {
-          'userId': familiarId,
+          'perfil_id': familiarId, // Usar perfil_id diretamente (mais correto)
           'title': '⚠️ Alerta: Medicamento não confirmado',
           'body':
               '$idosoNome não confirmou o medicamento "$medicamentoNome". Por favor, verifique.',

@@ -6,8 +6,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/supabase_service.dart';
 import '../../services/onboarding_service.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/feedback/feedback_service.dart';
 import '../../core/errors/error_handler.dart';
+import '../../core/errors/app_exception.dart';
 import '../../widgets/wave_background.dart';
 import '../shared/main_navigator_screen.dart';
 import '../onboarding/onboarding_contextual_screen.dart';
@@ -32,6 +34,7 @@ class _AuthShellState extends State<AuthShell>
   final _loginEmailController = TextEditingController();
   final _loginPasswordController = TextEditingController();
   bool _isLoginLoading = false;
+  bool _isGoogleLoading = false;
 
   // Register
   int _registerStep = 0;
@@ -211,6 +214,117 @@ class _AuthShellState extends State<AuthShell>
             _isLoginLoading = false;
           });
         }
+      }
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isGoogleLoading = true;
+    });
+
+    try {
+      final authService = getIt<AuthService>();
+      final perfil = await authService.handleGoogleSignIn();
+
+      if (!mounted) return;
+
+      if (perfil != null) {
+        try {
+          // Verificar se é primeiro acesso e mostrar onboarding contextual
+          final isFirstAccess =
+              await OnboardingService.isFirstAccess(perfil.id);
+          final shouldShowOnboarding =
+              await OnboardingService.shouldShowOnboarding(perfil.id);
+
+          if (isFirstAccess && shouldShowOnboarding) {
+            try {
+              await OnboardingService.markFirstAccess(perfil.id);
+            } catch (e) {
+              debugPrint('⚠️ Erro ao marcar primeiro acesso: $e');
+            }
+
+            String? action;
+            try {
+              action = await Navigator.push<String>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => OnboardingContextualScreen(perfil: perfil),
+                ),
+              );
+            } catch (e) {
+              debugPrint('⚠️ Erro ao mostrar onboarding: $e');
+            }
+
+            if (mounted) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => MainNavigatorScreen(perfil: perfil)),
+                (_) => false,
+              );
+
+              if (action == 'add_medicamento' && mounted) {
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  if (mounted) {
+                    FeedbackService.showInfo(
+                      context,
+                      'Navegue até Medicamentos para adicionar seu primeiro medicamento',
+                      duration: const Duration(seconds: 3),
+                    );
+                  }
+                });
+              }
+
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted) {
+                  CareMindApp.checkDndBypassOnLogin(context);
+                }
+              });
+            }
+          } else {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => MainNavigatorScreen(perfil: perfil)),
+              (_) => false,
+            );
+
+            Future.delayed(const Duration(seconds: 2), () {
+              if (mounted) {
+                CareMindApp.checkDndBypassOnLogin(context);
+              }
+            });
+          }
+        } catch (e) {
+          debugPrint('⚠️ Erro no fluxo de onboarding: $e');
+          if (mounted) {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => MainNavigatorScreen(perfil: perfil)),
+              (_) => false,
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          FeedbackService.showError(
+            context,
+            const AuthenticationException(
+                message: 'Falha ao autenticar com Google'),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        FeedbackService.showError(context, ErrorHandler.toAppException(e));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGoogleLoading = false;
+        });
       }
     }
   }
@@ -636,6 +750,56 @@ class _AuthShellState extends State<AuthShell>
     );
   }
 
+  Widget _googleSignInButton() {
+    return SizedBox(
+      height: 50,
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _isGoogleLoading || _isLoginLoading ? null : _handleGoogleSignIn,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white.withValues(alpha: 0.15),
+          side: BorderSide(
+            color: Colors.white.withValues(alpha: 0.25),
+            width: 1,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          elevation: 0,
+        ),
+        icon: _isGoogleLoading
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : Image.network(
+                'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+                width: 20,
+                height: 20,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(
+                    Icons.login,
+                    size: 20,
+                    color: Colors.white,
+                  );
+                },
+              ),
+        label: Text(
+          _isGoogleLoading ? 'Conectando...' : 'Entrar com Google',
+          style: GoogleFonts.leagueSpartan(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
   // ==================== FIELDS ====================
 
   Widget _glowField({
@@ -1013,6 +1177,38 @@ class _AuthShellState extends State<AuthShell>
                   (v?.length ?? 0) < 6 ? 'Mínimo 6 caracteres' : null,
             ),
             const SizedBox(height: 24),
+            // Botão Google
+            _googleSignInButton(),
+            const SizedBox(height: 16),
+            // Divisor "ou"
+            Row(
+              children: [
+                Expanded(
+                  child: Divider(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    thickness: 1,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'ou',
+                    style: GoogleFonts.leagueSpartan(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Divider(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    thickness: 1,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             _primaryButton(
               label: 'Entrar',
               onPressed: _isLoginLoading ? null : _handleLogin,

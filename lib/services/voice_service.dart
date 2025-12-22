@@ -410,8 +410,9 @@ class VoiceService {
     try {
       // Buscar rotinas pendentes
       final rotinas = await rotinaService.getRotinas(userId);
+      // CORRIGIDO: Usar concluido (boolean) em vez de concluida (tabela usa concluido)
       final rotinasPendentes =
-          rotinas.where((r) => r['concluida'] == false).toList();
+          rotinas.where((r) => (r['concluido'] ?? r['concluida'] ?? false) == false).toList();
 
       if (rotinasPendentes.isEmpty) {
         return VoiceCommandResult(
@@ -545,8 +546,9 @@ class VoiceService {
         );
       }
 
-      final pendentes = rotinas.where((r) => r['concluida'] == false).toList();
-      final concluidas = rotinas.where((r) => r['concluida'] == true).toList();
+      // CORRIGIDO: Usar concluido (boolean) em vez de concluida (tabela usa concluido)
+      final pendentes = rotinas.where((r) => (r['concluido'] ?? r['concluida'] ?? false) == false).toList();
+      final concluidas = rotinas.where((r) => (r['concluido'] ?? r['concluida'] ?? false) == true).toList();
 
       String message = 'Você tem ${rotinas.length} rotina(s) cadastrada(s). ';
 
@@ -568,7 +570,7 @@ class VoiceService {
               .map((r) => {
                     'id': r['id'],
                     'titulo': r['titulo'],
-                    'concluida': r['concluida']
+                    'concluido': r['concluido'] ?? r['concluida'] ?? false
                   })
               .toList()
         },

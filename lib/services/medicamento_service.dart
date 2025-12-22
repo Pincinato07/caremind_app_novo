@@ -65,11 +65,9 @@ class MedicamentoService {
           if (perfilResponse != null) {
             data['perfil_id'] = perfilResponse['id'] as String;
           } else {
-            // Se não encontrou perfil, garantir que user_id esteja presente
-            if (data['perfil_id'] == null ||
-                (data['perfil_id'] as String).isEmpty) {
-              data['perfil_id'] = medicamento.userId!;
-            }
+            // Se não encontrou perfil, usar user_id como fallback
+            // (compatibilidade durante transição, mas idealmente deveria existir perfil)
+            data['perfil_id'] = medicamento.userId!;
           }
         } else {
           throw Exception('perfil_id é obrigatório');
@@ -209,15 +207,17 @@ class MedicamentoService {
 
       final perfilId = medicamentoAtual.perfilId;
 
-      // Buscar ou criar evento no historico_eventos
-      final eventosResponse = await _client
+      // CORRIGIDO: Verificar novamente após buscar para evitar race condition
+      // Se dois usuários marcarem simultaneamente, ambos verão o mesmo estado inicial
+      final novoStatus = concluido ? 'concluido' : 'pendente';
+      
+      // Buscar evento existente
+      var eventosResponse = await _client
           .from('historico_eventos')
           .select()
           .eq('medicamento_id', medicamentoId)
           .eq('data_prevista', dataPrevista.toIso8601String())
           .maybeSingle();
-
-      final novoStatus = concluido ? 'concluido' : 'pendente';
 
       if (eventosResponse != null) {
         // Atualizar evento existente
@@ -226,49 +226,81 @@ class MedicamentoService {
           'horario_programado': DateTime.now().toIso8601String(),
         }).eq('id', eventosResponse['id']);
       } else {
-        // Criar novo evento
-        await _client.from('historico_eventos').insert({
-          'perfil_id': perfilId,
-          'tipo_evento': 'medicamento',
-          'evento_id': medicamentoId,
-          'medicamento_id': medicamentoId,
-          'data_prevista': dataPrevista.toIso8601String(),
-          'status': novoStatus,
-          'horario_programado': DateTime.now().toIso8601String(),
-          'titulo': medicamentoAtual.nome,
-          'descricao': medicamentoAtual.dosagem != null
-              ? 'Dosagem: ${medicamentoAtual.dosagem}'
-              : 'Medicamento registrado',
-        });
+        // Tentar criar novo evento
+        // Se falhar por duplicata (race condition), buscar novamente e atualizar
+        try {
+          await _client.from('historico_eventos').insert({
+            'perfil_id': perfilId,
+            'tipo_evento': 'medicamento',
+            'evento_id': medicamentoId,
+            'medicamento_id': medicamentoId,
+            'data_prevista': dataPrevista.toIso8601String(),
+            'status': novoStatus,
+            'horario_programado': DateTime.now().toIso8601String(),
+            'titulo': medicamentoAtual.nome,
+            'descricao': medicamentoAtual.dosagem != null
+                ? 'Dosagem: ${medicamentoAtual.dosagem}'
+                : 'Medicamento registrado',
+          });
+        } catch (insertError) {
+          // Se falhou por duplicata (outro processo criou), buscar e atualizar
+          if (insertError.toString().contains('duplicate') || 
+              insertError.toString().contains('unique')) {
+            eventosResponse = await _client
+                .from('historico_eventos')
+                .select()
+                .eq('medicamento_id', medicamentoId)
+                .eq('data_prevista', dataPrevista.toIso8601String())
+                .maybeSingle();
+            
+            if (eventosResponse != null) {
+              await _client.from('historico_eventos').update({
+                'status': novoStatus,
+                'horario_programado': DateTime.now().toIso8601String(),
+              }).eq('id', eventosResponse['id']);
+            } else {
+              // Se ainda não encontrou, relançar erro original
+              rethrow;
+            }
+          } else {
+            // Se erro não é de duplicata, relançar
+            rethrow;
+          }
+        }
       }
 
       // Se está marcando como tomado, decrementar quantidade
+      // CORRIGIDO: Usar RPC ou atualização atômica para evitar race condition
+      // Por enquanto, buscar novamente o medicamento para ter valor atualizado
       if (concluido) {
-        final novaQuantidade = (medicamentoAtual.quantidade ?? 0) > 0
-            ? (medicamentoAtual.quantidade ?? 0) - 1
-            : 0;
+        // Buscar quantidade atual novamente (pode ter mudado por outra requisição)
+        final medicamentoAtualizado = await getMedicamentoPorId(medicamentoId);
+        if (medicamentoAtualizado != null) {
+          final quantidadeAtual = medicamentoAtualizado.quantidade ?? 0;
+          final novaQuantidade = quantidadeAtual > 0 ? quantidadeAtual - 1 : 0;
 
-        await _client
-            .from('medicamentos')
-            .update({'quantidade': novaQuantidade}).eq('id', medicamentoId);
+          await _client
+              .from('medicamentos')
+              .update({'quantidade': novaQuantidade}).eq('id', medicamentoId);
 
-        // Verificar se estoque está baixo (<= 5 unidades)
-        if (novaQuantidade <= 5 && novaQuantidade > 0) {
-          try {
-            await HistoricoEventosService.addEvento({
-              'perfil_id': perfilId,
-              'tipo_evento': 'estoque_baixo',
-              'evento_id': medicamentoId,
-              'data_prevista': DateTime.now().toIso8601String(),
-              'status': 'pendente',
-              'titulo': 'Estoque baixo',
-              'descricao':
-                  'Estoque de "${medicamentoAtual.nome}" está baixo ($novaQuantidade unidade(s) restante(s))',
-              'medicamento_id': medicamentoId,
-            });
-          } catch (e) {
-            // Log erro mas não interrompe o fluxo
-            print('⚠️ Erro ao registrar alerta de estoque baixo: $e');
+          // Verificar se estoque está baixo (<= 5 unidades)
+          if (novaQuantidade <= 5 && novaQuantidade > 0) {
+            try {
+              await HistoricoEventosService.addEvento({
+                'perfil_id': perfilId,
+                'tipo_evento': 'estoque_baixo',
+                'evento_id': medicamentoId,
+                'data_prevista': DateTime.now().toIso8601String(),
+                'status': 'pendente',
+                'titulo': 'Estoque baixo',
+                'descricao':
+                    'Estoque de "${medicamentoAtual.nome}" está baixo ($novaQuantidade unidade(s) restante(s))',
+                'medicamento_id': medicamentoId,
+              });
+            } catch (e) {
+              // Log erro mas não interrompe o fluxo
+              print('⚠️ Erro ao registrar alerta de estoque baixo: $e');
+            }
           }
         }
       }

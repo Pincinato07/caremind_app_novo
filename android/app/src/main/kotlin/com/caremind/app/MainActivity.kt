@@ -1,5 +1,6 @@
-package com.example.caremind
+package com.caremind.app
 
 import io.flutter.embedding.android.FlutterActivity
 
 class MainActivity: FlutterActivity()
+

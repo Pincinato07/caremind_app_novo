@@ -51,8 +51,8 @@ class _ProcessarConviteScreenState extends State<ProcessarConviteScreen> {
         return;
       }
 
-      // Buscar email do idoso para fazer login
-      if (resultado.emailIdoso == null) {
+      // Verificar se o email foi retornado
+      if (resultado.emailIdoso == null || resultado.emailIdoso!.isEmpty) {
         setState(() {
           _isProcessing = false;
           _error =
@@ -68,22 +68,18 @@ class _ProcessarConviteScreenState extends State<ProcessarConviteScreen> {
         final perfil =
             await getIt<SupabaseService>().getProfile(currentUser.id);
         if (perfil?.id == resultado.idIdoso) {
-          // Já é o idoso correto - buscar perfil e navegar
-          final supabaseService = getIt<SupabaseService>();
-          final perfil = await supabaseService.getProfile(currentUser.id);
-          if (perfil != null) {
-            await conviteService.marcarConviteComoUsado(
-              widget.tokenOuCodigo,
-              currentUser.id,
+          // Já é o idoso correto - marcar convite como usado e navegar
+          await conviteService.marcarConviteComoUsado(
+            widget.tokenOuCodigo,
+            currentUser.id,
+          );
+          if (mounted) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (_) => MainNavigatorScreen(perfil: perfil!),
+              ),
+              (route) => false,
             );
-            if (mounted) {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(
-                  builder: (_) => MainNavigatorScreen(perfil: perfil),
-                ),
-                (route) => false,
-              );
-            }
           }
           return;
         } else {
@@ -92,41 +88,10 @@ class _ProcessarConviteScreenState extends State<ProcessarConviteScreen> {
         }
       }
 
-      // Buscar o perfil do idoso diretamente pela tabela perfis
-      final perfilResponse = await supabase
-          .from('perfis')
-          .select('user_id, nome')
-          .eq('id', resultado.idIdoso!)
-          .maybeSingle();
-
-      if (perfilResponse == null || perfilResponse['user_id'] == null) {
-        setState(() {
-          _isProcessing = false;
-          _error = 'Perfil do idoso não encontrado.';
-        });
-        return;
-      }
-
-      final userId = perfilResponse['user_id'] as String;
-
-      // Buscar email do usuário pelo user_id
-      final authUserResponse = await supabase.auth.admin.getUserById(userId);
-      final emailIdoso = authUserResponse.user?.email;
-
-      if (emailIdoso == null) {
-        setState(() {
-          _isProcessing = false;
-          _error =
-              'Email do idoso não encontrado. Entre em contato com o familiar.';
-        });
-        return;
-      }
-
-      // Mostrar mensagem informando que precisa da senha
+      // Email foi retornado pela Edge Function - mostrar formulário de login
       setState(() {
         _isProcessing = false;
-        _error =
-            'Para fazer login, você precisa da senha criada pelo familiar. Entre em contato com ele para obter a senha.';
+        _successMessage = 'Convite válido! Digite sua senha para fazer login.';
         _resultado = resultado;
       });
     } catch (e) {
@@ -266,7 +231,8 @@ class _ProcessarConviteScreenState extends State<ProcessarConviteScreen> {
                           ),
                         ),
                         if (_resultado != null &&
-                            _resultado!.emailIdoso != null) ...[
+                            _resultado!.emailIdoso != null &&
+                            _resultado!.emailIdoso!.isNotEmpty) ...[
                           const SizedBox(height: 24),
                           _buildLoginForm(),
                         ] else ...[

@@ -56,4 +56,60 @@ class AuthService {
       throw ErrorHandler.toAppException(e);
     }
   }
+
+  Future<Perfil?> handleGoogleSignIn() async {
+    try {
+      // Iniciar OAuth - abre o navegador
+      await supabase.signInWithGoogle();
+      
+      // O OAuth abre o navegador, então precisamos aguardar o callback
+      // O Supabase gerencia isso automaticamente via deep link
+      // Após o callback, a sessão será estabelecida automaticamente
+      
+      // Aguardar o callback processar (polling)
+      for (int i = 0; i < 30; i++) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        // Verificar se há usuário autenticado
+        final user = supabase.currentUser;
+        if (user != null) {
+          // Sincronizar metadados do Google com perfil
+          final userMetadata = user.userMetadata;
+          if (userMetadata != null) {
+            final fullName = userMetadata['full_name'] as String?;
+            final avatarUrl = userMetadata['avatar_url'] as String?;
+            
+            if (fullName != null || avatarUrl != null) {
+              final existingProfile = await supabase.getProfile(user.id);
+              
+              if (existingProfile != null) {
+                // Atualizar perfil se necessário
+                await supabase.updateProfile(
+                  userId: user.id,
+                  nome: fullName ?? existingProfile.nome,
+                  fotoUsuario: avatarUrl ?? existingProfile.fotoUsuario,
+                );
+              } else if (fullName != null) {
+                // Criar perfil básico se não existir
+                await supabase.signUp(
+                  email: user.email ?? '',
+                  password: '', // Não necessário para OAuth
+                  nome: fullName,
+                  tipo: 'individual',
+                  lgpdConsent: false, // Usuário precisará aceitar depois
+                );
+              }
+            }
+          }
+          
+          final perfil = await supabase.getProfile(user.id);
+          return perfil;
+        }
+      }
+      
+      throw const AuthenticationException(message: 'Timeout ao aguardar autenticação Google');
+    } catch (e) {
+      throw ErrorHandler.toAppException(e);
+    }
+  }
 }

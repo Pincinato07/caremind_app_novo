@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:9674127480:android:cefb1db0cf503247ab558d",
         "android_client_info": {
-          "package_name": "com.example.caremind"
+          "package_name": "com.caremind.app"
         }
       },
       "oauth_client": [],

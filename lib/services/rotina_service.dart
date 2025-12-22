@@ -68,9 +68,9 @@ class RotinaService {
         rotina['created_at'] = DateTime.now().toIso8601String();
       }
 
-      // Garantir que concluida esteja presente
-      if (rotina['concluida'] == null) {
-        rotina['concluida'] = false;
+      // CORRIGIDO: Usar concluido (boolean) em vez de concluida (tabela usa concluido)
+      if (rotina['concluido'] == null) {
+        rotina['concluido'] = false;
       }
 
       // Limpar dados antes de inserir (remove strings vazias, mas mantém campos obrigatórios)
@@ -153,23 +153,24 @@ class RotinaService {
   }
 
   // Marcar rotina como concluída
+  // CORRIGIDO: Usar concluido (boolean) em vez de concluida (tabela usa concluido)
   Future<Map<String, dynamic>> toggleConcluida(
     int rotinaId,
-    bool concluida,
+    bool concluido,
   ) async {
     try {
       debugPrint(
-          '📤 RotinaService: Marcando rotina $rotinaId como concluída: $concluida');
+          '📤 RotinaService: Marcando rotina $rotinaId como concluído: $concluido');
 
       final response = await _client
           .from('rotinas')
-          .update({'concluida': concluida})
+          .update({'concluido': concluido})
           .eq('id', rotinaId)
           .select()
           .single();
 
       // Registrar no histórico se foi concluída
-      if (concluida) {
+      if (concluido) {
         try {
           final perfilId = response['perfil_id'];
           if (perfilId != null) {

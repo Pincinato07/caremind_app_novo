@@ -85,6 +85,20 @@ class SupabaseService {
     }
   }
 
+  Future<bool> signInWithGoogle() async {
+    try {
+      await _client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'caremind://auth-callback',
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+      // OAuth abre o navegador, então retornamos true para indicar que iniciou
+      return true;
+    } catch (error) {
+      throw ErrorHandler.toAppException(error);
+    }
+  }
+
   Future<void> signOut() async {
     try {
       await _client.auth.signOut();

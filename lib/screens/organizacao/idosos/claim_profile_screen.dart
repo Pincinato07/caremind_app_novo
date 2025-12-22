@@ -103,25 +103,27 @@ class _ClaimProfileScreenState extends ConsumerState<ClaimProfileScreen> {
             const SizedBox(height: 24),
 
             // Opções de ação
-            RadioListTile<String>(
-              title: const Text('Converter em Perfil Conectado'),
-              subtitle: const Text('Este perfil será vinculado à sua conta'),
-              value: 'convert',
+            RadioGroup<String>(
               groupValue: _actionSelecionada,
               onChanged: state.isLoading
-                  ? null
+                  ? (_) {}
                   : (value) => setState(() => _actionSelecionada = value),
-            ),
-            RadioListTile<String>(
-              title: const Text('Vincular como Familiar'),
-              subtitle: const Text(
-                'Mantém o Perfil Gerenciado, mas você terá acesso como familiar',
+              child: Column(
+                children: [
+                  RadioListTile<String>(
+                    title: const Text('Converter em Perfil Conectado'),
+                    subtitle: const Text('Este perfil será vinculado à sua conta'),
+                    value: 'convert',
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('Vincular como Familiar'),
+                    subtitle: const Text(
+                      'Mantém o Perfil Gerenciado, mas você terá acesso como familiar',
+                    ),
+                    value: 'link_family',
+                  ),
+                ],
               ),
-              value: 'link_family',
-              groupValue: _actionSelecionada,
-              onChanged: state.isLoading
-                  ? null
-                  : (value) => setState(() => _actionSelecionada = value),
             ),
             const SizedBox(height: 24),
 
