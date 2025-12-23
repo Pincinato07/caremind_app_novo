@@ -14,19 +14,20 @@ jobs:
     
     steps:
       # 1. Baixa o código
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      # 2. Configura Java
-      - uses: actions/setup-java@v3
+      # 2. Configura Java (cache automático do Gradle já incluído)
+      - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      # 3. Configura Flutter
+      # 3. Configura Flutter (cache automático já incluído)
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.2' # Versão atualizada com Dart 3.9.0
+          flutter-version: '3.38.1'
           channel: 'stable'
+          cache: true
 
       # 4. Cria key.properties para assinatura
       - name: Create key.properties
@@ -38,49 +39,45 @@ jobs:
 
       # 5. Decodifica keystore
       - name: Decode Keystore
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -di > android/app/upload-keystore.jks
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -di > android/app/upload-keystore.jks
 
-      # 6. Instala dependências e Builda o APK
+      # 6. Instala dependências
       - name: Get Dependencies
         run: flutter pub get
 
+      # 7. Build APK Release (split per ABI - mais rápido)
       - name: Build APK Release
-        run: flutter build apk --release
+        run: flutter build apk --release --split-per-abi
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.parallel=true -Dorg.gradle.caching=true"
 
       # --- AQUI COMEÇA A MÁGICA DOS REPOS ---
 
-      # 7. Salva no Repo PRIVADO (Histórico Completo)
-      - name: Release no Privado (Histórico)
-        uses: softprops/action-gh-release@v1
+      # 8. Salva no Repo PRIVADO (Histórico Completo)
+      - name: Release no Privado
+        uses: softprops/action-gh-release@v2
         with:
-          files: build/app/outputs/flutter-apk/app-release.apk
-          name: Release ${{ github.ref_name }} # Ex: Release v1.0.0
+          files: |
+            build/app/outputs/flutter-apk/app-*-release.apk
+          name: Release ${{ github.ref_name }}
           body: "Release gerada automaticamente."
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token padrão do repo
 
-      # 8. Limpa e Atualiza o Repo PÚBLICO (Apenas Última Versão)
-      - name: Deploy para Público (Única Versão)
+      # 9. Deploy no Repo PÚBLICO (Apenas Última Versão)
+      - name: Deploy para Público (Última Versão)
         env:
-          GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }} # Aquele token que criamos
-          PUBLIC_REPO: "Pincinato07/caremind-downloads" # <--- TROQUE PELO SEU REPO
+          GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
+          PUBLIC_REPO: "Pincinato07/caremind-downloads"
         run: |
-          # Instala GitHub CLI (já vem na máquina, só pra garantir)
-          
-          # 1. Tenta apagar a release 'latest' antiga no repo público
           if gh release view latest --repo $PUBLIC_REPO >/dev/null 2>&1; then
             gh release delete latest --repo $PUBLIC_REPO --yes
           fi
           
-          # 2. Tenta apagar a tag 'latest' antiga no repo público
           if gh api --silent "repos/$PUBLIC_REPO/git/refs/tags/latest" >/dev/null 2>&1; then
             gh api -X DELETE "repos/$PUBLIC_REPO/git/refs/tags/latest"
           fi
           
-          # 3. Cria a nova release 'latest' com o APK novo
           gh release create latest \
-            ./build/app/outputs/flutter-apk/app-release.apk \
+            build/app/outputs/flutter-apk/app-*-release.apk \
             --repo $PUBLIC_REPO \
             --title "Download Oficial CareMind" \
             --notes "Versão mais recente: ${{ github.ref_name }}" \
