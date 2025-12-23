@@ -8,6 +8,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io' show Platform;
 import '../models/medicamento.dart';
+import '../models/notificacao_organizacao.dart';
 import 'settings_service.dart';
 import '../core/injection/injection.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1474,6 +1475,34 @@ class NotificationService {
       '${medicamentoNome ?? "Medicamento Teste"} - ${dosagem ?? "Dosagem teste"}',
       notificationDetails,
     );
+  }
+
+  /// Enviar notificação para organização
+  /// Usa Edge Function send-notification para enviar para membros da organização
+  static Future<void> enviarNotificacaoOrganizacao(
+    NotificacaoOrganizacao notificacao,
+  ) async {
+    try {
+      final client = Supabase.instance.client;
+      
+      // Chamar Edge Function para enviar notificação
+      final response = await client.functions.invoke(
+        'send-notification',
+        body: notificacao.toJson(),
+      );
+
+      if (response.status != 200) {
+        final errorData = response.data as Map<String, dynamic>?;
+        throw Exception(
+            errorData?['error'] ?? 'Erro ao enviar notificação para organização');
+      }
+
+      debugPrint(
+          '✅ Notificação enviada para organização: ${notificacao.organizacaoId}');
+    } catch (e) {
+      debugPrint('❌ Erro ao enviar notificação para organização: $e');
+      rethrow;
+    }
   }
 }
 

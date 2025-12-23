@@ -28,6 +28,7 @@ import '../../widgets/premium/premium_guard.dart';
 import '../../widgets/premium/premium_sales_modal.dart';
 import '../integracoes/integracoes_screen.dart';
 import 'add_edit_medicamento_form.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class GestaoMedicamentosScreen extends StatefulWidget {
   final String? idosoId; // Para familiar gerenciar medicamentos do idoso
@@ -53,6 +54,9 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
   String? _perfilTipo;
   bool _isOffline = false;
 
+  RealtimeChannel? _medicamentosChannel;
+  RealtimeChannel? _eventosChannel;
+
   @override
   void initState() {
     super.initState();
@@ -64,6 +68,99 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
 
     AccessibilityService.initialize();
     _listenToConnectivity();
+    _setupRealtimeSync();
+  }
+
+  void _setupRealtimeSync() {
+    final supabaseService = getIt<SupabaseService>();
+    final client = supabaseService.client;
+    final familiarState = getIt<FamiliarState>();
+    
+    // Determinar perfil_id alvo
+    String? targetPerfilId;
+    if (widget.idosoId != null) {
+      targetPerfilId = widget.idosoId;
+    } else if (familiarState.hasIdosos && familiarState.idosoSelecionado != null) {
+      targetPerfilId = familiarState.idosoSelecionado!.id;
+    } else {
+      final user = supabaseService.currentUser;
+      if (user != null) {
+        // Buscar perfil_id do usuário
+        client.from('perfis')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle()
+            .then((response) {
+          if (response != null && mounted) {
+            try {
+              final perfilId = response['id'] as String?;
+              if (perfilId != null && mounted) {
+                _subscribeToRealtime(perfilId);
+              }
+            } catch (e) {
+              // Ignora erro de cast
+            }
+          }
+        });
+        return;
+      }
+    }
+
+    if (targetPerfilId != null) {
+      _subscribeToRealtime(targetPerfilId);
+    }
+  }
+
+  void _subscribeToRealtime(String perfilId) {
+    final supabaseService = getIt<SupabaseService>();
+    final client = supabaseService.client;
+
+    // Cancelar subscriptions anteriores se existirem
+    _medicamentosChannel?.unsubscribe();
+    _eventosChannel?.unsubscribe();
+
+    // Subscription para mudanças em medicamentos
+    _medicamentosChannel = client
+        .channel('medicamentos-changes-$perfilId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'medicamentos',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'perfil_id',
+            value: perfilId,
+          ),
+          callback: (payload) {
+            print('🔄 Mudança detectada em medicamentos: $payload');
+            if (mounted) {
+              _loadMedicamentos();
+            }
+          },
+        )
+        .subscribe();
+
+    // Subscription para mudanças em eventos
+    _eventosChannel = client
+        .channel('eventos-changes-$perfilId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'historico_eventos',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'perfil_id',
+            value: perfilId,
+          ),
+          callback: (payload) {
+            print('🔄 Mudança detectada em eventos: $payload');
+            if (mounted) {
+              // Recarregar status dos medicamentos
+              _loadMedicamentos();
+            }
+          },
+        )
+        .subscribe();
   }
 
   void _listenToConnectivity() {
@@ -95,6 +192,11 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
   void dispose() {
     final familiarState = getIt<FamiliarState>();
     familiarState.removeListener(_onFamiliarStateChanged);
+    
+    // Cancelar subscriptions de realtime
+    _medicamentosChannel?.unsubscribe();
+    _eventosChannel?.unsubscribe();
+    
     super.dispose();
   }
 
@@ -340,7 +442,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
       try {
         await subscriptionService.getPermissions();
       } catch (e) {
-        debugPrint('⚠️ Erro ao verificar permissões: $e');
+        print('⚠️ Erro ao verificar permissões: $e');
         // Continua mesmo se falhar verificação de permissões
       }
 
@@ -352,7 +454,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
         podeAdicionar =
             await subscriptionService.canAddMedicine(quantidadeAtual);
       } catch (e) {
-        debugPrint('⚠️ Erro ao verificar limite de medicamentos: $e');
+        print('⚠️ Erro ao verificar limite de medicamentos: $e');
         // Em caso de erro, assume que pode adicionar para não bloquear usuário
         podeAdicionar = true;
       }
@@ -530,7 +632,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
           ),
         );
       } catch (e) {
-        debugPrint('⚠️ Erro ao mostrar opções de adicionar medicamento: $e');
+        print('⚠️ Erro ao mostrar opções de adicionar medicamento: $e');
         if (mounted) {
           FeedbackService.showError(
             context,
@@ -555,7 +657,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
             // Se usuário cancelou ou não assinou, não abrir formulário
             if (shouldContinue != true) return;
           } catch (e) {
-            debugPrint('⚠️ Erro ao mostrar modal Premium: $e');
+            print('⚠️ Erro ao mostrar modal Premium: $e');
             // Se falhar, permite continuar para não bloquear usuário
           }
         }
@@ -573,7 +675,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
             _loadMedicamentos();
           }
         } catch (e) {
-          debugPrint('⚠️ Erro ao abrir formulário: $e');
+          print('⚠️ Erro ao abrir formulário: $e');
           if (mounted) {
             FeedbackService.showError(
               context,
@@ -588,7 +690,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
         try {
           await _showOcrImageSource();
         } catch (e) {
-          debugPrint('⚠️ Erro ao mostrar opções OCR: $e');
+          print('⚠️ Erro ao mostrar opções OCR: $e');
           if (mounted) {
             FeedbackService.showError(
               context,
@@ -599,7 +701,7 @@ class _GestaoMedicamentosScreenState extends State<GestaoMedicamentosScreen> {
         }
       }
     } catch (e) {
-      debugPrint('⚠️ Erro no fluxo de adicionar medicamento: $e');
+      print('⚠️ Erro no fluxo de adicionar medicamento: $e');
       if (mounted) {
         FeedbackService.showError(
           context,

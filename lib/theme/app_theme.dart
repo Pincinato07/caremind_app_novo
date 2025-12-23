@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Cores padronizadas do aplicativo
+/// COR PRIMÁRIA PADRONIZADA: #0400BA (mesma do Site para consistência visual)
 class AppColors {
-  static const Color primary = Color(0xFF0F172A);
-  static const Color primaryDark = Color(0xFF0B1222);
-  static const Color primaryLight = Color(0xFF1F2A44);
+  static const Color primary = Color(0xFF0400BA); // Padronizado: #0400BA (era 0xFF0F172A)
+  static const Color primaryDark = Color(0xFF020054); // Padronizado: #020054 (era 0xFF0B1222)
+  static const Color primaryLight = Color(0xFF0600e0); // Padronizado: #0600e0 (era 0xFF1F2A44)
   
   static const Color accent = Color(0xFFFF6B4A);
   static const Color success = Color(0xFF2EC27E);

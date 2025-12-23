@@ -15,6 +15,8 @@ import '../../widgets/skeleton_loader.dart';
 import '../../widgets/error_widget_with_retry.dart';
 import '../../core/feedback/feedback_service.dart';
 import '../../widgets/offline_indicator.dart';
+import '../../widgets/rotina_frequencia_widget.dart';
+import '../../services/rotina_notification_service.dart';
 import 'add_edit_rotina_form.dart';
 
 class GestaoRotinasScreen extends StatefulWidget {
@@ -128,6 +130,15 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
 
           await OfflineCacheService.cacheRotinas(targetId, rotinas);
 
+          // Agendar notificações para todas as rotinas
+          for (final rotina in rotinas) {
+            try {
+              await RotinaNotificationService.scheduleRotinaNotifications(rotina);
+            } catch (e) {
+              debugPrint('⚠️ Erro ao agendar notificação para rotina ${rotina['id']}: $e');
+            }
+          }
+
           setState(() {
             _rotinas = rotinas;
             _isLoading = false;
@@ -194,7 +205,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
       final familiarState = getIt<FamiliarState>();
 
       final rotinaId = rotina['id'] as int;
-      final concluida = rotina['concluida'] as bool? ?? false;
+      final concluida = rotina['concluido'] as bool? ?? false;
       final titulo = rotina['titulo'] as String? ?? 'Rotina';
       final novoEstado = !concluida;
 
@@ -580,11 +591,75 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
     );
   }
 
+  // Usar o widget de frequência em vez de função local
+  String _formatarFrequencia(Map<String, dynamic>? frequencia) {
+    // Delegar para o widget (mantido para compatibilidade)
+    return RotinaFrequenciaWidget.formatarFrequencia(frequencia);
+  }
+
+  String _formatarFrequenciaLegacy(Map<String, dynamic>? frequencia) {
+    if (frequencia == null) return '';
+    
+    final tipo = frequencia['tipo'] as String?;
+    if (tipo == null) return '';
+
+    switch (tipo) {
+      case 'diario':
+        final horarios = frequencia['horarios'] as List?;
+        if (horarios != null && horarios.isNotEmpty) {
+          final horariosStr = horarios.map((h) => h.toString()).join(', ');
+          return 'Diário - $horariosStr';
+        }
+        return 'Diário';
+      case 'intervalo':
+        final intervaloHoras = frequencia['intervalo_horas'] as int? ?? 8;
+        final inicio = frequencia['inicio'] as String? ?? '';
+        return 'A cada ${intervaloHoras}h (início: $inicio)';
+      case 'dias_alternados':
+        final intervaloDias = frequencia['intervalo_dias'] as int? ?? 2;
+        final horario = frequencia['horario'] as String? ?? '';
+        return 'A cada $intervaloDias dias ($horario)';
+      case 'semanal':
+        final diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        final dias = frequencia['dias_da_semana'] as List?;
+        final horario = frequencia['horario'] as String? ?? '';
+        if (dias != null && dias.isNotEmpty) {
+          final diasStr = dias
+              .map((d) => diasSemana[(d as int) - 1])
+              .join(', ');
+          return 'Toda $diasStr ($horario)';
+        }
+        return 'Semanal ($horario)';
+      default:
+        return 'Frequência personalizada';
+    }
+  }
+
   Widget _buildRotinaCard(Map<String, dynamic> rotina) {
-    final concluida = rotina['concluida'] as bool? ?? false;
+    final concluida = rotina['concluido'] as bool? ?? false;
     final titulo = rotina['titulo'] as String? ?? 'Rotina';
     final descricao = rotina['descricao'] as String?;
-    final horario = rotina['horario'] as String?;
+    final frequencia = rotina['frequencia'] as Map<String, dynamic>?;
+    final frequenciaTexto = _formatarFrequencia(frequencia);
+    
+    // Extrair horário para exibição simples (primeiro horário se diário)
+    String? horario;
+    if (frequencia != null) {
+      if (frequencia['tipo'] == 'diario' && frequencia['horarios'] != null) {
+        final horarios = frequencia['horarios'] as List?;
+        if (horarios != null && horarios.isNotEmpty) {
+          horario = horarios[0] as String;
+        }
+      } else if (frequencia['horario'] != null) {
+        horario = frequencia['horario'] as String;
+      } else if (frequencia['inicio'] != null) {
+        horario = frequencia['inicio'] as String;
+      }
+    }
+    // Fallback para campo horario legado (se existir)
+    if (horario == null) {
+      horario = rotina['horario'] as String?;
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -680,7 +755,18 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                                   concluida ? TextDecoration.lineThrough : null,
                             ),
                           ),
-                          if (horario != null) ...[
+                          const SizedBox(height: 4),
+                          RotinaFrequenciaWidget(
+                            frequencia: frequencia,
+                            showIcon: true,
+                            textStyle: TextStyle(
+                              fontSize: 14,
+                              color: concluida
+                                  ? Colors.grey.shade500
+                                  : Colors.grey.shade700,
+                            ),
+                          ),
+                          if (frequenciaTexto.isEmpty && horario != null) ...[
                             const SizedBox(height: 4),
                             Text(
                               'Horário: $horario',

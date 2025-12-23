@@ -23,7 +23,10 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
   final _formKey = GlobalKey<FormState>();
   final _tituloController = TextEditingController();
   final _descricaoController = TextEditingController();
+  final _localController = TextEditingController();
   DateTime _dataHora = DateTime.now();
+  String? _tipoSelecionado;
+  int? _lembreteMinutos;
   bool _isLoading = false;
   bool get _isEditing => widget.compromisso != null;
 
@@ -39,6 +42,9 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
     final compromisso = widget.compromisso!;
     _tituloController.text = compromisso['titulo'] as String? ?? '';
     _descricaoController.text = compromisso['descricao'] as String? ?? '';
+    _localController.text = compromisso['local'] as String? ?? '';
+    _tipoSelecionado = compromisso['tipo'] as String?;
+    _lembreteMinutos = compromisso['lembrete_minutos'] as int?;
     _dataHora = DateTime.parse(compromisso['data_hora'] as String);
   }
 
@@ -46,6 +52,7 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
   void dispose() {
     _tituloController.dispose();
     _descricaoController.dispose();
+    _localController.dispose();
     super.dispose();
   }
 
@@ -115,16 +122,32 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
         return;
       }
 
-      final targetId = widget.idosoId ?? user.id;
+      // Obter perfil_id correto
+      String? perfilId;
+      if (widget.idosoId != null) {
+        // Se idosoId foi passado, buscar o perfil correspondente
+        final idosoPerfil = await supabaseService.getProfile(widget.idosoId!);
+        perfilId = idosoPerfil?.id ?? widget.idosoId;
+      } else {
+        // Se não, usar o perfil do usuário logado
+        final perfil = await supabaseService.getProfile(user.id);
+        perfilId = perfil?.id ?? user.id;
+      }
+
       final descricao = _descricaoController.text.trim();
-      final data = {
+      final data = <String, dynamic>{
         'titulo': _tituloController.text.trim(),
         'data_hora': _dataHora.toIso8601String(),
-        'perfil_id': targetId,
-        'created_at': DateTime.now().toIso8601String(),
-        'concluido': false,
+        'perfil_id': perfilId,
+        'updated_at': DateTime.now().toIso8601String(),
         // Só incluir descrição se não estiver vazia
         if (descricao.isNotEmpty) 'descricao': descricao,
+        // Só incluir local se não estiver vazio
+        if (_localController.text.trim().isNotEmpty) 'local': _localController.text.trim(),
+        // Só incluir tipo se selecionado
+        if (_tipoSelecionado != null) 'tipo': _tipoSelecionado,
+        // Lembrete padrão: 60 minutos (consistente com o site)
+        'lembrete_minutos': _lembreteMinutos ?? 60,
       };
 
       if (_isEditing) {
@@ -317,6 +340,67 @@ class _AddEditCompromissoFormState extends State<AddEditCompromissoForm> {
                       ],
                     ),
                   ),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _localController,
+                  decoration: InputDecoration(
+                    labelText: 'Local (opcional)',
+                    hintText: 'ex: Hospital, Clínica, Consultório',
+                    prefixIcon: const Icon(Icons.location_on),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _tipoSelecionado,
+                  decoration: InputDecoration(
+                    labelText: 'Tipo (opcional)',
+                    prefixIcon: const Icon(Icons.category),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'consulta', child: Text('Consulta')),
+                    DropdownMenuItem(value: 'exame', child: Text('Exame')),
+                    DropdownMenuItem(value: 'procedimento', child: Text('Procedimento')),
+                    DropdownMenuItem(value: 'outros', child: Text('Outros')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _tipoSelecionado = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<int>(
+                  value: _lembreteMinutos ?? 60,
+                  decoration: InputDecoration(
+                    labelText: 'Lembrete (minutos antes)',
+                    prefixIcon: const Icon(Icons.notifications),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 5, child: Text('5 minutos antes')),
+                    DropdownMenuItem(value: 15, child: Text('15 minutos antes')),
+                    DropdownMenuItem(value: 30, child: Text('30 minutos antes')),
+                    DropdownMenuItem(value: 60, child: Text('1 hora antes')),
+                    DropdownMenuItem(value: 1440, child: Text('1 dia antes')),
+                    DropdownMenuItem(value: 2880, child: Text('2 dias antes')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _lembreteMinutos = value;
+                    });
+                  },
                 ),
                 const SizedBox(height: 24),
                 // Botão Salvar

@@ -90,7 +90,7 @@ class AppointmentCRUDService extends ChangeNotifier {
         'data_hora': dataHora.toIso8601String(),
         'local': local?.trim(),
         'tipo': tipo,
-        'lembrete_minutos': lembreteMinutos ?? 30,
+        'lembrete_minutos': lembreteMinutos ?? 60,
       };
 
       final response = await _supabaseService.client

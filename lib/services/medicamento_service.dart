@@ -8,9 +8,13 @@ import '../core/errors/app_exception.dart';
 import '../core/utils/data_cleaner.dart';
 import 'notification_service.dart';
 import 'historico_eventos_service.dart';
+import '../models/notificacao_organizacao.dart';
+import 'organizacao_validator.dart';
+import '../core/injection/injection.dart';
 
 class MedicamentoService {
   final SupabaseClient _client;
+  final OrganizacaoValidator _orgValidator = OrganizacaoValidator();
 
   MedicamentoService(this._client);
 
@@ -50,10 +54,16 @@ class MedicamentoService {
   // Adicionar um novo medicamento
   Future<Medicamento> addMedicamento(Medicamento medicamento) async {
     try {
+      // Validação básica
+      if (medicamento.nome.trim().isEmpty) {
+        throw Exception('Nome do medicamento é obrigatório');
+      }
+
       final data = medicamento.toMap();
       data.remove('id'); // Remove o ID para inserção
 
       // Garantir que perfil_id ou user_id estejam presentes
+      String? perfilIdFinal;
       if (data['perfil_id'] == null) {
         if (medicamento.userId != null && medicamento.userId!.isNotEmpty) {
           final perfilResponse = await _client
@@ -63,14 +73,26 @@ class MedicamentoService {
               .maybeSingle();
 
           if (perfilResponse != null) {
-            data['perfil_id'] = perfilResponse['id'] as String;
+            perfilIdFinal = perfilResponse['id'] as String;
+            data['perfil_id'] = perfilIdFinal;
           } else {
             // Se não encontrou perfil, usar user_id como fallback
             // (compatibilidade durante transição, mas idealmente deveria existir perfil)
-            data['perfil_id'] = medicamento.userId!;
+            perfilIdFinal = medicamento.userId!;
+            data['perfil_id'] = perfilIdFinal;
           }
         } else {
           throw Exception('perfil_id é obrigatório');
+        }
+      } else {
+        perfilIdFinal = data['perfil_id'] as String?;
+      }
+
+      // VALIDAÇÃO: Se perfil_id pertence a organização, verificar acesso
+      if (perfilIdFinal != null) {
+        final podeAcessar = await _orgValidator.podeAcessarIdoso(perfilIdFinal);
+        if (!podeAcessar) {
+          throw Exception('Acesso negado: você não tem permissão para adicionar medicamentos a este idoso');
         }
       }
 
@@ -130,6 +152,18 @@ class MedicamentoService {
     Map<String, dynamic> updates,
   ) async {
     try {
+      // Buscar medicamento atual para validar acesso
+      final medicamentoAtual = await getMedicamentoPorId(medicamentoId);
+      if (medicamentoAtual == null) {
+        throw Exception('Medicamento não encontrado');
+      }
+
+      // VALIDAÇÃO: Verificar se usuário pode acessar este idoso
+      final podeAcessar = await _orgValidator.podeAcessarIdoso(medicamentoAtual.perfilId);
+      if (!podeAcessar) {
+        throw Exception('Acesso negado: você não tem permissão para atualizar medicamentos deste idoso');
+      }
+
       // Limpar dados antes de atualizar (remove strings vazias, mas mantém campos importantes)
       final cleanedUpdates = DataCleaner.cleanData(
         updates,
@@ -192,14 +226,14 @@ class MedicamentoService {
   }
 
   // Marcar medicamento como concluído/não concluído via historico_eventos
-  // Se marcar como concluído, decrementa quantidade e verifica estoque baixo
+  // CORRIGIDO: Usa RPC atômica para evitar race conditions
   Future<void> toggleConcluido(
     int medicamentoId,
     bool concluido,
     DateTime dataPrevista,
   ) async {
     try {
-      // Buscar medicamento atual para verificar quantidade e perfil_id
+      // Buscar medicamento atual para obter perfil_id
       final medicamentoAtual = await getMedicamentoPorId(medicamentoId);
       if (medicamentoAtual == null) {
         throw Exception('Medicamento não encontrado');
@@ -207,102 +241,80 @@ class MedicamentoService {
 
       final perfilId = medicamentoAtual.perfilId;
 
-      // CORRIGIDO: Verificar novamente após buscar para evitar race condition
-      // Se dois usuários marcarem simultaneamente, ambos verão o mesmo estado inicial
-      final novoStatus = concluido ? 'concluido' : 'pendente';
-      
-      // Buscar evento existente
-      var eventosResponse = await _client
-          .from('historico_eventos')
-          .select()
-          .eq('medicamento_id', medicamentoId)
-          .eq('data_prevista', dataPrevista.toIso8601String())
-          .maybeSingle();
-
-      if (eventosResponse != null) {
-        // Atualizar evento existente
-        await _client.from('historico_eventos').update({
-          'status': novoStatus,
-          'horario_programado': DateTime.now().toIso8601String(),
-        }).eq('id', eventosResponse['id']);
-      } else {
-        // Tentar criar novo evento
-        // Se falhar por duplicata (race condition), buscar novamente e atualizar
-        try {
-          await _client.from('historico_eventos').insert({
-            'perfil_id': perfilId,
-            'tipo_evento': 'medicamento',
-            'evento_id': medicamentoId,
-            'medicamento_id': medicamentoId,
-            'data_prevista': dataPrevista.toIso8601String(),
-            'status': novoStatus,
-            'horario_programado': DateTime.now().toIso8601String(),
-            'titulo': medicamentoAtual.nome,
-            'descricao': medicamentoAtual.dosagem != null
-                ? 'Dosagem: ${medicamentoAtual.dosagem}'
-                : 'Medicamento registrado',
-          });
-        } catch (insertError) {
-          // Se falhou por duplicata (outro processo criou), buscar e atualizar
-          if (insertError.toString().contains('duplicate') || 
-              insertError.toString().contains('unique')) {
-            eventosResponse = await _client
-                .from('historico_eventos')
-                .select()
-                .eq('medicamento_id', medicamentoId)
-                .eq('data_prevista', dataPrevista.toIso8601String())
-                .maybeSingle();
-            
-            if (eventosResponse != null) {
-              await _client.from('historico_eventos').update({
-                'status': novoStatus,
-                'horario_programado': DateTime.now().toIso8601String(),
-              }).eq('id', eventosResponse['id']);
-            } else {
-              // Se ainda não encontrou, relançar erro original
-              rethrow;
-            }
-          } else {
-            // Se erro não é de duplicata, relançar
-            rethrow;
-          }
-        }
+      // VALIDAÇÃO: Verificar se usuário pode acessar este idoso (individual ou organização)
+      final podeAcessar = await _orgValidator.podeAcessarIdoso(perfilId);
+      if (!podeAcessar) {
+        throw Exception('Acesso negado: você não tem permissão para gerenciar medicamentos deste idoso');
       }
 
-      // Se está marcando como tomado, decrementar quantidade
-      // CORRIGIDO: Usar RPC ou atualização atômica para evitar race condition
-      // Por enquanto, buscar novamente o medicamento para ter valor atualizado
+      // Usar RPC atômica que faz tudo de uma vez (cria/atualiza evento, decrementa quantidade, verifica estoque baixo)
       if (concluido) {
-        // Buscar quantidade atual novamente (pode ter mudado por outra requisição)
-        final medicamentoAtualizado = await getMedicamentoPorId(medicamentoId);
-        if (medicamentoAtualizado != null) {
-          final quantidadeAtual = medicamentoAtualizado.quantidade ?? 0;
-          final novaQuantidade = quantidadeAtual > 0 ? quantidadeAtual - 1 : 0;
+        final response = await _client.rpc(
+          'marcar_medicamento_tomado_atomico',
+          params: {
+            'p_medicamento_id': medicamentoId,
+            'p_perfil_id': perfilId,
+            'p_data_prevista': dataPrevista.toIso8601String(),
+          },
+        );
 
-          await _client
-              .from('medicamentos')
-              .update({'quantidade': novaQuantidade}).eq('id', medicamentoId);
+        final result = response as Map<String, dynamic>;
+        final estoqueBaixo = result['estoque_baixo'] as bool? ?? false;
 
-          // Verificar se estoque está baixo (<= 5 unidades)
-          if (novaQuantidade <= 5 && novaQuantidade > 0) {
-            try {
-              await HistoricoEventosService.addEvento({
-                'perfil_id': perfilId,
-                'tipo_evento': 'estoque_baixo',
-                'evento_id': medicamentoId,
-                'data_prevista': DateTime.now().toIso8601String(),
-                'status': 'pendente',
-                'titulo': 'Estoque baixo',
-                'descricao':
-                    'Estoque de "${medicamentoAtual.nome}" está baixo ($novaQuantidade unidade(s) restante(s))',
-                'medicamento_id': medicamentoId,
-              });
-            } catch (e) {
-              // Log erro mas não interrompe o fluxo
-              print('⚠️ Erro ao registrar alerta de estoque baixo: $e');
-            }
-          }
+        if (estoqueBaixo) {
+          debugPrint('⚠️ Estoque baixo detectado para medicamento $medicamentoId');
         }
+
+        debugPrint(
+            '✅ MedicamentoService: Medicamento $medicamentoId marcado como confirmado (atômico)');
+      } else {
+        // Desmarcar (marcar como pendente)
+        await _client.rpc(
+          'desmarcar_medicamento_tomado_atomico',
+          params: {
+            'p_medicamento_id': medicamentoId,
+            'p_perfil_id': perfilId,
+            'p_data_prevista': dataPrevista.toIso8601String(),
+          },
+        );
+
+        debugPrint(
+            '✅ MedicamentoService: Medicamento $medicamentoId marcado como pendente (atômico)');
+      }
+    } catch (error) {
+      debugPrint(
+          '❌ MedicamentoService: Erro ao marcar medicamento como concluído: ${error.toString()}');
+      debugPrint('❌ MedicamentoService: Tipo do erro: ${error.runtimeType}');
+      if (error is PostgrestException) {
+        debugPrint(
+            '❌ MedicamentoService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
+        if (error.details != null) {
+          debugPrint('❌ MedicamentoService: Detalhes: ${error.details}');
+        }
+      }
+      throw ErrorHandler.toAppException(error);
+    }
+  }
+
+  // Buscar medicamento por ID
+  Future<Medicamento?> getMedicamentoPorId(int medicamentoId) async {
+    try {
+      final response = await _client
+          .from('medicamentos')
+          .select()
+          .eq('id', medicamentoId)
+          .maybeSingle();
+
+      if (response != null) {
+        return Medicamento.fromMap(response);
+      }
+      return null;
+    } catch (error) {
+      throw ErrorHandler.toAppException(error);
+    }
+  }
+}
+
       }
 
       debugPrint(

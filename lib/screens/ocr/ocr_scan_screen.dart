@@ -6,6 +6,8 @@ import '../../services/ocr_service.dart';
 import '../../services/ocr_offline_service.dart';
 import '../../services/offline_cache_service.dart';
 import '../../services/supabase_service.dart';
+import '../../services/image_validator.dart';
+import '../../core/errors/app_exception.dart';
 import '../../theme/app_theme.dart';
 import '../../core/feedback/feedback_service.dart';
 import '../../widgets/caremind_card.dart';
@@ -47,7 +49,40 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
       }
 
       final File imageFile = File(image.path);
-      await _processImage(imageFile);
+      
+      // Validar imagem antes de processar
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      final validation = await ImageValidator.validateImageForOCR(imageFile);
+      
+      if (!validation.valid) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = validation.message ?? 'Imagem inválida para processamento OCR.';
+        });
+        FeedbackService.showError(
+          context,
+          ValidationException(
+            message: validation.message ?? 'Imagem inválida para processamento OCR.',
+            code: 'IMAGEM_INVALIDA',
+          ),
+        );
+        return;
+      }
+
+      // Usar imagem otimizada se disponível
+      final fileToProcess = validation.optimizedFile ?? imageFile;
+      
+      if (validation.optimizedFile != null && validation.originalSize != null && validation.optimizedSize != null) {
+        final originalSize = ImageValidator.formatFileSize(validation.originalSize!);
+        final optimizedSize = ImageValidator.formatFileSize(validation.optimizedSize!);
+        debugPrint('✅ Imagem otimizada: $originalSize → $optimizedSize');
+      }
+
+      await _processImage(fileToProcess);
     } catch (e) {
       setState(() {
         _isLoading = false;

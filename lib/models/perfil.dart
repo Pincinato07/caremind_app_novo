@@ -11,6 +11,7 @@ class Perfil {
   final String? timezone; // Fuso horário IANA (ex: America/Sao_Paulo)
   final bool? dataSharingConsent; // Consentimento LGPD
   final DateTime? termsAcceptedAt; // Data de aceite dos termos
+  final bool? notificacoesCompromissos; // Notificações de compromissos
 
   Perfil({
     required this.id,
@@ -25,6 +26,7 @@ class Perfil {
     this.timezone,
     this.dataSharingConsent,
     this.termsAcceptedAt,
+    this.notificacoesCompromissos,
   });
 
   factory Perfil.fromMap(Map<String, dynamic> map) {
@@ -48,6 +50,7 @@ class Perfil {
         termsAcceptedAt: map['terms_accepted_at'] != null
             ? DateTime.parse(map['terms_accepted_at'] as String)
             : null,
+        notificacoesCompromissos: map['notificacoes_compromissos'] as bool?,
       );
     } catch (e) {
       throw Exception('Erro ao converter Perfil: $e. Map: $map');
@@ -68,6 +71,7 @@ class Perfil {
       'timezone': timezone,
       'data_sharing_consent': dataSharingConsent,
       'terms_accepted_at': termsAcceptedAt?.toIso8601String(),
+      'notificacoes_compromissos': notificacoesCompromissos,
     };
   }
 
@@ -84,6 +88,7 @@ class Perfil {
     String? timezone,
     bool? dataSharingConsent,
     DateTime? termsAcceptedAt,
+    bool? notificacoesCompromissos,
   }) {
     return Perfil(
       id: id ?? this.id,
@@ -98,6 +103,7 @@ class Perfil {
       timezone: timezone ?? this.timezone,
       dataSharingConsent: dataSharingConsent ?? this.dataSharingConsent,
       termsAcceptedAt: termsAcceptedAt ?? this.termsAcceptedAt,
+      notificacoesCompromissos: notificacoesCompromissos ?? this.notificacoesCompromissos,
     );
   }
 }

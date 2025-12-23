@@ -29,13 +29,24 @@ class OcrReviewScreen extends StatefulWidget {
 
 class _OcrReviewScreenState extends State<OcrReviewScreen> {
   late List<OcrMedicamento> _medicamentos;
+  // IMPORTANTE: Manter cópia dos dados originais do OCR para preservar informações
+  late List<OcrMedicamento> _medicamentosOriginais;
   bool _isSaving = false;
   final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
+    // Criar cópia editável para o usuário modificar
     _medicamentos = List.from(widget.medicamentos);
+    // IMPORTANTE: Preservar dados originais do OCR (deep copy)
+    _medicamentosOriginais = widget.medicamentos.map((m) => OcrMedicamento(
+      nome: m.nome,
+      dosagem: m.dosagem,
+      frequencia: m.frequencia,
+      quantidade: m.quantidade,
+      via: m.via,
+    )).toList();
   }
 
   void _adicionarMedicamento() {
@@ -78,6 +89,108 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
       return;
     }
 
+    // IMPORTANTE: Confirmar cada medicamento individualmente antes de salvar
+    // Isso garante que o usuário revise e confirme cada remédio, evitando alucinações da IA
+    // Usar os dados EDITADOS pelo usuário (se houver) ou os ORIGINAIS do OCR
+    final medicamentosConfirmados = <OcrMedicamento>[];
+    
+    for (int i = 0; i < medicamentosValidos.length; i++) {
+      if (!mounted) return;
+      
+      final medicamentoEditado = medicamentosValidos[i];
+      // Buscar dados originais do OCR para comparação (se existir no mesmo índice)
+      final temOriginal = i < _medicamentosOriginais.length;
+      final medicamentoOriginal = temOriginal ? _medicamentosOriginais[i] : null;
+      
+      // Verificar se houve edição comparando com original
+      bool foiEditado = false;
+      if (temOriginal && medicamentoOriginal != null) {
+        foiEditado = (
+          medicamentoEditado.nome != medicamentoOriginal.nome ||
+          medicamentoEditado.dosagem != medicamentoOriginal.dosagem ||
+          medicamentoEditado.frequencia != medicamentoOriginal.frequencia ||
+          medicamentoEditado.quantidade != medicamentoOriginal.quantidade
+        );
+      }
+      
+      final confirmado = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('Confirmar Medicamento'),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Confirma que este remédio é o "${medicamentoEditado.nome}"?',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Dosagem: ${medicamentoEditado.dosagem.isNotEmpty ? medicamentoEditado.dosagem : "Não informada"}',
+                ),
+                Text(
+                  'Frequência: ${medicamentoEditado.frequencia}',
+                ),
+                Text(
+                  'Quantidade: ${medicamentoEditado.quantidade}',
+                ),
+                if (foiEditado && temOriginal && medicamentoOriginal != null) ...[
+                  const SizedBox(height: 8),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '⚠️ Este medicamento foi editado. Dados originais do OCR:',
+                    style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Nome original: ${medicamentoOriginal.nome}',
+                    style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                  ),
+                  if (medicamentoOriginal.dosagem.isNotEmpty)
+                    Text(
+                      'Dosagem original: ${medicamentoOriginal.dosagem}',
+                      style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                    ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Não, corrigir'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Sim, confirmar'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmado == true) {
+        // Salvar os dados EDITADOS (se houver) ou os ORIGINAIS do OCR
+        medicamentosConfirmados.add(medicamentoEditado);
+      } else {
+        // Usuário cancelou a confirmação deste medicamento
+        // Continuar com os próximos, mas não salvar este
+        continue;
+      }
+    }
+
+    // Se nenhum medicamento foi confirmado, cancelar
+    if (medicamentosConfirmados.isEmpty) {
+      FeedbackService.showWarning(
+        context,
+        'Nenhum medicamento foi confirmado. Nenhum medicamento será salvo.',
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     try {
@@ -93,9 +206,9 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
 
       final perfilId = perfilResponse['id'] as String;
 
-      // Salvar medicamentos
+      // Salvar apenas medicamentos confirmados
       final salvos = await ocrService.salvarMedicamentosValidados(
-        medicamentos: medicamentosValidos,
+        medicamentos: medicamentosConfirmados,
         perfilId: perfilId,
         userId: widget.userId,
       );

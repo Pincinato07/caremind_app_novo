@@ -40,7 +40,7 @@ class Rotina {
       if (id != null) 'id': id,
       'created_at': createdAt.toIso8601String(),
       if (titulo != null) 'titulo': titulo,
-      if (userId != null) 'user_id': userId,
+      // userId é apenas para compatibilidade - não é salvo no banco (tabela não tem user_id)
       if (descricao != null) 'descricao': descricao,
       'concluido': concluido,
       if (data != null) 'data': data!.toIso8601String(),

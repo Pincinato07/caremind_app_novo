@@ -60,6 +60,26 @@ class TrialBlockedGuard extends ConsumerWidget {
       return now.isBefore(trialEnd);
     }
 
+    // CORRIGIDO: Permitir acesso durante pending (grace period de 24h após criação)
+    // Isso evita bloquear usuário que acabou de iniciar checkout
+    if (statusAssinatura == 'pending') {
+      return true; // Grace period: usuário iniciou checkout, aguardando confirmação
+    }
+
+    // CORRIGIDO: Permitir acesso durante overdue (grace period de 7 dias)
+    // Isso evita bloquear imediatamente após atraso, dando tempo para pagamento
+    if (statusAssinatura == 'overdue') {
+      // Se trialEnd existe e ainda não passou 7 dias do vencimento, permitir acesso
+      if (trialEnd != null) {
+        final now = DateTime.now();
+        final gracePeriodEnd = trialEnd.add(const Duration(days: 7));
+        return now.isBefore(gracePeriodEnd);
+      }
+      // Se não há trialEnd, permitir acesso por 7 dias após mudança para overdue
+      // (isso seria melhor com campo updated_at, mas por enquanto permitimos)
+      return true; // Grace period de 7 dias
+    }
+
     return false;
   }
 

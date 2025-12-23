@@ -122,9 +122,11 @@ class _ContextSelectorSheet extends ConsumerWidget {
             title: const Text('Modo Individual'),
             subtitle: const Text('Ver seus próprios dados e idosos familiares'),
             selected: !isModoOrganizacao,
-            onTap: () {
-              ref.read(organizacaoProvider.notifier).alternarModoPessoal();
-              Navigator.pop(context);
+            onTap: () async {
+              await ref.read(organizacaoProvider.notifier).alternarModoPessoal();
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
             },
           ),
           const Divider(),
@@ -139,11 +141,13 @@ class _ContextSelectorSheet extends ConsumerWidget {
                 title: Text(org.nome),
                 subtitle: Text(org.cnpj ?? 'Sem CNPJ'),
                 selected: isModoOrganizacao && organizacaoAtual?.id == org.id,
-                onTap: () {
-                  ref
+                onTap: () async {
+                  await ref
                       .read(organizacaoProvider.notifier)
                       .alternarModoOrganizacao(org.id);
-                  Navigator.pop(context);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
                 },
               )),
         ],

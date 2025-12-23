@@ -25,6 +25,7 @@ class EmergenciaService {
   final VinculoFamiliarService _vinculoService =
       VinculoFamiliarService(Supabase.instance.client);
   static const Duration _apiTimeout = Duration(seconds: 10);
+  static const Duration _gpsTimeout = Duration(seconds: 3); // Reduzido de 8s para 3s (VULN-003)
   Timer? _alarmeTimer; // Timer para controlar repetição do som de alarme
 
   /// Aciona alerta de emergência
@@ -88,23 +89,74 @@ class EmergenciaService {
               data['message'] as String? ??
               'Falha ao acionar emergência';
           // API retornou falha, tentar fallback SMS
-          await _tentarFallbackSMS(idosoId, tipoEmergencia, mensagem);
-          throw UnknownException(message: errorMessage);
+          final fallbackResult = await _tentarFallbackSMS(idosoId, tipoEmergencia, mensagem);
+          // Verificar se fallback funcionou (VULN-001)
+          if (!fallbackResult['sucesso']) {
+            throw UnknownException(
+              message: '$errorMessage. Nenhum familiar foi notificado. Tente ligar diretamente para emergência (192).',
+            );
+          }
+          throw UnknownException(
+            message: '$errorMessage. SMS de emergência foi enviado como fallback para ${fallbackResult['familiares_notificados']} familiar(es).',
+          );
         }
 
+        // Verificar se realmente houve sucesso (VULN-001, VULN-004)
+        final resultadosTwilio = data['resultados_twilio'] as List? ?? [];
+        final resultadosPush = data['resultados_push'] as List? ?? [];
+        final warning = data['warning'] as bool? ?? false;
+        
+        // Contar quantos canais funcionaram
+        final smsEnviados = resultadosTwilio.where((r) => r['sms'] == 'enviado').length;
+        final pushEnviados = resultadosPush.where((r) => r['push'] == 'enviado').length;
+        final canaisFuncionando = (smsEnviados > 0 ? 1 : 0) + (pushEnviados > 0 ? 1 : 0);
+        
+        // Se nenhum canal funcionou, tentar fallback
+        if (canaisFuncionando == 0 && !warning) {
+          debugPrint('⚠️ Nenhum canal funcionou na API, tentando fallback SMS');
+          final fallbackResult = await _tentarFallbackSMS(idosoId, tipoEmergencia, mensagem);
+          if (!fallbackResult['sucesso']) {
+            throw UnknownException(
+              message: 'Nenhum familiar foi notificado. Tente ligar diretamente para emergência (192).',
+            );
+          }
+          // Adicionar informações do fallback ao resultado
+          data['fallback_usado'] = true;
+          data['familiares_notificados'] = fallbackResult['familiares_notificados'];
+        }
+        
+        // Adicionar informações detalhadas sobre canais
+        data['canais_funcionando'] = canaisFuncionando;
+        data['sms_enviados'] = smsEnviados;
+        data['push_enviados'] = pushEnviados;
+        data['warning'] = warning;
+        
         // Sucesso na API
         return data;
       } on TimeoutException {
-        // Timeout da API após 10s - acionar fallback SMS
-        await _tentarFallbackSMS(idosoId, tipoEmergencia, mensagem);
+        // Timeout da API após 10s - acionar fallback SMS (VULN-001)
+        final fallbackResult = await _tentarFallbackSMS(idosoId, tipoEmergencia, mensagem);
+        if (!fallbackResult['sucesso']) {
+          throw UnknownException(
+            message: 'Tempo esgotado ao acionar emergência. Nenhum familiar foi notificado. Tente ligar diretamente para emergência (192).',
+          );
+        }
         throw UnknownException(
           message:
-              'Tempo esgotado ao acionar emergência. SMS de emergência foi enviado como fallback.',
+              'Tempo esgotado ao acionar emergência. SMS de emergência foi enviado como fallback para ${fallbackResult['familiares_notificados']} familiar(es).',
         );
       } catch (apiError) {
-        // Qualquer erro da API - tentar fallback SMS
-        await _tentarFallbackSMS(idosoId, tipoEmergencia, mensagem);
-        rethrow;
+        // Qualquer erro da API - tentar fallback SMS (VULN-001)
+        final fallbackResult = await _tentarFallbackSMS(idosoId, tipoEmergencia, mensagem);
+        if (!fallbackResult['sucesso']) {
+          throw UnknownException(
+            message: 'Erro ao acionar emergência. Nenhum familiar foi notificado. Tente ligar diretamente para emergência (192).',
+          );
+        }
+        // Re-throw com informação do fallback
+        throw UnknownException(
+          message: 'Erro ao acionar emergência. SMS de emergência foi enviado como fallback para ${fallbackResult['familiares_notificados']} familiar(es).',
+        );
       }
     } on AppException {
       rethrow;
@@ -113,16 +165,18 @@ class EmergenciaService {
       if (e.toString().contains('SocketException') ||
           e.toString().contains('NetworkException') ||
           e.toString().contains('Failed host lookup')) {
-        // Sem conexão - tentar fallback SMS
-        try {
-          await _tentarFallbackSMS(idosoId, tipoEmergencia, mensagem);
-        } catch (_) {
-          // Se SMS também falhar, acionar alarme local
+        // Sem conexão - tentar fallback SMS (VULN-001)
+        final fallbackResult = await _tentarFallbackSMS(idosoId, tipoEmergencia, mensagem);
+        if (!fallbackResult['sucesso']) {
           await _acionarAlarmeLocal();
+          throw UnknownException(
+            message:
+                'Sem conexão com a internet. Nenhum familiar foi notificado. Tente ligar diretamente para emergência (192).',
+          );
         }
         throw UnknownException(
           message:
-              'Sem conexão com a internet. SMS de emergência foi enviado como fallback.',
+              'Sem conexão com a internet. SMS de emergência foi enviado como fallback para ${fallbackResult['familiares_notificados']} familiar(es).',
         );
       }
 
@@ -140,33 +194,51 @@ class EmergenciaService {
     Map<String, double>? localizacao,
     bool capturarGPS = true,
   }) async {
-    // Se localização não foi fornecida e capturarGPS é true, tentar capturar
+    // Se localização não foi fornecida e capturarGPS é true, tentar capturar (VULN-003: timeout reduzido)
     Map<String, double>? localizacaoFinal = localizacao;
+    bool localizacaoCapturada = localizacao != null;
     if (localizacaoFinal == null && capturarGPS) {
       try {
         localizacaoFinal = await _locationService
-            .getCurrentLocation()
-            .timeout(const Duration(seconds: 8));
-      } on LocationException {
+            .getCurrentLocation(timeout: _gpsTimeout)
+            .timeout(_gpsTimeout);
+        localizacaoCapturada = true;
+        debugPrint('✅ Localização GPS capturada com sucesso');
+      } on LocationException catch (e) {
         // Log do erro mas continuar sem localização
-        // O alerta será enviado mesmo sem GPS
+        debugPrint('⚠️ Erro ao capturar GPS: ${e.userFriendlyMessage}');
         localizacaoFinal = null;
+        localizacaoCapturada = false;
       } on TimeoutException {
         // Timeout - continuar sem localização
+        debugPrint('⚠️ Timeout ao capturar GPS (${_gpsTimeout.inSeconds}s)');
         localizacaoFinal = null;
-      } catch (_) {
+        localizacaoCapturada = false;
+      } catch (e) {
         // Qualquer outro erro - continuar sem localização
+        debugPrint('⚠️ Erro inesperado ao capturar GPS: $e');
         localizacaoFinal = null;
+        localizacaoCapturada = false;
       }
     }
 
     // Sempre tentar enviar o alerta, mesmo sem localização
-    return acionarEmergencia(
+    final resultado = await acionarEmergencia(
       idosoId: idosoId,
       tipoEmergencia: TipoEmergencia.panico,
       mensagem: 'Botão de pânico acionado - precisa de ajuda imediata!',
       localizacao: localizacaoFinal,
     );
+    
+    // Adicionar informação sobre localização (VULN-007)
+    resultado['localizacao_capturada'] = localizacaoCapturada;
+    if (!localizacaoCapturada && localizacaoFinal == null) {
+      resultado['localizacao_disponivel'] = false;
+    } else {
+      resultado['localizacao_disponivel'] = true;
+    }
+    
+    return resultado;
   }
 
   /// Aciona emergência por queda detectada
@@ -177,37 +249,50 @@ class EmergenciaService {
     Map<String, double>? localizacao,
     bool capturarGPS = true,
   }) async {
-    // Se localização não foi fornecida e capturarGPS é true, tentar capturar
+    // Se localização não foi fornecida e capturarGPS é true, tentar capturar (VULN-003: timeout reduzido)
     Map<String, double>? localizacaoFinal = localizacao;
+    bool localizacaoCapturada = localizacao != null;
     if (localizacaoFinal == null && capturarGPS) {
       try {
         localizacaoFinal = await _locationService
-            .getCurrentLocation()
-            .timeout(const Duration(seconds: 8));
-      } on LocationException {
-        // Log do erro mas continuar sem localização
+            .getCurrentLocation(timeout: _gpsTimeout)
+            .timeout(_gpsTimeout);
+        localizacaoCapturada = true;
+        debugPrint('✅ Localização GPS capturada com sucesso');
+      } on LocationException catch (e) {
+        debugPrint('⚠️ Erro ao capturar GPS: ${e.userFriendlyMessage}');
         localizacaoFinal = null;
+        localizacaoCapturada = false;
       } on TimeoutException {
-        // Timeout - continuar sem localização
+        debugPrint('⚠️ Timeout ao capturar GPS (${_gpsTimeout.inSeconds}s)');
         localizacaoFinal = null;
-      } catch (_) {
-        // Qualquer outro erro - continuar sem localização
+        localizacaoCapturada = false;
+      } catch (e) {
+        debugPrint('⚠️ Erro inesperado ao capturar GPS: $e');
         localizacaoFinal = null;
+        localizacaoCapturada = false;
       }
     }
 
     // Sempre tentar enviar o alerta, mesmo sem localização
-    return acionarEmergencia(
+    final resultado = await acionarEmergencia(
       idosoId: idosoId,
       tipoEmergencia: TipoEmergencia.queda,
       mensagem: 'Queda detectada - verificação imediata necessária!',
       localizacao: localizacaoFinal,
     );
+    
+    // Adicionar informação sobre localização (VULN-007)
+    resultado['localizacao_capturada'] = localizacaoCapturada;
+    resultado['localizacao_disponivel'] = localizacaoFinal != null;
+    
+    return resultado;
   }
 
   /// Tenta enviar SMS via Intent nativa como fallback
   /// Se falhar, aciona alarme local
-  Future<void> _tentarFallbackSMS(
+  /// Retorna informações sobre o resultado (VULN-001, VULN-002)
+  Future<Map<String, dynamic>> _tentarFallbackSMS(
     String idosoId,
     TipoEmergencia tipoEmergencia,
     String? mensagem,
@@ -217,9 +302,13 @@ class EmergenciaService {
       final vinculos = await _vinculoService.getVinculosByIdoso(idosoId);
 
       if (vinculos.isEmpty) {
-        // Sem contatos, acionar alarme local diretamente
+        // Sem contatos, acionar alarme local diretamente (VULN-002)
         await _acionarAlarmeLocal();
-        return;
+        return {
+          'sucesso': false,
+          'familiares_notificados': 0,
+          'erro': 'Nenhum familiar cadastrado',
+        };
       }
 
       // Buscar perfis dos familiares com telefone
@@ -250,9 +339,13 @@ class EmergenciaService {
       }
 
       if (familiaresComTelefone.isEmpty) {
-        // Nenhum familiar com telefone, acionar alarme local
+        // Nenhum familiar com telefone, acionar alarme local (VULN-002)
         await _acionarAlarmeLocal();
-        return;
+        return {
+          'sucesso': false,
+          'familiares_notificados': 0,
+          'erro': 'Nenhum familiar com telefone cadastrado',
+        };
       }
 
       // Preparar mensagem de emergência
@@ -287,13 +380,30 @@ class EmergenciaService {
       }
 
       if (!algumSMSEviado) {
-        // Nenhum SMS foi enviado, acionar alarme local
+        // Nenhum SMS foi enviado, acionar alarme local (VULN-002)
         await _acionarAlarmeLocal();
+        return {
+          'sucesso': false,
+          'familiares_notificados': 0,
+          'erro': 'Falha ao enviar SMS para todos os familiares',
+        };
       }
+      
+      // Sucesso - pelo menos um SMS foi enviado
+      return {
+        'sucesso': true,
+        'familiares_notificados': algumSMSEviado ? familiaresComTelefone.length : 0,
+        'sms_enviados': algumSMSEviado ? 1 : 0,
+      };
     } catch (e) {
-      // Erro ao tentar enviar SMS, acionar alarme local
+      // Erro ao tentar enviar SMS, acionar alarme local (VULN-002)
       debugPrint('Erro ao tentar fallback SMS: $e');
       await _acionarAlarmeLocal();
+      return {
+        'sucesso': false,
+        'familiares_notificados': 0,
+        'erro': 'Erro ao tentar enviar SMS: ${e.toString()}',
+      };
     }
   }
 

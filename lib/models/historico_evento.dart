@@ -137,14 +137,14 @@ class HistoricoEvento {
   }
 
   bool get isPendente => status == 'pendente';
-  bool get isConcluido => status == 'concluido';
+  bool get isConcluido => status == 'confirmado'; // Banco usa 'confirmado', não 'concluido'
   bool get isCancelado => status == 'cancelado';
 
   String get statusFormatado {
     switch (status) {
       case 'pendente':
         return 'Pendente';
-      case 'concluido':
+      case 'confirmado':
         return 'Concluído';
       case 'cancelado':
         return 'Cancelado';

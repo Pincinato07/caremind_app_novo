@@ -1177,8 +1177,11 @@ class _AuthShellState extends State<AuthShell>
                   (v?.length ?? 0) < 6 ? 'Mínimo 6 caracteres' : null,
             ),
             const SizedBox(height: 24),
-            // Botão Google
-            _googleSignInButton(),
+            _primaryButton(
+              label: 'Entrar',
+              onPressed: _isLoginLoading ? null : _handleLogin,
+              isLoading: _isLoginLoading,
+            ),
             const SizedBox(height: 16),
             // Divisor "ou"
             Row(
@@ -1209,11 +1212,8 @@ class _AuthShellState extends State<AuthShell>
               ],
             ),
             const SizedBox(height: 16),
-            _primaryButton(
-              label: 'Entrar',
-              onPressed: _isLoginLoading ? null : _handleLogin,
-              isLoading: _isLoginLoading,
-            ),
+            // Botão Google
+            _googleSignInButton(),
             const SizedBox(height: 12),
             Center(
               child: TextButton(

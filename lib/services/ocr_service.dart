@@ -42,13 +42,15 @@ class OcrService {
         );
       }
 
-      debugPrint('✅ Perfil validado: ${perfilResponse['id']}');
+      final perfilId = perfilResponse['id'] as String;
+      debugPrint('✅ Perfil validado: $perfilId');
 
       // 1. Fazer upload da imagem para Supabase Storage
       debugPrint('📤 Fazendo upload da imagem...');
 
+      // Usar perfil_id no nome do arquivo para consistência
       final fileName =
-          '$userId/${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
+          '$perfilId/${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
 
       // Ler bytes do arquivo
       final imageBytes = await imageFile.readAsBytes();
@@ -67,12 +69,14 @@ class OcrService {
       debugPrint('🔗 URL pública gerada: $publicUrl');
 
       // 3. Registrar no banco (ocr_gerenciamento) com status PENDENTE
+      // IMPORTANTE: Usar perfil_id para consistência com Site Next.js
       debugPrint('📝 Registrando processamento OCR...');
 
       final insertResponse = await _client
           .from('ocr_gerenciamento')
           .insert({
-            'user_id': userId,
+            'perfil_id': perfilId, // Usar perfil_id como campo principal
+            'user_id': userId, // Manter user_id para compatibilidade/rastreamento
             'image_url': publicUrl,
             'status': 'PENDENTE',
             'created_at': DateTime.now().toIso8601String(),
@@ -155,7 +159,8 @@ class OcrService {
       onStatusUpdate?.call(status);
 
       // Status de sucesso - aguardando validação do usuário
-      if (status == 'AGUARDANDO-VALIDACAO') {
+      // IMPORTANTE: Usar underscore para consistência com Site Next.js
+      if (status == 'AGUARDANDO_VALIDACAO' || status == 'AGUARDANDO-VALIDACAO') {
         debugPrint('✅ Processamento concluído, aguardando validação');
         onProgress?.call(1.0);
         return {
@@ -165,16 +170,28 @@ class OcrService {
         };
       }
 
-      // Status de erro
+      // Status de erro - tratamento mais robusto
       if (status == 'ERRO_PROCESSAMENTO' ||
           status == 'ERRO_DATABASE' ||
-          status == 'ERRO') {
-        debugPrint('❌ Erro no processamento OCR');
+          status == 'ERRO' ||
+          status.contains('ERRO') ||
+          status.contains('ERROR')) {
+        debugPrint('❌ Erro no processamento OCR: $status');
+        
+        // Mensagens de erro mais específicas
+        String errorMessage = 'Não foi possível processar a receita.';
+        if (status == 'ERRO_PROCESSAMENTO') {
+          errorMessage = 'Erro ao processar a imagem. Verifique se a foto está clara e legível.';
+        } else if (status == 'ERRO_DATABASE') {
+          errorMessage = 'Erro ao salvar dados. Tente novamente em alguns instantes.';
+        } else if (status.contains('TIMEOUT') || status.contains('timeout')) {
+          errorMessage = 'Tempo esgotado no processamento. Tente novamente.';
+        }
+        
         return {
           'status': status,
           'success': false,
-          'error_message':
-              'Não foi possível processar a receita. Tente novamente.',
+          'error_message': errorMessage,
         };
       }
 
@@ -200,7 +217,9 @@ class OcrService {
         medicamentosList = resultJson;
       } else if (resultJson is Map) {
         // Pode vir como { medicamentos: [...] } ou { medications: [...] }
+        // IMPORTANTE: Adicionar fallback para medicamentos_extraidos_qwen (usado pelo backend)
         medicamentosList = resultJson['medicamentos'] as List? ??
+            resultJson['medicamentos_extraidos_qwen'] as List? ??
             resultJson['medications'] as List? ??
             resultJson['items'] as List? ??
             [];
@@ -251,14 +270,15 @@ class OcrService {
     return salvos;
   }
 
-  /// Atualiza o status do OCR para VALIDADO após salvar
+  /// Atualiza o status do OCR para PROCESSADO após salvar
+  /// IMPORTANTE: Usar 'PROCESSADO' para consistência com Site Next.js
   Future<void> marcarComoValidado(String ocrId) async {
     try {
       await _client
           .from('ocr_gerenciamento')
-          .update({'status': 'VALIDADO'}).eq('id', ocrId);
+          .update({'status': 'PROCESSADO'}).eq('id', ocrId);
     } catch (e) {
-      debugPrint('❌ Erro ao marcar OCR como validado: $e');
+      debugPrint('❌ Erro ao marcar OCR como processado: $e');
     }
   }
 }

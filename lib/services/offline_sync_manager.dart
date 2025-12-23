@@ -5,6 +5,7 @@ import 'ocr_offline_service.dart';
 import 'medication_sync_service.dart';
 import 'medicamento_service.dart';
 import 'supabase_service.dart';
+import 'sync_resilience_service.dart';
 import 'package:get_it/get_it.dart';
 
 /// Gerenciador centralizado de sincronização offline
@@ -90,11 +91,29 @@ class OfflineSyncManager {
             '✅ OfflineSyncManager: $ocrProcessed imagens OCR processadas');
       }
 
-      // 2. Sincronizar ações de medicamentos pendentes com retry logic
+      // 2. Sincronizar ações de medicamentos pendentes com retry logic e resiliência
       try {
-        await processPendingActionsWithRetry(userId);
+        final resilience = SyncResilienceService();
+        final result = await resilience.syncWithResilience(userId);
+        
+        if (result.success) {
+          debugPrint('✅ OfflineSyncManager: Sincronização resiliente concluída - ${result.syncedCount} sincronizadas');
+          if (result.duplicates.isNotEmpty) {
+            debugPrint('⚠️ OfflineSyncManager: ${result.duplicates.length} duplicatas detectadas');
+          }
+        } else {
+          debugPrint('⚠️ OfflineSyncManager: Sincronização falhou: ${result.error}');
+          // Fallback para método antigo se o novo falhar
+          await processPendingActionsWithRetry(userId);
+        }
       } catch (e) {
         debugPrint('⚠️ OfflineSyncManager: Erro ao sincronizar ações: $e');
+        // Fallback para método antigo
+        try {
+          await processPendingActionsWithRetry(userId);
+        } catch (fallbackError) {
+          debugPrint('❌ OfflineSyncManager: Fallback também falhou: $fallbackError');
+        }
       }
 
       // 3. Limpar imagens antigas (manutenção)

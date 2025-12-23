@@ -105,6 +105,25 @@ class _OrganizacaoConfiguracoesScreenState
 
   @override
   Widget build(BuildContext context) {
+    final organizacaoNotifier = ref.read(organizacaoProvider.notifier);
+    final podeGerenciar = organizacaoNotifier.podeGerenciarConfiguracoes();
+    
+    if (!podeGerenciar) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Configurações'),
+        ),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'Você não tem permissão para gerenciar configurações. Entre em contato com o administrador da organização.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
     if (_isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),

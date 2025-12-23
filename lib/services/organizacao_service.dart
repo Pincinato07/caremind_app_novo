@@ -262,8 +262,21 @@ class OrganizacaoService {
   }
 
   /// Obter detalhes de uma organização
+  /// Valida se o usuário é membro antes de retornar os dados
   Future<Organizacao> obterOrganizacao(String organizacaoId) async {
     try {
+      final user = _supabaseService.currentUser;
+      if (user == null) {
+        throw Exception('Usuário não autenticado');
+      }
+
+      // PRIMEIRO: Verificar se usuário é membro da organização
+      final isMembro = await isMembroOrganizacao(organizacaoId);
+      if (!isMembro) {
+        throw Exception('Acesso negado: você não é membro desta organização');
+      }
+
+      // DEPOIS: Buscar organização (RLS já protege, mas validação explícita é melhor)
       final response = await Supabase.instance.client
           .from('organizacoes')
           .select('*')
@@ -277,6 +290,7 @@ class OrganizacaoService {
   }
 
   /// Atualizar organização
+  /// Valida se o usuário é admin antes de permitir atualização
   Future<Organizacao> atualizarOrganizacao(
     String organizacaoId, {
     String? nome,
@@ -286,6 +300,17 @@ class OrganizacaoService {
     Map<String, dynamic>? endereco,
   }) async {
     try {
+      final user = _supabaseService.currentUser;
+      if (user == null) {
+        throw Exception('Usuário não autenticado');
+      }
+
+      // Verificar se usuário é admin da organização
+      final isAdminOrg = await isAdmin(organizacaoId);
+      if (!isAdminOrg) {
+        throw Exception('Acesso negado: apenas administradores podem atualizar a organização');
+      }
+
       final updates = <String, dynamic>{};
       if (nome != null) updates['nome'] = nome;
       if (cnpj != null) updates['cnpj'] = cnpj;

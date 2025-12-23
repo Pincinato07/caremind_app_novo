@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'supabase_service.dart';
+import '../core/injection/injection.dart';
 
 /// Serviço centralizado para gerenciar todas as configurações do app
-/// Usa SharedPreferences para persistência local
+/// Usa SharedPreferences para persistência local + sincronização com banco
 class SettingsService extends ChangeNotifier {
   static final SettingsService _instance = SettingsService._internal();
   factory SettingsService() => _instance;
@@ -10,12 +12,14 @@ class SettingsService extends ChangeNotifier {
 
   SharedPreferences? _prefs;
   bool _isInitialized = false;
+  SupabaseService? _supabaseService;
 
   // Chaves para SharedPreferences
   static const String _keyNotificationsMedicamentos =
       'notifications_medicamentos';
   static const String _keyNotificationsCompromissos =
       'notifications_compromissos';
+  static const String _keyNotificationsRotinas = 'notifications_rotinas';
   static const String _keyAccessibilityTtsEnabled = 'accessibility_tts_enabled';
   static const String _keyAccessibilityVibrationEnabled =
       'accessibility_vibration_enabled';
@@ -29,6 +33,7 @@ class SettingsService extends ChangeNotifier {
   // Valores padrão
   static const bool _defaultNotificationsMedicamentos = true;
   static const bool _defaultNotificationsCompromissos = true;
+  static const bool _defaultNotificationsRotinas = true;
   static const bool _defaultAccessibilityTtsEnabled = true;
   static const bool _defaultAccessibilityVibrationEnabled = true;
   static const double _defaultAccessibilityFontScale = 1.0;
@@ -40,6 +45,7 @@ class SettingsService extends ChangeNotifier {
   // Valores em memória (cache)
   bool? _notificationsMedicamentos;
   bool? _notificationsCompromissos;
+  bool? _notificationsRotinas;
   bool? _accessibilityTtsEnabled;
   bool? _accessibilityVibrationEnabled;
   double? _accessibilityFontScale;
@@ -54,12 +60,55 @@ class SettingsService extends ChangeNotifier {
 
     try {
       _prefs = await SharedPreferences.getInstance();
+      _supabaseService = getIt<SupabaseService>();
       await _loadAllSettings();
+      await _syncFromDatabase(); // Sincronizar do banco
       _isInitialized = true;
       notifyListeners();
     } catch (e) {
       debugPrint('Erro ao inicializar SettingsService: $e');
       _isInitialized = true; // Continua mesmo com erro
+    }
+  }
+
+  /// Sincroniza configurações do banco de dados
+  Future<void> _syncFromDatabase() async {
+    try {
+      final user = _supabaseService?.currentUser;
+      if (user == null) return;
+
+      final perfil = await _supabaseService?.getProfile(user.id);
+      if (perfil == null) return;
+
+      // Sincronizar notificacoes_compromissos do banco
+      if (perfil.notificacoesCompromissos != null && _prefs != null) {
+        final dbValue = perfil.notificacoesCompromissos!;
+        final localValue = _notificationsCompromissos ?? _defaultNotificationsCompromissos;
+        
+        // Se o valor do banco for diferente do local, atualizar local
+        if (dbValue != localValue) {
+          await _prefs!.setBool(_keyNotificationsCompromissos, dbValue);
+          _notificationsCompromissos = dbValue;
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('Erro ao sincronizar do banco: $e');
+    }
+  }
+
+  /// Sincroniza notificacoes_compromissos com o banco
+  Future<void> _syncNotificationsCompromissosToDatabase(bool value) async {
+    try {
+      final user = _supabaseService?.currentUser;
+      if (user == null) return;
+
+      await _supabaseService?.updateProfile(
+        userId: user.id,
+        notificacoesCompromissos: value,
+      );
+    } catch (e) {
+      debugPrint('Erro ao sincronizar notificacoes_compromissos com banco: $e');
     }
   }
 
@@ -73,6 +122,9 @@ class SettingsService extends ChangeNotifier {
     _notificationsCompromissos =
         _prefs!.getBool(_keyNotificationsCompromissos) ??
             _defaultNotificationsCompromissos;
+    _notificationsRotinas =
+        _prefs!.getBool(_keyNotificationsRotinas) ??
+            _defaultNotificationsRotinas;
     _accessibilityTtsEnabled = _prefs!.getBool(_keyAccessibilityTtsEnabled) ??
         _defaultAccessibilityTtsEnabled;
     _accessibilityVibrationEnabled =
@@ -95,6 +147,8 @@ class SettingsService extends ChangeNotifier {
       _notificationsMedicamentos ?? _defaultNotificationsMedicamentos;
   bool get notificationsCompromissos =>
       _notificationsCompromissos ?? _defaultNotificationsCompromissos;
+  bool get notificationsRotinas =>
+      _notificationsRotinas ?? _defaultNotificationsRotinas;
   bool get accessibilityTtsEnabled =>
       _accessibilityTtsEnabled ?? _defaultAccessibilityTtsEnabled;
   bool get accessibilityVibrationEnabled =>
@@ -122,6 +176,19 @@ class SettingsService extends ChangeNotifier {
     return success;
   }
 
+  Future<bool> setNotificationsRotinas(bool value) async {
+    if (_prefs == null) {
+      await initialize();
+    }
+
+    final success = await _prefs!.setBool(_keyNotificationsRotinas, value);
+    if (success) {
+      _notificationsRotinas = value;
+      notifyListeners();
+    }
+    return success;
+  }
+
   Future<bool> setNotificationsCompromissos(bool value) async {
     if (_prefs == null) await initialize();
     if (_prefs == null) return false;
@@ -130,6 +197,8 @@ class SettingsService extends ChangeNotifier {
     if (success) {
       _notificationsCompromissos = value;
       notifyListeners();
+      // Sincronizar com banco de dados em background
+      _syncNotificationsCompromissosToDatabase(value);
     }
     return success;
   }

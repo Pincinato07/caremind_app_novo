@@ -51,8 +51,8 @@ class _MembrosListaScreenState extends ConsumerState<MembrosListaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final organizacaoState = ref.watch(organizacaoProvider);
-    final podeGerenciar = organizacaoState.isAdmin;
+    final organizacaoNotifier = ref.read(organizacaoProvider.notifier);
+    final podeGerenciar = organizacaoNotifier.podeGerenciarMembros();
 
     return Scaffold(
       appBar: AppBar(

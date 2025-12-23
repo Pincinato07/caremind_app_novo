@@ -205,16 +205,52 @@ class _AjudaScreenState extends State<AjudaScreen> {
         capturarGPS: true, // Captura GPS automaticamente
       );
 
+      // Extrair informações detalhadas (VULN-001, VULN-007)
+      final familiaresNotificados = resultado['familiares_notificados'] as int? ?? 0;
+      final canaisFuncionando = resultado['canais_funcionando'] as int? ?? 0;
+      final smsEnviados = resultado['sms_enviados'] as int? ?? 0;
+      final pushEnviados = resultado['push_enviados'] as int? ?? 0;
+      final warning = resultado['warning'] as bool? ?? false;
+      final localizacaoDisponivel = resultado['localizacao_disponivel'] as bool? ?? false;
+      final localizacaoCapturada = resultado['localizacao_capturada'] as bool? ?? false;
+      final fallbackUsado = resultado['fallback_usado'] as bool? ?? false;
+
+      // Construir mensagem detalhada
+      String mensagemFeedback = '🚨 Alerta enviado para $familiaresNotificados familiar(es)!';
+      String mensagemVoz = 'Alerta de emergência enviado para $familiaresNotificados familiar(es).';
+      
+      if (warning) {
+        mensagemFeedback += '\n⚠️ Twilio não configurado - apenas notificações push foram enviadas.';
+        mensagemVoz += ' Aviso: apenas notificações push foram enviadas.';
+      }
+      
+      if (fallbackUsado) {
+        mensagemFeedback += '\n📱 SMS enviado via fallback.';
+        mensagemVoz += ' SMS enviado via fallback.';
+      }
+      
+      if (!localizacaoDisponivel) {
+        mensagemFeedback += '\n📍 Localização não disponível.';
+        mensagemVoz += ' Localização não disponível.';
+      } else if (localizacaoCapturada) {
+        mensagemFeedback += '\n✅ Localização GPS capturada.';
+      }
+      
+      if (canaisFuncionando > 0) {
+        final canais = <String>[];
+        if (smsEnviados > 0) canais.add('SMS');
+        if (pushEnviados > 0) canais.add('Push');
+        mensagemFeedback += '\n📡 Canais: ${canais.join(', ')}.';
+      }
+
       // Feedback de sucesso
-      await AccessibilityService.speak(
-        'Alerta de emergência enviado para ${resultado['familiares_notificados']} familiar(es).',
-      );
+      await AccessibilityService.speak(mensagemVoz);
 
       if (mounted) {
         FeedbackService.showSuccess(
           context,
-          '🚨 Alerta enviado para ${resultado['familiares_notificados']} familiar(es)!',
-          duration: const Duration(seconds: 4),
+          mensagemFeedback,
+          duration: const Duration(seconds: 6),
         );
       }
     } catch (e) {

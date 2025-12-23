@@ -432,6 +432,26 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                               }
                             },
                           ),
+                          _buildSwitchTile(
+                            context,
+                            icon: Icons.schedule_rounded,
+                            title: 'Notificações de Rotinas',
+                            subtitle: 'Receber lembretes de rotinas',
+                            value: _settingsService.notificationsRotinas,
+                            onChanged: (value) async {
+                              await _settingsService
+                                  .setNotificationsRotinas(value);
+                              if (mounted) {
+                                FeedbackService.showSuccess(
+                                  context,
+                                  value
+                                      ? 'Notificações de rotinas ativadas'
+                                      : 'Notificações de rotinas desativadas',
+                                  duration: const Duration(seconds: 2),
+                                );
+                              }
+                            },
+                          ),
                           // Botão para configurar bypass de DND (apenas Android)
                           if (Platform.isAndroid) _buildDndBypassTile(context),
                         ],

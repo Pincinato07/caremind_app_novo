@@ -307,6 +307,7 @@ class SupabaseService {
     String? timezone,
     bool? dataSharingConsent,
     DateTime? termsAcceptedAt,
+    bool? notificacoesCompromissos,
   }) async {
     try {
       final Map<String, dynamic> updates = {};
@@ -327,6 +328,8 @@ class SupabaseService {
         updates['data_sharing_consent'] = dataSharingConsent;
       if (termsAcceptedAt != null)
         updates['terms_accepted_at'] = termsAcceptedAt.toIso8601String();
+      if (notificacoesCompromissos != null)
+        updates['notificacoes_compromissos'] = notificacoesCompromissos;
 
       if (updates.isNotEmpty) {
         // Limpar dados antes de atualizar (remove strings vazias)

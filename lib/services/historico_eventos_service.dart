@@ -113,7 +113,7 @@ class HistoricoEventosService {
           .filter('medicamento_id', 'in', '(${medicamentoIds.join(',')})')
           .gte('data_prevista', inicioDia)
           .lt('data_prevista', fimDia) // lt (less than) o início de amanhã
-          .eq('status', 'concluido');
+          .eq('status', 'confirmado');
 
       final Map<int, bool> statusMap = {};
 
@@ -190,7 +190,7 @@ class HistoricoEventosService {
 
         if (dadosPorDia.containsKey(chaveDia)) {
           final status = evento['status'] as String? ?? 'pendente';
-          if (status == 'concluido') {
+          if (status == 'confirmado') {
             dadosPorDia[chaveDia]!['taken'] =
                 (dadosPorDia[chaveDia]!['taken'] ?? 0) + 1;
           } else {

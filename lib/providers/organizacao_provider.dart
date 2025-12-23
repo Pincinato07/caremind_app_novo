@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/organizacao_service.dart';
+import '../services/permissao_organizacao_service.dart';
+import '../services/supabase_service.dart';
 import '../core/injection/injection.dart';
 
 /// State class para organização
@@ -42,9 +45,27 @@ class OrganizacaoState {
 /// Notifier para gerenciar estado da organização
 class OrganizacaoNotifier extends StateNotifier<OrganizacaoState> {
   final OrganizacaoService _organizacaoService = getIt<OrganizacaoService>();
+  final SupabaseService _supabaseService = getIt<SupabaseService>();
 
   OrganizacaoNotifier() : super(OrganizacaoState()) {
     carregarOrganizacoes();
+  }
+
+  /// Atualiza o último contexto usado pelo usuário no banco
+  Future<void> _atualizarLastContext(String context) async {
+    try {
+      final user = _supabaseService.client.auth.currentUser;
+      if (user == null) return;
+
+      await _supabaseService.client.from('user_preferences').upsert({
+        'user_id': user.id,
+        'last_context': context,
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'user_id');
+    } catch (e) {
+      debugPrint('Erro ao atualizar last_context: $e');
+      // Não bloquear a troca de contexto se houver erro
+    }
   }
 
   /// Carregar organizações do usuário
@@ -94,36 +115,61 @@ class OrganizacaoNotifier extends StateNotifier<OrganizacaoState> {
   }
 
   /// Alternar para modo pessoal
-  void alternarModoPessoal() {
+  Future<void> alternarModoPessoal() async {
     state = state.copyWith(
       organizacaoAtual: null,
       roleAtual: null,
       isModoOrganizacao: false,
     );
+    // Atualizar last_context no banco
+    await _atualizarLastContext('individual');
   }
 
   /// Alternar para modo organização
   Future<void> alternarModoOrganizacao(String organizacaoId) async {
     await selecionarOrganizacao(organizacaoId);
+    // Atualizar last_context no banco após selecionar organização
+    await _atualizarLastContext('organizacao');
   }
 
-  /// Verificar permissões
+  /// Verificar permissões (métodos legados - mantidos para compatibilidade)
   bool podeGerenciarMembros() {
-    return state.isAdmin;
+    return PermissaoOrganizacaoService.podeGerenciarMembros(state.roleAtual);
   }
 
   bool podeGerenciarIdosos() {
-    return ['admin', 'medico', 'enfermeiro'].contains(state.roleAtual);
+    return PermissaoOrganizacaoService.podeGerenciarIdosos(state.roleAtual);
   }
 
   bool podeConfirmarEventos() {
-    return ['admin', 'medico', 'enfermeiro', 'cuidador']
-        .contains(state.roleAtual);
+    return PermissaoOrganizacaoService.podeConfirmarEventos(state.roleAtual);
   }
 
   bool podeGerenciarCompromissos() {
-    return ['admin', 'medico', 'enfermeiro', 'recepcionista']
-        .contains(state.roleAtual);
+    return PermissaoOrganizacaoService.podeGerenciarCompromissos(state.roleAtual);
+  }
+
+  /// Novos métodos de verificação de permissão
+  bool podeVerRelatorios() {
+    return PermissaoOrganizacaoService.podeVerRelatorios(state.roleAtual);
+  }
+
+  bool podeGerenciarConfiguracoes() {
+    return PermissaoOrganizacaoService.podeGerenciarConfiguracoes(state.roleAtual);
+  }
+
+  bool podeVerAnalytics() {
+    return PermissaoOrganizacaoService.podeVerAnalytics(state.roleAtual);
+  }
+
+  bool podeExportarDados() {
+    return PermissaoOrganizacaoService.podeExportarDados(state.roleAtual);
+  }
+
+  /// Verificar permissão genérica
+  bool verificarPermissao(String permissao) {
+    return PermissaoOrganizacaoService.verificarPermissao(
+        state.roleAtual, permissao);
   }
 
   /// Atualizar organização atual

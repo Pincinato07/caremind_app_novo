@@ -63,7 +63,8 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen>
               case 'PROCESSANDO':
                 _statusMessage = 'Analisando receita...';
                 break;
-              case 'AGUARDANDO-VALIDACAO':
+              case 'AGUARDANDO_VALIDACAO':
+              case 'AGUARDANDO-VALIDACAO': // Suporte para ambos os formatos
                 _statusMessage = 'Processamento concluído!';
                 break;
               default:
@@ -172,41 +173,61 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen>
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Ícone animado
+        // Ícone animado com efeito de pulso
         AnimatedBuilder(
           animation: _pulseController,
           builder: (context, child) {
-            return Transform.scale(
-              scale: 1.0 + (_pulseController.value * 0.1),
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                // Círculo de fundo pulsante
+                Transform.scale(
+                  scale: 1.0 + (_pulseController.value * 0.15),
+                  child: Container(
+                    width: 140,
+                    height: 140,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                 ),
-                child: const Icon(
-                  Icons.document_scanner,
-                  size: 60,
-                  color: Colors.white,
+                // Ícone principal
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.document_scanner,
+                    size: 60,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
+              ],
             );
           },
         ),
         const SizedBox(height: 48),
 
-        // Mensagem de status
-        Text(
-          _statusMessage,
-          style: AppTextStyles.headlineSmall.copyWith(
-            color: Colors.white,
+        // Mensagem de status com animação
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: Text(
+            _statusMessage,
+            key: ValueKey(_statusMessage),
+            style: AppTextStyles.headlineSmall.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),
 
-        // Barra de progresso
+        // Barra de progresso melhorada
         SizedBox(
           width: 280,
           child: Column(
@@ -215,50 +236,102 @@ class _OcrProcessingScreenState extends State<OcrProcessingScreen>
                 borderRadius: BorderRadius.circular(10),
                 child: LinearProgressIndicator(
                   value: _progress,
-                  minHeight: 12,
+                  minHeight: 14,
                   backgroundColor: Colors.white.withValues(alpha: 0.2),
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Colors.white.withValues(alpha: 0.9),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                '${(_progress * 100).toInt()}%',
-                style: AppTextStyles.bodyLarge.copyWith(
-                  color: Colors.white.withValues(alpha: 0.3),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${(_progress * 100).toInt()}%',
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    _getProgressSubtext(),
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: Colors.white.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
         const SizedBox(height: 48),
 
-        // Dica
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.info_outline,
-                color: Colors.white.withValues(alpha: 0.8),
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Isso pode levar alguns segundos...',
-                style: AppTextStyles.bodyMedium.copyWith(
+        // Dicas contextuais baseadas no status
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: Container(
+            key: ValueKey(_statusMessage),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _getStatusIcon(),
                   color: Colors.white.withValues(alpha: 0.8),
+                  size: 20,
                 ),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    _getStatusHint(),
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
     );
+  }
+
+  String _getProgressSubtext() {
+    if (_progress < 0.3) return 'Iniciando...';
+    if (_progress < 0.6) return 'Processando...';
+    if (_progress < 0.9) return 'Quase lá...';
+    return 'Finalizando...';
+  }
+
+  IconData _getStatusIcon() {
+    if (_statusMessage.contains('Enviando')) return Icons.cloud_upload;
+    if (_statusMessage.contains('Aguardando')) return Icons.hourglass_empty;
+    if (_statusMessage.contains('Analisando')) return Icons.auto_awesome;
+    if (_statusMessage.contains('concluído')) return Icons.check_circle;
+    return Icons.info_outline;
+  }
+
+  String _getStatusHint() {
+    if (_statusMessage.contains('Enviando')) {
+      return 'Enviando imagem para processamento...';
+    }
+    if (_statusMessage.contains('Aguardando')) {
+      return 'Aguardando processamento na fila...';
+    }
+    if (_statusMessage.contains('Analisando')) {
+      return 'Nossa IA está identificando os medicamentos...';
+    }
+    if (_statusMessage.contains('concluído')) {
+      return 'Processamento concluído com sucesso!';
+    }
+    return 'Isso pode levar alguns segundos...';
   }
 
   Widget _buildErrorState() {
