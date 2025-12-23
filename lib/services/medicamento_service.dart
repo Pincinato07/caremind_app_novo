@@ -7,10 +7,7 @@ import '../core/errors/result.dart';
 import '../core/errors/app_exception.dart';
 import '../core/utils/data_cleaner.dart';
 import 'notification_service.dart';
-import 'historico_eventos_service.dart';
-import '../models/notificacao_organizacao.dart';
 import 'organizacao_validator.dart';
-import '../core/injection/injection.dart';
 
 class MedicamentoService {
   final SupabaseClient _client;
@@ -281,44 +278,6 @@ class MedicamentoService {
         debugPrint(
             '✅ MedicamentoService: Medicamento $medicamentoId marcado como pendente (atômico)');
       }
-    } catch (error) {
-      debugPrint(
-          '❌ MedicamentoService: Erro ao marcar medicamento como concluído: ${error.toString()}');
-      debugPrint('❌ MedicamentoService: Tipo do erro: ${error.runtimeType}');
-      if (error is PostgrestException) {
-        debugPrint(
-            '❌ MedicamentoService: Código: ${error.code ?? 'N/A'}, Mensagem: ${error.message}');
-        if (error.details != null) {
-          debugPrint('❌ MedicamentoService: Detalhes: ${error.details}');
-        }
-      }
-      throw ErrorHandler.toAppException(error);
-    }
-  }
-
-  // Buscar medicamento por ID
-  Future<Medicamento?> getMedicamentoPorId(int medicamentoId) async {
-    try {
-      final response = await _client
-          .from('medicamentos')
-          .select()
-          .eq('id', medicamentoId)
-          .maybeSingle();
-
-      if (response != null) {
-        return Medicamento.fromMap(response);
-      }
-      return null;
-    } catch (error) {
-      throw ErrorHandler.toAppException(error);
-    }
-  }
-}
-
-      }
-
-      debugPrint(
-          '✅ MedicamentoService: Medicamento $medicamentoId marcado como $novoStatus');
     } catch (error) {
       debugPrint(
           '❌ MedicamentoService: Erro ao marcar medicamento como concluído: ${error.toString()}');

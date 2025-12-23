@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'offline_cache_service.dart';
 import 'medication_sync_service.dart';
-import 'medicamento_service.dart' hide debugPrint;
+import 'medicamento_service.dart';
 import 'supabase_service.dart';
 import 'package:get_it/get_it.dart';
 
