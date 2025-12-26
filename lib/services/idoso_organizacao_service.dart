@@ -263,6 +263,7 @@ class IdosoOrganizacaoService {
     required String perfilId,
     required String action, // 'convert' ou 'link_family'
     String? codigoVinculacao,
+    String? telefone,
   }) async {
     try {
       final body = <String, dynamic>{
@@ -272,6 +273,11 @@ class IdosoOrganizacaoService {
 
       if (codigoVinculacao != null) {
         body['codigo_vinculacao'] = codigoVinculacao;
+      }
+
+      // Telefone obrigatório para SOS
+      if (telefone != null && telefone.trim().isNotEmpty) {
+        body['telefone'] = telefone.trim();
       }
 
       final response = await Supabase.instance.client.functions.invoke(

@@ -5,6 +5,7 @@ import '../../widgets/caremind_card.dart';
 import '../../widgets/animated_card.dart';
 import '../../services/onboarding_service.dart';
 import '../../core/feedback/feedback_service.dart';
+import '../organizacao/criar_organizacao_screen.dart';
 
 /// Tela de onboarding contextual que aparece após o primeiro login
 /// Guia o usuário para a primeira ação baseado no tipo de perfil
@@ -316,6 +317,22 @@ class _OnboardingContextualScreenState
   Widget build(BuildContext context) {
     final tipoPerfil = widget.perfil.tipo?.toLowerCase() ?? 'individual';
     final isFamiliar = tipoPerfil == 'familiar';
+    final isOrganizacao = tipoPerfil == 'organizacao';
+
+    // REESTRUTURAÇÃO: Se for organização, redirecionar diretamente para criar organização
+    if (isOrganizacao) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const CriarOrganizacaoScreen(),
+          ),
+        );
+      });
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,

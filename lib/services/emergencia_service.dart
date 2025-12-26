@@ -20,13 +20,24 @@ enum TipoEmergencia {
 /// Dispara SMS, ligações e notificações push para todos os familiares
 /// Implementa fallback: API -> SMS nativo -> Alarme local
 class EmergenciaService {
-  final SupabaseClient _supabase = Supabase.instance.client;
-  final LocationService _locationService = LocationService();
-  final VinculoFamiliarService _vinculoService =
-      VinculoFamiliarService(Supabase.instance.client);
+  final SupabaseClient _supabase;
+  final LocationService _locationService;
+  final VinculoFamiliarService _vinculoService;
   static const Duration _apiTimeout = Duration(seconds: 10);
   static const Duration _gpsTimeout = Duration(seconds: 3); // Reduzido de 8s para 3s (VULN-003)
   Timer? _alarmeTimer; // Timer para controlar repetição do som de alarme
+
+  /// Construtor com injeção de dependência opcional
+  /// Se [supabaseClient] for null, usa Supabase.instance.client
+  /// Se [locationService] for null, cria uma nova instância
+  EmergenciaService({
+    SupabaseClient? supabaseClient,
+    LocationService? locationService,
+  })  : _supabase = supabaseClient ?? Supabase.instance.client,
+        _locationService = locationService ?? LocationService(),
+        _vinculoService = VinculoFamiliarService(
+          supabaseClient ?? Supabase.instance.client,
+        );
 
   /// Aciona alerta de emergência
   ///

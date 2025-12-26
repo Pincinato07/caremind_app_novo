@@ -14,6 +14,7 @@ import '../../core/accessibility/accessibility_helper.dart';
 import '../../widgets/charts/adherence_bar_chart.dart';
 import '../../widgets/charts/adherence_line_chart.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/wellbeing_checkin.dart';
 
 /// Dashboard do FAMILIAR/CUIDADOR
 /// Objetivo: Tranquilidade. O familiar quer saber: "Está tudo bem?"
@@ -498,6 +499,26 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 24.0, vertical: 12),
                         child: _buildUltimaAtividade(),
+                      ),
+                    ),
+                    // Widget Bem-Estar (apenas se idoso selecionado)
+                    SliverToBoxAdapter(
+                      child: ListenableBuilder(
+                        listenable: getIt<FamiliarState>(),
+                        builder: (context, _) {
+                          final familiarState = getIt<FamiliarState>();
+                          if (familiarState.idosoSelecionado != null) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24.0, vertical: 12),
+                              child: WellbeingCheckin(
+                                perfilId: familiarState.idosoSelecionado!.id,
+                                isReadOnly: true,
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
                       ),
                     ),
                     SliverToBoxAdapter(

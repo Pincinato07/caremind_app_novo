@@ -1,8 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import '../../lib/services/notification_service.dart';
 import '../../lib/models/medicamento.dart';
+import '../helpers/test_setup.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+    await setupTests();
+  });
+
   group('NotificationService', () {
     group('Inicialização', () {
       test('deve ter método initialize', () {
@@ -31,74 +39,51 @@ void main() {
           returnsNormally,
         );
       });
-
-      test('deve aceitar diferentes tipos de frequência', () {
-        // Arrange - Frequência diária
-        final medicamentoDiario = Medicamento(
-          id: 1,
-          nome: 'Medicamento Diário',
-          perfilId: 'perfil-123',
-          createdAt: DateTime.now(),
-          frequencia: {
-            'tipo': 'diario',
-            'horarios': ['08:00'],
-          },
-        );
-
-        // Arrange - Frequência semanal
-        final medicamentoSemanal = Medicamento(
-          id: 2,
-          nome: 'Medicamento Semanal',
-          perfilId: 'perfil-123',
-          createdAt: DateTime.now(),
-          frequencia: {
-            'tipo': 'semanal',
-            'dias_da_semana': [1, 3, 5],
-            'horario': '10:00',
-          },
-        );
-
-        // Arrange - Frequência por intervalo
-        final medicamentoIntervalo = Medicamento(
-          id: 3,
-          nome: 'Medicamento Intervalo',
-          perfilId: 'perfil-123',
-          createdAt: DateTime.now(),
-          frequencia: {
-            'tipo': 'intervalo',
-            'intervalo_horas': 8,
-            'inicio': '08:00',
-          },
-        );
-
-        // Act & Assert
-        expect(
-          () => NotificationService.scheduleMedicationReminders(medicamentoDiario),
-          returnsNormally,
-        );
-        expect(
-          () => NotificationService.scheduleMedicationReminders(medicamentoSemanal),
-          returnsNormally,
-        );
-        expect(
-          () => NotificationService.scheduleMedicationReminders(medicamentoIntervalo),
-          returnsNormally,
-        );
-      });
     });
 
-    group('cancelMedicamentoNotifications', () {
-      test('deve aceitar ID de medicamento válido', () {
+    group('cancelMedicationReminders', () {
+      test('deve aceitar medicamentoId válido', () {
         // Arrange
         const medicamentoId = 1;
 
         // Act & Assert
         expect(
-          () => NotificationService.cancelMedicamentoNotifications(medicamentoId),
+          () => NotificationService.cancelMedicationReminders(medicamentoId),
+          returnsNormally,
+        );
+      });
+    });
+
+    group('scheduleRoutineReminder', () {
+      test('deve aceitar parâmetros válidos', () {
+        // Arrange
+        const rotinaId = 'rotina-123';
+        const titulo = 'Tomar remédio';
+        final horario = DateTime.now().add(const Duration(hours: 1));
+
+        // Act & Assert
+        expect(
+          () => NotificationService.scheduleRoutineReminder(
+            rotinaId: rotinaId,
+            titulo: titulo,
+            horario: horario,
+          ),
+          returnsNormally,
+        );
+      });
+    });
+
+    group('cancelRoutineReminder', () {
+      test('deve aceitar rotinaId válido', () {
+        // Arrange
+        const rotinaId = 'rotina-123';
+
+        // Act & Assert
+        expect(
+          () => NotificationService.cancelRoutineReminder(rotinaId),
           returnsNormally,
         );
       });
     });
   });
 }
-

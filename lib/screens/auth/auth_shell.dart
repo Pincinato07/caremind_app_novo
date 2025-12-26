@@ -51,10 +51,112 @@ class _AuthShellState extends State<AuthShell>
   bool _dataSharingAccepted = false;
   bool _isRegistering = false;
 
+  // Validação em tempo real
+  String? _nameError;
+  String? _emailError;
+  String? _passwordError;
+  String? _confirmPasswordError;
+  Map<String, dynamic> _passwordStrength = {
+    'score': 0,
+    'label': '',
+    'color': '',
+  };
+  bool _showPassword = false;
+  bool _showConfirmPassword = false;
+
   @override
   void initState() {
     super.initState();
     _mode = widget.initialMode;
+
+    // Listeners para validação em tempo real
+    _nameController.addListener(_validateName);
+    _emailController.addListener(_validateEmail);
+    _passwordController.addListener(_validatePassword);
+    _confirmPasswordController.addListener(_validateConfirmPassword);
+  }
+
+  void _validateName() {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      setState(() => _nameError = null);
+      return;
+    }
+    if (name.length < 3) {
+      setState(() => _nameError = 'Nome deve ter pelo menos 3 caracteres');
+    } else if (name.split(' ').length < 2) {
+      setState(() => _nameError = 'Informe nome e sobrenome');
+    } else {
+      setState(() => _nameError = null);
+    }
+  }
+
+  void _validateEmail() {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      setState(() => _emailError = null);
+      return;
+    }
+    final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+    if (!emailRegex.hasMatch(email)) {
+      setState(() => _emailError = 'Email inválido');
+    } else {
+      setState(() => _emailError = null);
+    }
+  }
+
+  void _validatePassword() {
+    final password = _passwordController.text;
+    if (password.isEmpty) {
+      setState(() {
+        _passwordError = null;
+        _passwordStrength = {'score': 0, 'label': '', 'color': ''};
+      });
+      return;
+    }
+
+    // Calcular força da senha
+    int score = 0;
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+    if (RegExp(r'[a-z]').hasMatch(password) &&
+        RegExp(r'[A-Z]').hasMatch(password)) score++;
+    if (RegExp(r'\d').hasMatch(password)) score++;
+    if (RegExp(r'[^a-zA-Z\d]').hasMatch(password)) score++;
+
+    final levels = [
+      {'label': 'Muito fraca', 'color': '#ef4444'},
+      {'label': 'Fraca', 'color': '#f97316'},
+      {'label': 'Média', 'color': '#eab308'},
+      {'label': 'Forte', 'color': '#22c55e'},
+      {'label': 'Muito forte', 'color': '#10b981'},
+    ];
+
+    setState(() {
+      _passwordStrength = {
+        'score': score,
+        ...levels[score > 4 ? 4 : score],
+      };
+
+      if (password.length < 8) {
+        _passwordError = 'Senha deve ter pelo menos 8 caracteres';
+      } else {
+        _passwordError = null;
+      }
+    });
+  }
+
+  void _validateConfirmPassword() {
+    final confirm = _confirmPasswordController.text;
+    if (confirm.isEmpty) {
+      setState(() => _confirmPasswordError = null);
+      return;
+    }
+    if (confirm != _passwordController.text) {
+      setState(() => _confirmPasswordError = 'As senhas não coincidem');
+    } else {
+      setState(() => _confirmPasswordError = null);
+    }
   }
 
   @override
@@ -808,61 +910,162 @@ class _AuthShellState extends State<AuthShell>
     bool obscure = false,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    String? errorText,
+    String? successText,
+    bool showPasswordToggle = false,
+    bool? isPasswordVisible,
+    VoidCallback? onTogglePassword,
+    Widget? suffix,
   }) {
+    final hasError = errorText != null && errorText.isNotEmpty;
+    final hasSuccess = successText != null && successText.isNotEmpty && !hasError;
+    final shouldObscure = obscure && (isPasswordVisible != true);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      child: TextFormField(
-        controller: controller,
-        obscureText: obscure,
-        keyboardType: keyboardType,
-        validator: validator,
-        style: GoogleFonts.leagueSpartan(
-          color: Colors.white.withValues(alpha: 0.95),
-          fontSize: 15,
-        ),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: GoogleFonts.leagueSpartan(
-            color: Colors.white.withValues(alpha: 0.5),
-            fontSize: 15,
-          ),
-          filled: true,
-          fillColor: Colors.white.withAlpha(12),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(
-              color: Colors.white.withValues(alpha: 0.2),
-              width: 1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextFormField(
+            controller: controller,
+            obscureText: shouldObscure,
+            keyboardType: keyboardType,
+            validator: validator,
+            style: GoogleFonts.leagueSpartan(
+              color: const Color(0xFF1f2937),
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: GoogleFonts.leagueSpartan(
+                color: const Color(0xFF9ca3af),
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+              ),
+              filled: true,
+              fillColor: hasError
+                  ? const Color(0xFFFEE2E2).withValues(alpha: 0.95)
+                  : hasSuccess
+                      ? const Color(0xFFDCFCE7).withValues(alpha: 0.95)
+                      : Colors.white.withValues(alpha: 0.95),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: hasError
+                      ? const Color(0xFFF87171)
+                      : hasSuccess
+                          ? const Color(0xFF22c55e)
+                          : Colors.white.withValues(alpha: 0.25),
+                  width: hasError || hasSuccess ? 2 : 2,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: hasError
+                      ? const Color(0xFFF87171)
+                      : hasSuccess
+                          ? const Color(0xFF22c55e)
+                          : Colors.white.withValues(alpha: 0.25),
+                  width: hasError || hasSuccess ? 2 : 2,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: hasError
+                      ? const Color(0xFFF87171)
+                      : hasSuccess
+                          ? const Color(0xFF22c55e)
+                          : const Color(0xFF0400BA),
+                  width: hasError || hasSuccess ? 2 : 4,
+                ),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFF87171), width: 2),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFF87171), width: 2),
+              ),
+              errorStyle: GoogleFonts.leagueSpartan(
+                color: Colors.redAccent,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+              suffixIcon: showPasswordToggle
+                  ? IconButton(
+                      icon: Icon(
+                        isPasswordVisible == true
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: const Color(0xFF6b7280),
+                        size: 20,
+                      ),
+                      onPressed: onTogglePassword,
+                    )
+                  : suffix,
             ),
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(
-              color: Colors.white.withValues(alpha: 0.2),
-              width: 1,
+          if (hasError) ...[
+            Padding(
+              padding: const EdgeInsets.only(top: 3, left: 4),
+              child: Row(
+                children: [
+                  Text(
+                    '⚠ ',
+                    style: GoogleFonts.leagueSpartan(
+                      color: const Color(0xFFfecaca),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      errorText ?? '',
+                      style: GoogleFonts.leagueSpartan(
+                        color: const Color(0xFFfecaca),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(
-                color: Colors.white.withValues(alpha: 0.6), width: 1.5),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Colors.redAccent, width: 2),
-          ),
-          errorStyle: GoogleFonts.leagueSpartan(
-            color: Colors.redAccent,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
+          ],
+          if (hasSuccess) ...[
+            Padding(
+              padding: const EdgeInsets.only(top: 3, left: 4),
+              child: Row(
+                children: [
+                  Text(
+                    '✓ ',
+                    style: GoogleFonts.leagueSpartan(
+                      color: const Color(0xFF22c55e),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      successText ?? '',
+                      style: GoogleFonts.leagueSpartan(
+                        color: const Color(0xFF86efac),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -929,11 +1132,17 @@ class _AuthShellState extends State<AuthShell>
         children: [
           _glowField(
             controller: _nameController,
-            hint: 'Seu nome completo',
+            hint: 'Ex: Maria Silva',
             validator: (v) {
               if (v?.trim().isEmpty == true) return 'Nome é obrigatório';
               return null;
             },
+            errorText: _nameError,
+            successText: _nameController.text.isNotEmpty &&
+                    _nameError == null &&
+                    _nameController.text.trim().split(' ').length >= 2
+                ? 'Nome válido'
+                : null,
           ),
           _glowField(
             controller: _emailController,
@@ -944,6 +1153,11 @@ class _AuthShellState extends State<AuthShell>
               if (!v!.contains('@')) return 'E-mail inválido';
               return null;
             },
+            errorText: _emailError,
+            successText: _emailController.text.isNotEmpty &&
+                    _emailError == null
+                ? 'Email válido'
+                : null,
           ),
           const SizedBox(height: 20),
           _primaryButton(label: 'Continuar', onPressed: _nextPage),
@@ -958,25 +1172,91 @@ class _AuthShellState extends State<AuthShell>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _glowField(
-            controller: _passwordController,
-            hint: 'Crie uma senha',
-            obscure: true,
-            validator: (v) {
-              if (v?.isEmpty == true) return 'Senha é obrigatória';
-              if (v!.length < 6) return 'Mínimo 6 caracteres';
-              return null;
-            },
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _glowField(
+                controller: _passwordController,
+                hint: 'Mínimo 8 caracteres',
+                obscure: true,
+                showPasswordToggle: true,
+                isPasswordVisible: _showPassword,
+                onTogglePassword: () {
+                  setState(() => _showPassword = !_showPassword);
+                },
+                validator: (v) {
+                  if (v?.isEmpty == true) return 'Senha é obrigatória';
+                  if (v!.length < 8) return 'Senha deve ter pelo menos 8 caracteres';
+                  return null;
+                },
+                errorText: _passwordError,
+                successText: _passwordController.text.isNotEmpty &&
+                        _passwordError == null &&
+                        (_passwordStrength['score'] as int) >= 3
+                    ? 'Senha forte'
+                    : null,
+              ),
+              if (_passwordController.text.isNotEmpty)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 4),
+                    Container(
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: FractionallySizedBox(
+                        widthFactor: (_passwordStrength['score'] as int) / 5,
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Color(int.parse(
+                                (_passwordStrength['color'] as String)
+                                    .replaceFirst('#', '0xFF'))),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if ((_passwordStrength['label'] as String).isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          _passwordStrength['label'] as String,
+                          style: GoogleFonts.leagueSpartan(
+                            color: Color(int.parse(
+                                (_passwordStrength['color'] as String)
+                                    .replaceFirst('#', '0xFF'))),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+            ],
           ),
           _glowField(
             controller: _confirmPasswordController,
-            hint: 'Confirme a senha',
+            hint: 'Digite a senha novamente',
             obscure: true,
+            showPasswordToggle: true,
+            isPasswordVisible: _showConfirmPassword,
+            onTogglePassword: () {
+              setState(() => _showConfirmPassword = !_showConfirmPassword);
+            },
             validator: (v) {
               if (v?.isEmpty == true) return 'Confirme a senha';
               if (v != _passwordController.text) return 'Senhas não coincidem';
               return null;
             },
+            errorText: _confirmPasswordError,
+            successText: _confirmPasswordController.text.isNotEmpty &&
+                    _confirmPasswordError == null
+                ? 'Senhas coincidem'
+                : null,
           ),
           const SizedBox(height: 20),
           Row(
@@ -1020,24 +1300,36 @@ class _AuthShellState extends State<AuthShell>
             ),
           ),
           const SizedBox(height: 16),
-          Row(
+          // REESTRUTURAÇÃO: Adicionar opção Organização / Clínica
+          Column(
             children: [
-              Expanded(
-                child: _buildAccountTypeOption(
-                  value: 'individual',
-                  icon: Icons.person,
-                  title: 'Individual',
-                  subtitle: 'Uso pessoal',
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildAccountTypeOption(
+                      value: 'individual',
+                      icon: Icons.person,
+                      title: 'Individual',
+                      subtitle: 'Uso pessoal',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildAccountTypeOption(
+                      value: 'familiar',
+                      icon: Icons.people,
+                      title: 'Familiar',
+                      subtitle: 'Acompanhar idosos',
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildAccountTypeOption(
-                  value: 'familiar',
-                  icon: Icons.people,
-                  title: 'Familiar',
-                  subtitle: 'Acompanhar idosos',
-                ),
+              const SizedBox(height: 12),
+              _buildAccountTypeOption(
+                value: 'organizacao',
+                icon: Icons.business,
+                title: 'Organização / Clínica',
+                subtitle: 'ILPIs, clínicas e equipes profissionais',
               ),
             ],
           ),
@@ -1150,10 +1442,10 @@ class _AuthShellState extends State<AuthShell>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Entrar na sua conta',
+              'Entrar',
               style: GoogleFonts.leagueSpartan(
                 fontSize: 20,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
                 color: Colors.white,
               ),
               textAlign: TextAlign.center,
@@ -1173,6 +1465,11 @@ class _AuthShellState extends State<AuthShell>
               controller: _loginPasswordController,
               hint: 'Senha',
               obscure: true,
+              showPasswordToggle: true,
+              isPasswordVisible: _showPassword,
+              onTogglePassword: () {
+                setState(() => _showPassword = !_showPassword);
+              },
               validator: (v) =>
                   (v?.length ?? 0) < 6 ? 'Mínimo 6 caracteres' : null,
             ),
@@ -1244,9 +1541,9 @@ class _AuthShellState extends State<AuthShell>
                       fontSize: 14,
                     ),
                     children: const [
-                      TextSpan(text: 'Não tem conta? '),
+                      TextSpan(text: 'Não tem conta ainda? '),
                       TextSpan(
-                        text: 'Cadastre-se',
+                        text: 'Criar conta',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -1270,40 +1567,69 @@ class _AuthShellState extends State<AuthShell>
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Criar Conta',
+            'Registrar',
             style: GoogleFonts.leagueSpartan(
               fontSize: 20,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Passo ${_registerStep + 1} de 3',
-            style: GoogleFonts.leagueSpartan(
-              fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.8),
+          const SizedBox(height: 12),
+          // Barra de progresso animada
+          Container(
+            width: double.infinity,
+            height: 6,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Stack(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeInOut,
+                  width: MediaQuery.of(context).size.width * ((_registerStep + 1) / 3),
+                  height: 6,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0400BA), Color(0xFF0600e0), Color(0xFF020054)],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF0400BA).withValues(alpha: 0.4),
+                        blurRadius: 8,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),
-          if (_registerStep == 0) _buildStep1(),
-          if (_registerStep == 1) _buildStep2(),
-          if (_registerStep == 2) _buildStep3(),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              3,
-              (index) => Container(
-                margin: const EdgeInsets.symmetric(horizontal: 2),
-                width: _registerStep == index ? 20 : 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: _registerStep == index ? Colors.white : Colors.white24,
-                  borderRadius: BorderRadius.circular(4),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (child, animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.0, 0.08),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOut,
+                  )),
+                  child: child,
                 ),
-              ),
-            ),
+              );
+            },
+            child: _registerStep == 0
+                ? _buildStep1()
+                : _registerStep == 1
+                    ? _buildStep2()
+                    : _buildStep3(),
           ),
           const SizedBox(height: 16),
           Center(
@@ -1313,12 +1639,12 @@ class _AuthShellState extends State<AuthShell>
                 text: TextSpan(
                   style: GoogleFonts.leagueSpartan(
                     color: Colors.white70,
-                    fontSize: 14,
+                    fontSize: 16,
                   ),
                   children: const [
-                    TextSpan(text: 'Já tem conta? '),
+                    TextSpan(text: 'Já tem uma conta? '),
                     TextSpan(
-                      text: 'Faça login',
+                      text: 'Fazer login',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,

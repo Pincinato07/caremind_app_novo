@@ -9,6 +9,8 @@ import 'analytics/analytics_organizacao_screen.dart';
 import 'consolidado/consolidado_organizacao_screen.dart';
 import 'organizacao_configuracoes_screen.dart';
 import '../../services/analytics_organizacao_service.dart';
+import '../../widgets/skeleton_dashboard_organizacao.dart';
+import '../../widgets/wellbeing_checkin.dart';
 
 /// Dashboard da organização
 class OrganizacaoDashboardScreen extends ConsumerStatefulWidget {
@@ -151,6 +153,21 @@ class _OrganizacaoDashboardScreenState
                 _buildQuickStats(context),
                 const SizedBox(height: 24),
               ],
+              // Bem-Estar dos Idosos
+              const Text(
+                'Bem-Estar dos Idosos',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              WellbeingCheckin(
+                perfilId: widget.organizacaoId,
+                isReadOnly: true,
+                isOrganizationView: true,
+              ),
+              const SizedBox(height: 24),
               // Ações rápidas
               const Text(
                 'Ações Rápidas',
@@ -314,12 +331,7 @@ class _OrganizacaoDashboardScreenState
 
   Widget _buildQuickStats(BuildContext context) {
     if (_loadingStats) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
+      return const SkeletonDashboardOrganizacao();
     }
 
     if (_totalIdosos == null) {

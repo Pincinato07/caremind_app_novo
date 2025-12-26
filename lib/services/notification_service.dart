@@ -14,6 +14,7 @@ import '../core/injection/injection.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/vinculo_familiar.dart';
+import 'live_activity_service.dart';
 
 /// Serviço de Notificações (Locais + Push Remotas FCM) para Lembretes de Medicamentos
 ///
@@ -1430,6 +1431,19 @@ class NotificationService {
     if (!_initialized) await initialize();
     await _notifications.cancelAll();
     debugPrint('🗑️ Todas as notificações foram canceladas');
+  }
+
+  /// Cancelar todas as notificações de um medicamento específico
+  /// 
+  /// Método público para cancelar notificações de um medicamento
+  /// usado no Hard Sync para remover medicamentos órfãos
+  static Future<void> cancelMedicationReminders(Medicamento medicamento) async {
+    if (medicamento.id == null) {
+      debugPrint('⚠️ Não é possível cancelar: medicamento sem ID');
+      return;
+    }
+    await _cancelMedicamentoNotifications(medicamento.id!);
+    debugPrint('🗑️ Notificações canceladas para ${medicamento.nome}');
   }
 
   /// Mostrar notificação de teste (para debug)

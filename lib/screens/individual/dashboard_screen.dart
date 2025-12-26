@@ -8,6 +8,7 @@ import '../../services/accessibility_service.dart';
 import '../../services/offline_cache_service.dart';
 import '../../core/injection/injection.dart';
 import '../../models/medicamento.dart';
+import '../../models/perfil.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
 import '../../widgets/caremind_app_bar.dart';
 import '../../widgets/caremind_card.dart';
@@ -29,6 +30,7 @@ import '../../services/onboarding_service.dart';
 import '../../widgets/empty_state.dart';
 import '../medication/gestao_medicamentos_screen.dart';
 import '../medication/add_edit_medicamento_form.dart';
+import '../../widgets/wellbeing_checkin.dart';
 
 class IndividualDashboardScreen extends StatefulWidget {
   const IndividualDashboardScreen({super.key});
@@ -894,6 +896,26 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
     await AccessibilityService.speak(buffer.toString());
   }
 
+  Widget _buildWellbeingCheckin() {
+    final supabaseService = getIt<SupabaseService>();
+    final user = supabaseService.currentUser;
+    if (user == null) return const SizedBox.shrink();
+
+    return FutureBuilder<Perfil?>(
+      future: supabaseService.getProfile(user.id),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox.shrink();
+        }
+        
+        final perfil = snapshot.data;
+        if (perfil == null) return const SizedBox.shrink();
+
+        return WellbeingCheckin(perfilId: perfil.id);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final supabaseService = getIt<SupabaseService>();
@@ -981,13 +1003,20 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                   ),
                                 ],
                               ),
-                              if (_lastSync != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: LastSyncInfo(lastSync: _lastSync),
-                                ),
-                            ],
-                          ),
+                      if (_lastSync != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: LastSyncInfo(lastSync: _lastSync),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+                      // Check-in de Bem-Estar
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                          child: _buildWellbeingCheckin(),
                         ),
                       ),
                       // ✅ Empty State Contextual: Se não há medicamentos, mostrar guia

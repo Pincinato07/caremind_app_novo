@@ -1,131 +1,215 @@
-/// Serviço para gerenciar permissões granulares de organização
-/// PADRONIZADO com o Site (src/lib/utils/permissions.ts)
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// Constantes de permissões
+class Permissoes {
+  static const String ORG_VIEW = 'org:view';
+  static const String ORG_EDIT = 'org:edit';
+  static const String ORG_DELETE = 'org:delete';
+  
+  static const String MEMBER_VIEW = 'member:view';
+  static const String MEMBER_ADD = 'member:add';
+  static const String MEMBER_EDIT = 'member:edit';
+  static const String MEMBER_REMOVE = 'member:remove';
+  
+  static const String IDOSO_VIEW = 'idoso:view';
+  static const String IDOSO_ADD = 'idoso:add';
+  static const String IDOSO_EDIT = 'idoso:edit';
+  static const String IDOSO_REMOVE = 'idoso:remove';
+  
+  static const String DATA_VIEW = 'data:view';
+  static const String DATA_EDIT = 'data:edit';
+  static const String DATA_DELETE = 'data:delete';
+  
+  static const String REPORTS_VIEW = 'reports:view';
+  static const String ANALYTICS_VIEW = 'analytics:view';
+  static const String CONFIG_EDIT = 'config:edit';
+  static const String EXPORT_DATA = 'data:export';
+}
+
+/// Mapeamento de roles para permissões
+const Map<String, List<String>> ROLE_PERMISSIONS = {
+  'admin': [
+    Permissoes.ORG_VIEW,
+    Permissoes.ORG_EDIT,
+    Permissoes.ORG_DELETE,
+    Permissoes.MEMBER_VIEW,
+    Permissoes.MEMBER_ADD,
+    Permissoes.MEMBER_EDIT,
+    Permissoes.MEMBER_REMOVE,
+    Permissoes.IDOSO_VIEW,
+    Permissoes.IDOSO_ADD,
+    Permissoes.IDOSO_EDIT,
+    Permissoes.IDOSO_REMOVE,
+    Permissoes.DATA_VIEW,
+    Permissoes.DATA_EDIT,
+    Permissoes.DATA_DELETE,
+    Permissoes.REPORTS_VIEW,
+    Permissoes.ANALYTICS_VIEW,
+    Permissoes.CONFIG_EDIT,
+    Permissoes.EXPORT_DATA,
+  ],
+  'medico': [
+    Permissoes.ORG_VIEW,
+    Permissoes.IDOSO_VIEW,
+    Permissoes.IDOSO_EDIT,
+    Permissoes.DATA_VIEW,
+    Permissoes.DATA_EDIT,
+    Permissoes.DATA_DELETE,
+    Permissoes.MEMBER_VIEW,
+    Permissoes.REPORTS_VIEW,
+    Permissoes.ANALYTICS_VIEW,
+  ],
+  'enfermeiro': [
+    Permissoes.ORG_VIEW,
+    Permissoes.IDOSO_VIEW,
+    Permissoes.IDOSO_EDIT,
+    Permissoes.IDOSO_ADD,
+    Permissoes.DATA_VIEW,
+    Permissoes.DATA_EDIT,
+    Permissoes.MEMBER_VIEW,
+    Permissoes.REPORTS_VIEW,
+  ],
+  'cuidador': [
+    Permissoes.ORG_VIEW,
+    Permissoes.IDOSO_VIEW,
+    Permissoes.DATA_VIEW,
+    Permissoes.DATA_EDIT,
+  ],
+  'recepcionista': [
+    Permissoes.ORG_VIEW,
+    Permissoes.IDOSO_VIEW,
+    Permissoes.DATA_VIEW,
+  ],
+};
+
+/// Service de permissões de organização
 class PermissaoOrganizacaoService {
-  /// Permissões disponíveis (padronizadas com Site)
-  static const String orgView = 'org:view';
-  static const String orgEdit = 'org:edit';
-  static const String orgDelete = 'org:delete';
-  static const String memberView = 'member:view';
-  static const String memberAdd = 'member:add';
-  static const String memberEdit = 'member:edit';
-  static const String memberRemove = 'member:remove';
-  static const String idosoView = 'idoso:view';
-  static const String idosoAdd = 'idoso:add';
-  static const String idosoEdit = 'idoso:edit';
-  static const String idosoRemove = 'idoso:remove';
-  static const String dataView = 'data:view';
-  static const String dataEdit = 'data:edit';
-  static const String dataDelete = 'data:delete';
-
-  /// Permissões legadas (mantidas para compatibilidade)
-  static const String gerenciarIdosos = 'gerenciar_idosos';
-  static const String gerenciarMembros = 'gerenciar_membros';
-  static const String verRelatorios = 'ver_relatorios';
-  static const String gerenciarConfiguracoes = 'gerenciar_configuracoes';
-  static const String verAnalytics = 'ver_analytics';
-  static const String exportarDados = 'exportar_dados';
-  static const String confirmarEventos = 'confirmar_eventos';
-  static const String gerenciarCompromissos = 'gerenciar_compromissos';
-
-  /// Mapeamento de roles para permissões (PADRONIZADO com Site)
-  static final Map<String, List<String>> _permissoesPorRole = {
-    'admin': [
-      // Todas as permissões
-      orgView, orgEdit, orgDelete,
-      memberView, memberAdd, memberEdit, memberRemove,
-      idosoView, idosoAdd, idosoEdit, idosoRemove,
-      dataView, dataEdit, dataDelete,
-      // Legadas
-      gerenciarIdosos, gerenciarMembros, verRelatorios,
-      gerenciarConfiguracoes, verAnalytics, exportarDados,
-      confirmarEventos, gerenciarCompromissos,
-    ],
-    'medico': [
-      orgView,
-      idosoView, idosoEdit,
-      dataView, dataEdit, dataDelete,
-      memberView, // ✅ Pode ver membros (igual ao Site)
-      // Legadas
-      gerenciarIdosos, verRelatorios, verAnalytics,
-      confirmarEventos, gerenciarCompromissos,
-    ],
-    'enfermeiro': [
-      orgView,
-      idosoView, idosoEdit, idosoAdd,
-      dataView, dataEdit,
-      memberView, // ✅ Pode ver membros (igual ao Site)
-      // Legadas
-      gerenciarIdosos, verRelatorios, verAnalytics,
-      confirmarEventos, gerenciarCompromissos,
-    ],
-    'cuidador': [
-      orgView,
-      idosoView,
-      dataView, dataEdit,
-      // Legadas
-      verRelatorios, confirmarEventos,
-    ],
-    'recepcionista': [
-      orgView,
-      idosoView,
-      dataView,
-      // Legadas
-      verRelatorios, gerenciarCompromissos,
-    ],
-  };
-
-  /// Verificar se um role tem uma permissão específica
-  static bool verificarPermissao(String? role, String permissao) {
+  /// Verifica se um role tem uma permissão específica
+  static bool hasPermission(String? role, String permission) {
     if (role == null) return false;
-    
-    final permissoes = _permissoesPorRole[role] ?? [];
-    return permissoes.contains(permissao);
+    final permissions = ROLE_PERMISSIONS[role] ?? [];
+    return permissions.contains(permission);
   }
 
-  /// Obter todas as permissões de um role
-  static List<String> obterPermissoes(String? role) {
-    if (role == null) return [];
-    return _permissoesPorRole[role] ?? [];
-  }
-
-  /// Verificar se pode gerenciar idosos
-  static bool podeGerenciarIdosos(String? role) {
-    return verificarPermissao(role, gerenciarIdosos);
-  }
-
-  /// Verificar se pode gerenciar membros
+  /// Verifica se pode gerenciar membros
   static bool podeGerenciarMembros(String? role) {
-    return verificarPermissao(role, gerenciarMembros);
+    return hasPermission(role, Permissoes.MEMBER_ADD) || 
+           hasPermission(role, Permissoes.MEMBER_EDIT);
   }
 
-  /// Verificar se pode ver relatórios
-  static bool podeVerRelatorios(String? role) {
-    return verificarPermissao(role, verRelatorios);
+  /// Verifica se pode gerenciar idosos
+  static bool podeGerenciarIdosos(String? role) {
+    return hasPermission(role, Permissoes.IDOSO_ADD) || 
+           hasPermission(role, Permissoes.IDOSO_EDIT);
   }
 
-  /// Verificar se pode gerenciar configurações
-  static bool podeGerenciarConfiguracoes(String? role) {
-    return verificarPermissao(role, gerenciarConfiguracoes);
-  }
-
-  /// Verificar se pode ver analytics
-  static bool podeVerAnalytics(String? role) {
-    return verificarPermissao(role, verAnalytics);
-  }
-
-  /// Verificar se pode exportar dados
-  static bool podeExportarDados(String? role) {
-    return verificarPermissao(role, exportarDados);
-  }
-
-  /// Verificar se pode confirmar eventos
+  /// Verifica se pode confirmar eventos (medicamentos, rotinas)
   static bool podeConfirmarEventos(String? role) {
-    return verificarPermissao(role, confirmarEventos);
+    return hasPermission(role, Permissoes.DATA_EDIT);
   }
 
-  /// Verificar se pode gerenciar compromissos
+  /// Verifica se pode gerenciar compromissos
   static bool podeGerenciarCompromissos(String? role) {
-    return verificarPermissao(role, gerenciarCompromissos);
+    return hasPermission(role, Permissoes.DATA_EDIT);
+  }
+
+  /// Verifica se pode ver relatórios
+  static bool podeVerRelatorios(String? role) {
+    return hasPermission(role, Permissoes.REPORTS_VIEW);
+  }
+
+  /// Verifica se pode gerenciar configurações
+  static bool podeGerenciarConfiguracoes(String? role) {
+    return hasPermission(role, Permissoes.CONFIG_EDIT);
+  }
+
+  /// Verifica se pode ver analytics
+  static bool podeVerAnalytics(String? role) {
+    return hasPermission(role, Permissoes.ANALYTICS_VIEW);
+  }
+
+  /// Verifica se pode exportar dados
+  static bool podeExportarDados(String? role) {
+    return hasPermission(role, Permissoes.EXPORT_DATA);
+  }
+
+  /// Verifica permissão genérica
+  static bool verificarPermissao(String? role, String permissao) {
+    return hasPermission(role, permissao);
+  }
+
+  /// Obtém lista de permissões do role
+  static List<String> getPermissoesDoRole(String? role) {
+    if (role == null) return [];
+    return ROLE_PERMISSIONS[role] ?? [];
+  }
+
+  /// Verifica se pode deletar idoso (requer permissão específica)
+  static bool podeDeletarIdoso(String? role) {
+    return hasPermission(role, Permissoes.IDOSO_REMOVE);
+  }
+
+  /// Verifica se pode remover membro (requer permissão específica)
+  static bool podeRemoverMembro(String? role) {
+    return hasPermission(role, Permissoes.MEMBER_REMOVE);
+  }
+
+  /// Verifica se pode ver dados sensíveis
+  static bool podeVerDadosSensiveis(String? role) {
+    return hasPermission(role, Permissoes.DATA_VIEW);
+  }
+
+  /// Verifica se pode editar dados sensíveis
+  static bool podeEditarDadosSensiveis(String? role) {
+    return hasPermission(role, Permissoes.DATA_EDIT);
+  }
+
+  /// Verifica se pode deletar dados sensíveis
+  static bool podeDeletarDadosSensiveis(String? role) {
+    return hasPermission(role, Permissoes.DATA_DELETE);
   }
 }
 
+/// Hook para verificar permissão no contexto atual (Riverpod)
+class PermissaoHook {
+  final String? role;
+
+  PermissaoHook(this.role);
+
+  /// Verifica uma permissão específica
+  bool has(String permission) {
+    return PermissaoOrganizacaoService.hasPermission(role, permission);
+  }
+
+  /// Verifica se tem pelo menos uma das permissões
+  bool hasAny(List<String> permissions) {
+    return permissions.any((p) => has(p));
+  }
+
+  /// Verifica se tem todas as permissões
+  bool hasAll(List<String> permissions) {
+    return permissions.every((p) => has(p));
+  }
+
+  // Getters rápidos
+  bool get isAdmin => role == 'admin';
+  bool get isMedico => role == 'medico';
+  bool get isEnfermeiro => role == 'enfermeiro';
+  bool get isCuidador => role == 'cuidador';
+  bool get isRecepcionista => role == 'recepcionista';
+
+  bool get podeGerenciarMembros => PermissaoOrganizacaoService.podeGerenciarMembros(role);
+  bool get podeGerenciarIdosos => PermissaoOrganizacaoService.podeGerenciarIdosos(role);
+  bool get podeConfirmarEventos => PermissaoOrganizacaoService.podeConfirmarEventos(role);
+  bool get podeVerRelatorios => PermissaoOrganizacaoService.podeVerRelatorios(role);
+  bool get podeVerAnalytics => PermissaoOrganizacaoService.podeVerAnalytics(role);
+  bool get podeGerenciarConfiguracoes => PermissaoOrganizacaoService.podeGerenciarConfiguracoes(role);
+  bool get podeExportarDados => PermissaoOrganizacaoService.podeExportarDados(role);
+  bool get podeDeletarIdoso => PermissaoOrganizacaoService.podeDeletarIdoso(role);
+  bool get podeRemoverMembro => PermissaoOrganizacaoService.podeRemoverMembro(role);
+}
+
+/// Provider para hook de permissões
+final permissaoHookProvider = Provider.family<PermissaoHook, String?>((ref, role) {
+  return PermissaoHook(role);
+});

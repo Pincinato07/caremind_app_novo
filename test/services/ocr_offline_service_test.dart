@@ -1,8 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'dart:io';
 import '../../lib/services/ocr_offline_service.dart';
+import '../helpers/test_setup.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+    await setupTests();
+  });
+
   group('OcrOfflineService', () {
     group('saveImageForLater', () {
       test('deve aceitar imageFile e userId válidos', () {
@@ -45,4 +53,3 @@ void main() {
     });
   });
 }
-

@@ -1,11 +1,23 @@
 import 'package:flutter_test/flutter_test.dart';
 import '../../lib/services/offline_sync_manager.dart';
+import '../helpers/test_setup.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+    await setupTests();
+  });
+
   group('OfflineSyncManager', () {
     tearDown(() {
       // Limpar estado após cada teste
-      OfflineSyncManager.dispose();
+      try {
+        OfflineSyncManager.dispose();
+      } catch (e) {
+        // Ignorar erros no dispose
+      }
     });
 
     group('Inicialização', () {
@@ -86,4 +98,3 @@ void main() {
     });
   });
 }
-

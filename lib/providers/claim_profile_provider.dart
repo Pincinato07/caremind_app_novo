@@ -89,6 +89,7 @@ class ClaimProfileNotifier extends StateNotifier<ClaimProfileState> {
     required String perfilId,
     required String action,
     required String codigo,
+    String? telefone,
   }) async {
     state = state.copyWithLoading();
 
@@ -96,6 +97,7 @@ class ClaimProfileNotifier extends StateNotifier<ClaimProfileState> {
       perfilId: perfilId,
       action: action,
       codigoVinculacao: codigo,
+      telefone: telefone,
     );
 
     state = result.when(

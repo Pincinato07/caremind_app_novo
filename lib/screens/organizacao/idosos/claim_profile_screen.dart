@@ -29,11 +29,13 @@ class ClaimProfileScreen extends ConsumerStatefulWidget {
 
 class _ClaimProfileScreenState extends ConsumerState<ClaimProfileScreen> {
   final TextEditingController _codigoController = TextEditingController();
+  final TextEditingController _telefoneController = TextEditingController();
   String? _actionSelecionada;
 
   @override
   void dispose() {
     _codigoController.dispose();
+    _telefoneController.dispose();
     super.dispose();
   }
 
@@ -63,11 +65,33 @@ class _ClaimProfileScreenState extends ConsumerState<ClaimProfileScreen> {
       return;
     }
 
-    // Executar claim
+    // VALIDAÇÃO CRÍTICA: Telefone obrigatório para SOS
+    final telefone = _telefoneController.text.trim();
+    if (telefone.isEmpty) {
+      FeedbackService.showWarning(
+        context,
+        'O telefone é obrigatório para receber alertas de emergência (SOS). '
+        'Os familiares precisam de um número válido para retornar chamadas.',
+      );
+      return;
+    }
+
+    // Validar formato básico de telefone (mínimo 10 dígitos)
+    final telefoneLimpo = telefone.replaceAll(RegExp(r'[^\d]'), '');
+    if (telefoneLimpo.length < 10) {
+      FeedbackService.showWarning(
+        context,
+        'Por favor, informe um número de telefone válido (mínimo 10 dígitos)',
+      );
+      return;
+    }
+
+    // Executar claim (a Edge Function deve validar e salvar o telefone)
     await ref.read(claimProfileProvider.notifier).claimProfile(
           perfilId: widget.perfilId,
           action: _actionSelecionada!,
           codigo: codigo,
+          telefone: telefone,
         );
   }
 
@@ -138,6 +162,22 @@ class _ClaimProfileScreenState extends ConsumerState<ClaimProfileScreen> {
               ),
               enabled: !state.isLoading,
               textCapitalization: TextCapitalization.characters,
+            ),
+            const SizedBox(height: 24),
+            
+            // Campo de telefone (obrigatório para SOS)
+            TextFormField(
+              controller: _telefoneController,
+              decoration: const InputDecoration(
+                labelText: 'Telefone Celular *',
+                hintText: '(00) 00000-0000',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.phone),
+                helperText: 'Obrigatório para receber alertas de emergência (SOS)',
+              ),
+              enabled: !state.isLoading,
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.done,
             ),
             const SizedBox(height: 32),
 

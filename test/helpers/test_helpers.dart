@@ -18,6 +18,7 @@ import '../../lib/services/supabase_service.dart';
   OfflineCacheService,
   OrganizacaoService,
   SupabaseService,
+  FunctionsClient,
 ])
 void main() {}
 

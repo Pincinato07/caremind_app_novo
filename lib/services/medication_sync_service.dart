@@ -63,6 +63,9 @@ class MedicationSyncService {
         // Salvar no cache para uso offline
         await OfflineCacheService.cacheMedicamentos(_userId, medicamentos);
 
+        // HARD SYNC: Deletar medicamentos órfãos (existem no cache mas não no servidor)
+        await _deleteOrphanedMedications(medicamentos);
+
         // Agendar notificações locais para TODOS os medicamentos
         await _scheduleAllNotifications(medicamentos);
 
@@ -480,5 +483,53 @@ class MedicationSyncService {
       {Duration maxAge = const Duration(hours: 24)}) async {
     return await OfflineCacheService.isCacheValid(_userId, 'medicamentos',
         maxAge: maxAge);
+  }
+
+  /// HARD SYNC: Deletar medicamentos órfãos do cache local
+  /// 
+  /// Medicamentos órfãos são aqueles que existem no cache local (Hive)
+  /// mas não retornam na query do Supabase, indicando que foram deletados
+  /// no servidor e precisam ser removidos localmente.
+  Future<void> _deleteOrphanedMedications(List<Medicamento> medicamentosServidor) async {
+    try {
+      // Buscar medicamentos do cache local
+      final cached = await OfflineCacheService.getCachedMedicamentos(_userId);
+      
+      if (cached.isEmpty) {
+        return; // Nada para verificar
+      }
+
+      // Criar Set de IDs do servidor para busca rápida
+      final idsServidor = medicamentosServidor.map((m) => m.id).toSet();
+      
+      // Encontrar medicamentos órfãos (existem no cache mas não no servidor)
+      final orphaned = cached.where((m) => !idsServidor.contains(m.id)).toList();
+      
+      if (orphaned.isEmpty) {
+        debugPrint('✅ MedicationSync: Nenhum medicamento órfão encontrado');
+        return;
+      }
+
+      debugPrint('🗑️ MedicationSync: Encontrados ${orphaned.length} medicamento(s) órfão(s)');
+
+      // Remover medicamentos órfãos do cache
+      final updatedCache = cached.where((m) => idsServidor.contains(m.id)).toList();
+      await OfflineCacheService.cacheMedicamentos(_userId, updatedCache);
+
+      // Cancelar notificações dos medicamentos deletados
+      for (final medicamento in orphaned) {
+        try {
+          await NotificationService.cancelMedicationReminders(medicamento);
+          debugPrint('✅ MedicationSync: Notificações canceladas para ${medicamento.nome}');
+        } catch (e) {
+          debugPrint('⚠️ MedicationSync: Erro ao cancelar notificações de ${medicamento.nome}: $e');
+        }
+      }
+
+      debugPrint('✅ MedicationSync: ${orphaned.length} medicamento(s) órfão(s) removido(s) do cache');
+    } catch (e) {
+      debugPrint('❌ MedicationSync: Erro ao deletar medicamentos órfãos: $e');
+      // Não falhar o fluxo principal se houver erro na limpeza
+    }
   }
 }

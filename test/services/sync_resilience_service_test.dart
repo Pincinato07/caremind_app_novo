@@ -1,18 +1,26 @@
 import 'package:flutter_test/flutter_test.dart';
 import '../../lib/services/sync_resilience_service.dart';
 import '../helpers/test_setup.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:get_it/get_it.dart';
 
 void main() {
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+    await setupTests();
+  });
+
+  tearDownAll(() {
+    try {
+      GetIt.instance.reset();
+    } catch (e) {
+      // Ignorar erros no teardown
+    }
+  });
+
   group('SyncResilienceService', () {
     late SyncResilienceService service;
-
-    setUpAll(() async {
-      await setupTests();
-    });
-
-    tearDownAll(() {
-      // Limpar se necessário (vazio para evitar erros)
-    });
 
     setUp(() {
       service = SyncResilienceService();
@@ -75,4 +83,3 @@ void main() {
     });
   });
 }
-

@@ -91,6 +91,7 @@ dependencies:
   google_sign_in: ^6.2.1
 
   timezone: any
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter

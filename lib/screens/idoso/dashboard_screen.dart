@@ -17,7 +17,11 @@ import '../../core/navigation/app_navigation.dart';
 import '../../screens/shared/configuracoes_screen.dart';
 import '../../screens/idoso/ajuda_screen.dart';
 import '../../models/medicamento.dart';
+import '../../models/perfil.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/critical_mode_timer.dart';
+import '../../services/shake_detector_service.dart';
+import '../../widgets/wellbeing_checkin.dart';
 
 /// Dashboard do IDOSO - Foco em Acessibilidade Extrema (WCAG AAA)
 /// Objetivo: Autonomia. O idoso não "gerencia"; ele "executa" e "consulta".
@@ -36,6 +40,7 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen>
   DateTime?
       _proximoHorarioAgendado; // Novo campo para armazenar o próximo horário agendado
   final VoiceNavigationService _voiceNavigation = VoiceNavigationService();
+  final ShakeDetectorService _shakeDetector = ShakeDetectorService();
 
   late AnimationController _pulseController;
 
@@ -49,11 +54,25 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen>
     _loadUserData();
     // Inicializa o serviço de acessibilidade
     AccessibilityService.initialize();
+    // Inicia detecção de shake para SOS
+    _shakeDetector.startListening(_handleShakeSOS);
+  }
+
+  /// Handler para shake to SOS
+  void _handleShakeSOS() {
+    if (!mounted) return;
+    
+    // Navega para tela de ajuda
+    Navigator.push(
+      context,
+      AppNavigation.smoothRoute(const AjudaScreen()),
+    );
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _shakeDetector.dispose();
     super.dispose();
   }
 
@@ -334,6 +353,26 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen>
     }
   }
 
+  Widget _buildWellbeingCheckin() {
+    final supabaseService = getIt<SupabaseService>();
+    final user = supabaseService.currentUser;
+    if (user == null) return const SizedBox.shrink();
+
+    return FutureBuilder<Perfil?>(
+      future: supabaseService.getProfile(user.id),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox.shrink();
+        }
+        
+        final perfil = snapshot.data;
+        if (perfil == null) return const SizedBox.shrink();
+
+        return WellbeingCheckin(perfilId: perfil.id);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final supabaseService = getIt<SupabaseService>();
@@ -475,7 +514,19 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen>
                           ),
                         ),
 
+                        // Indicador de Shake to SOS (se disponível)
+                        SliverToBoxAdapter(
+                          child: _buildShakeIndicator(),
+                        ),
+
                         const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+                        // Check-in de Bem-Estar
+                        SliverToBoxAdapter(
+                          child: _buildWellbeingCheckin(),
+                        ),
+
+                        const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
                         // Grid de Ação
                         SliverToBoxAdapter(
@@ -575,148 +626,168 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen>
       child: CareMindCard(
         variant: CardVariant.glass,
         padding: AppSpacing.paddingXLarge,
-        child: Column(
+        child: Stack(
           children: [
-            // Ícone de medicamento
-            Container(
-              padding: AppSpacing.paddingLarge,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.medication_liquid,
-                size: 48,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Texto "Agora:" ou "Próximo às:"
-            Text(
-              _proximoHorarioAgendado != null &&
-                      _proximoHorarioAgendado!.isBefore(
-                          DateTime.now().add(const Duration(minutes: 10)))
-                  ? 'Agora:'
-                  : 'Próximo às:',
-              style: AppTextStyles.leagueSpartan(
-                fontSize: textScaler.scale(20),
-                color:
-                    Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
-                fontWeight: FontWeight.w500,
-              ).copyWith(
-                // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
-                shadows: [
-                  Shadow(
-                    offset: const Offset(0, 2),
-                    blurRadius: 4,
-                    color: Colors.black.withValues(alpha: 0.5),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Horário Previsto
-            Text(
-              horaPrevista,
-              style: AppTextStyles.leagueSpartan(
-                fontSize: textScaler.scale(28),
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ).copyWith(
-                // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
-                shadows: [
-                  Shadow(
-                    offset: const Offset(0, 2),
-                    blurRadius: 4,
-                    color: Colors.black.withValues(alpha: 0.5),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Nome do medicamento (TEXTO GIGANTE)
-            GestureDetector(
-              onTap: () {
-                // Text-to-Speech ao tocar no nome
-                AccessibilityService.speak(
-                  '${_proximoMedicamento!.nome}, ${_proximoMedicamento!.dosagem ?? 'dosagem não especificada'}',
-                );
-              },
-              child: Text(
-                '${_proximoMedicamento!.nome}',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.leagueSpartan(
-                  fontSize: textScaler.scale(36),
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  letterSpacing: -0.5,
-                ).copyWith(
-                  // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
-                  shadows: [
-                    Shadow(
-                      offset: const Offset(0, 2),
-                      blurRadius: 4,
-                      color: Colors.black.withValues(alpha: 0.5),
+            // Conteúdo principal
+            Column(
+              children: [
+                // Timer Crítico (aparece quando faltam < 15 min)
+                if (_proximoHorarioAgendado != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: CriticalModeTimer(
+                      nextMedicationTime: _proximoHorarioAgendado,
+                      onTimeArrived: () {
+                        // Feedback quando chega no horário
+                        AccessibilityService.speak(
+                          'Hora do remédio: ${_proximoMedicamento!.nome}',
+                        );
+                      },
                     ),
-                  ],
+                  ),
+
+                // Ícone de medicamento
+                Container(
+                  padding: AppSpacing.paddingLarge,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.medication_liquid,
+                    size: 48,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 8),
+                const SizedBox(height: 24),
 
-            // Dosagem
-            Text(
-              _proximoMedicamento!.dosagem ?? 'Dosagem não especificada',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.leagueSpartan(
-                fontSize: textScaler.scale(24),
-                color:
-                    Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
-                fontWeight: FontWeight.w500,
-              ).copyWith(
-                // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
-                shadows: [
-                  Shadow(
-                    offset: const Offset(0, 2),
-                    blurRadius: 4,
-                    color: Colors.black.withValues(alpha: 0.5),
+                // Texto "Agora:" ou "Próximo às:"
+                Text(
+                  _proximoHorarioAgendado != null &&
+                          _proximoHorarioAgendado!.isBefore(
+                              DateTime.now().add(const Duration(minutes: 10)))
+                      ? 'Agora:'
+                      : 'Próximo às:',
+                  style: AppTextStyles.leagueSpartan(
+                    fontSize: textScaler.scale(20),
+                    color:
+                        Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
+                    fontWeight: FontWeight.w500,
+                  ).copyWith(
+                    // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                    shadows: [
+                      Shadow(
+                        offset: const Offset(0, 2),
+                        blurRadius: 4,
+                        color: Colors.black.withValues(alpha: 0.5),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            SizedBox(height: AppSpacing.xlarge),
+                ),
+                const SizedBox(height: 8),
 
-            // Botão GIGANTE "JÁ TOMEI"
-            Semantics(
-              label: 'Botão Já Tomei',
-              hint: 'Toque para marcar o próximo medicamento como tomado',
-              button: true,
-              child: SizedBox(
-                width: double.infinity,
-                height: 80, // Botão gigante para acessibilidade
-                child: ElevatedButton(
-                  onPressed: _marcarComoTomado,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: AppBorderRadius.mediumAll,
-                    ),
-                    elevation: 4,
+                // Horário Previsto
+                Text(
+                  horaPrevista,
+                  style: AppTextStyles.leagueSpartan(
+                    fontSize: textScaler.scale(28),
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ).copyWith(
+                    // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                    shadows: [
+                      Shadow(
+                        offset: const Offset(0, 2),
+                        blurRadius: 4,
+                        color: Colors.black.withValues(alpha: 0.5),
+                      ),
+                    ],
                   ),
+                ),
+                const SizedBox(height: 8),
+
+                // Nome do medicamento (TEXTO GIGANTE)
+                GestureDetector(
+                  onTap: () {
+                    // Text-to-Speech ao tocar no nome
+                    AccessibilityService.speak(
+                      '${_proximoMedicamento!.nome}, ${_proximoMedicamento!.dosagem ?? 'dosagem não especificada'}',
+                    );
+                  },
                   child: Text(
-                    'JÁ TOMEI',
+                    '${_proximoMedicamento!.nome}',
+                    textAlign: TextAlign.center,
                     style: AppTextStyles.leagueSpartan(
-                      fontSize: textScaler.scale(28),
+                      fontSize: textScaler.scale(36),
                       fontWeight: FontWeight.w700,
-                      letterSpacing: 1.5,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                    ).copyWith(
+                      // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                      shadows: [
+                        Shadow(
+                          offset: const Offset(0, 2),
+                          blurRadius: 4,
+                          color: Colors.black.withValues(alpha: 0.5),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 8),
+
+                // Dosagem
+                Text(
+                  _proximoMedicamento!.dosagem ?? 'Dosagem não especificada',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.leagueSpartan(
+                    fontSize: textScaler.scale(24),
+                    color:
+                        Colors.white, // WCAG: Aumentado opacidade de 0.9 para 1.0
+                    fontWeight: FontWeight.w500,
+                  ).copyWith(
+                    // WCAG: Sombra de texto para garantir contraste 4.5:1 sobre gradiente
+                    shadows: [
+                      Shadow(
+                        offset: const Offset(0, 2),
+                        blurRadius: 4,
+                        color: Colors.black.withValues(alpha: 0.5),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: AppSpacing.xlarge),
+
+                // Botão GIGANTE "JÁ TOMEI"
+                Semantics(
+                  label: 'Botão Já Tomei',
+                  hint: 'Toque para marcar o próximo medicamento como tomado',
+                  button: true,
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 80, // Botão gigante para acessibilidade
+                    child: ElevatedButton(
+                      onPressed: _marcarComoTomado,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: AppBorderRadius.mediumAll,
+                        ),
+                        elevation: 4,
+                      ),
+                      child: Text(
+                        'JÁ TOMEI',
+                        style: AppTextStyles.leagueSpartan(
+                          fontSize: textScaler.scale(28),
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -986,5 +1057,56 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen>
         ),
       ),
     );
+  }
+
+  Widget _buildShakeIndicator() {
+    // Verifica se o dispositivo suporta acelerômetro
+    return FutureBuilder<bool>(
+      future: _checkAccelerometerAvailability(),
+      builder: (context, snapshot) {
+        if (snapshot.data != true) {
+          return const SizedBox.shrink();
+        }
+
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
+          child: CareMindCard(
+            variant: CardVariant.glass,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.waving_hand,
+                  color: Colors.white.withValues(alpha: 0.8),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Chacoalhe 3x rápido para SOS',
+                    style: AppTextStyles.leagueSpartan(
+                      fontSize: 14,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<bool> _checkAccelerometerAvailability() async {
+    // Verifica se o sensor está disponível
+    // Para Android, retorna true se o dispositivo tiver acelerômetro
+    try {
+      // Simula verificação (retorna true para testes)
+      // Em produção, você pode verificar se o pacote sensors_plus está instalado
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 }

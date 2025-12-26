@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/organizacao_service.dart';
 import '../services/permissao_organizacao_service.dart';
 import '../services/supabase_service.dart';
@@ -13,6 +14,7 @@ class OrganizacaoState {
   final List<Organizacao> organizacoes;
   final bool isLoading;
   final bool isModoOrganizacao;
+  final bool? ultimoVerificacaoAtivo; // Status da última verificação de heartbeat
 
   OrganizacaoState({
     this.organizacaoAtual,
@@ -20,6 +22,7 @@ class OrganizacaoState {
     List<Organizacao>? organizacoes,
     this.isLoading = false,
     this.isModoOrganizacao = false,
+    this.ultimoVerificacaoAtivo,
   }) : organizacoes = organizacoes ?? [];
 
   bool get isAdmin => roleAtual == 'admin';
@@ -31,6 +34,7 @@ class OrganizacaoState {
     List<Organizacao>? organizacoes,
     bool? isLoading,
     bool? isModoOrganizacao,
+    bool? ultimoVerificacaoAtivo,
   }) {
     return OrganizacaoState(
       organizacaoAtual: organizacaoAtual ?? this.organizacaoAtual,
@@ -38,6 +42,7 @@ class OrganizacaoState {
       organizacoes: organizacoes ?? this.organizacoes,
       isLoading: isLoading ?? this.isLoading,
       isModoOrganizacao: isModoOrganizacao ?? this.isModoOrganizacao,
+      ultimoVerificacaoAtivo: ultimoVerificacaoAtivo ?? this.ultimoVerificacaoAtivo,
     );
   }
 }
@@ -46,9 +51,13 @@ class OrganizacaoState {
 class OrganizacaoNotifier extends StateNotifier<OrganizacaoState> {
   final OrganizacaoService _organizacaoService = getIt<OrganizacaoService>();
   final SupabaseService _supabaseService = getIt<SupabaseService>();
+  
+  Timer? _heartbeatTimer;
+  DateTime? _lastHeartbeatTime;
 
   OrganizacaoNotifier() : super(OrganizacaoState()) {
     carregarOrganizacoes();
+    _iniciarHeartbeat();
   }
 
   /// Atualiza o último contexto usado pelo usuário no banco
@@ -66,6 +75,97 @@ class OrganizacaoNotifier extends StateNotifier<OrganizacaoState> {
       debugPrint('Erro ao atualizar last_context: $e');
       // Não bloquear a troca de contexto se houver erro
     }
+  }
+
+  /// Heartbeat: Verifica se o usuário ainda é membro ativo da organização
+  Future<bool> _verificarMembroAtivo() async {
+    if (state.organizacaoAtual == null) {
+      return false;
+    }
+
+    try {
+      final user = _supabaseService.client.auth.currentUser;
+      if (user == null) {
+        return false;
+      }
+
+      // Obter perfil do usuário
+      final perfil = await _supabaseService.client
+          .from('perfis')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (perfil == null) {
+        return false;
+      }
+
+      // Verificar se ainda é membro ativo
+      final membro = await _supabaseService.client
+          .from('membros_organizacao')
+          .select('id')
+          .eq('organizacao_id', state.organizacaoAtual!.id)
+          .eq('perfil_id', perfil['id'])
+          .eq('ativo', true)
+          .maybeSingle();
+
+      final isAtivo = membro != null;
+      
+      if (!isAtivo) {
+        debugPrint('⚠️ HEARTBEAT: Usuário removido da organização!');
+        
+        // Alternar para modo pessoal
+        await alternarModoPessoal();
+        
+        // Mostrar alerta
+        _mostrarAlertaRevogado();
+      }
+
+      state = state.copyWith(ultimoVerificacaoAtivo: isAtivo);
+      return isAtivo;
+    } catch (e) {
+      debugPrint('Erro no heartbeat: $e');
+      return false;
+    }
+  }
+
+  /// Inicia o heartbeat (verificação periódica)
+  void _iniciarHeartbeat() {
+    // Limpar timer existente
+    _heartbeatTimer?.cancel();
+    
+    // Verificar a cada 30 minutos (1.800.000 ms)
+    _heartbeatTimer = Timer.periodic(Duration(minutes: 30), (timer) async {
+      if (state.organizacaoAtual != null) {
+        debugPrint('❤️ Heartbeat: Verificando permissão...');
+        await _verificarMembroAtivo();
+      }
+    });
+
+    // Listener para quando app voltar do background
+    WidgetsBinding.instance.addObserver(_AppLifecycleObserver(
+      onResumed: () async {
+        if (state.organizacaoAtual != null) {
+          final now = DateTime.now();
+          if (_lastHeartbeatTime == null || 
+              now.difference(_lastHeartbeatTime!).inMinutes > 1) {
+            debugPrint('❤️ Heartbeat (background): Verificando permissão...');
+            _lastHeartbeatTime = now;
+            await _verificarMembroAtivo();
+          }
+        }
+      }
+    ));
+  }
+
+  /// Mostra alerta de acesso revogado
+  void _mostrarAlertaRevogado() {
+    // Usar um callback ou stream para notificar a UI
+    // Por enquanto, apenas log
+    debugPrint('🚨 ALERTA: Seu acesso a esta organização foi revogado!');
+    
+    // Disparar evento que a UI pode ouvir
+    // (Implementar conforme necessidade do app)
   }
 
   /// Carregar organizações do usuário
@@ -103,6 +203,9 @@ class OrganizacaoNotifier extends StateNotifier<OrganizacaoState> {
         isModoOrganizacao: true,
         isLoading: false,
       );
+
+      // Verificar imediatamente após selecionar
+      await _verificarMembroAtivo();
     } catch (e) {
       debugPrint('Erro ao selecionar organização: $e');
       state = state.copyWith(
@@ -120,6 +223,7 @@ class OrganizacaoNotifier extends StateNotifier<OrganizacaoState> {
       organizacaoAtual: null,
       roleAtual: null,
       isModoOrganizacao: false,
+      ultimoVerificacaoAtivo: null,
     );
     // Atualizar last_context no banco
     await _atualizarLastContext('individual');
@@ -176,6 +280,32 @@ class OrganizacaoNotifier extends StateNotifier<OrganizacaoState> {
   Future<void> atualizarOrganizacaoAtual() async {
     if (state.organizacaoAtual != null) {
       await selecionarOrganizacao(state.organizacaoAtual!.id);
+    }
+  }
+
+  /// Verificar membro ativo manualmente (para uso externo)
+  Future<bool> verificarMembroAtivo() async {
+    return await _verificarMembroAtivo();
+  }
+
+  /// Dispose
+  @override
+  void dispose() {
+    _heartbeatTimer?.cancel();
+    super.dispose();
+  }
+}
+
+/// Observer para lifecycle (background/foreground)
+class _AppLifecycleObserver extends WidgetsBindingObserver {
+  final VoidCallback onResumed;
+
+  _AppLifecycleObserver({required this.onResumed});
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      onResumed();
     }
   }
 }

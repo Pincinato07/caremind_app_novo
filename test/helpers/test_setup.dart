@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:get_it/get_it.dart';
@@ -5,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../lib/core/injection/injection.dart';
 import '../../lib/services/supabase_service.dart';
 import '../../lib/services/settings_service.dart';
+import '../../lib/services/organizacao_service.dart';
+import 'test_helpers.mocks.dart';
 
 bool _isSetupComplete = false;
 
@@ -111,6 +114,32 @@ Future<void> setupTests() async {
     GetIt.instance.registerLazySingleton<SupabaseService>(
       () => SupabaseService(GetIt.instance<SupabaseClient>()),
     );
+
+    // Registrar OrganizacaoService como mock
+    if (GetIt.instance.isRegistered<OrganizacaoService>()) {
+      try {
+        GetIt.instance.unregister<OrganizacaoService>();
+      } catch (e) {
+        // Ignorar
+      }
+    }
+
+    // Registrar OrganizacaoService
+    // Usar o SupabaseService já registrado no GetIt
+    try {
+      GetIt.instance.registerLazySingleton<OrganizacaoService>(
+        () => OrganizacaoService(GetIt.instance<SupabaseService>()),
+      );
+    } catch (e) {
+      // Se falhar, tentar usar o mock diretamente com cast
+      try {
+        GetIt.instance.registerLazySingleton<OrganizacaoService>(
+          () => MockOrganizacaoService() as dynamic,
+        );
+      } catch (e2) {
+        debugPrint('Erro ao registrar OrganizacaoService: $e2');
+      }
+    }
 
     // SettingsService será inicializado individualmente em cada teste
     // Não inicializar aqui para evitar problemas com SharedPreferences

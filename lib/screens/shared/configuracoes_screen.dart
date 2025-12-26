@@ -459,81 +459,82 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                     },
                   ),
 
-                  // Seção: Organizações
-                  _buildSection(
-                    context,
-                    title: '🏢 Organizações',
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 6),
-                        child: AnimatedCard(
-                          index: 1,
-                          child: CareMindCard(
-                            variant: CardVariant.glass,
-                            padding: AppSpacing.paddingLarge,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ProviderScope(
-                                    child: const OrganizacaoListaScreen(),
+                  // Seção: Organizações - TRAVA: Esconder para perfil tipo 'familiar'
+                  if (_perfilTipo != 'familiar')
+                    _buildSection(
+                      context,
+                      title: '🏢 Organizações',
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 6),
+                          child: AnimatedCard(
+                            index: 1,
+                            child: CareMindCard(
+                              variant: CardVariant.glass,
+                              padding: AppSpacing.paddingLarge,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ProviderScope(
+                                      child: const OrganizacaoListaScreen(),
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.all(AppSpacing.small + 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.shade100
-                                        .withValues(alpha: 0.3),
-                                    borderRadius: BorderRadius.circular(12),
+                                );
+                              },
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(AppSpacing.small + 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade100
+                                          .withValues(alpha: 0.3),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.business,
+                                      color: Colors.white,
+                                      size: 32,
+                                    ),
                                   ),
-                                  child: const Icon(
-                                    Icons.business,
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Gerenciar Organizações',
+                                          style: AppTextStyles.leagueSpartan(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Criar e gerenciar organizações (casas de repouso, clínicas)',
+                                          style: AppTextStyles.leagueSpartan(
+                                            fontSize: 14,
+                                            color: Colors.white
+                                                .withValues(alpha: 0.8),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.chevron_right,
                                     color: Colors.white,
-                                    size: 32,
                                   ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Gerenciar Organizações',
-                                        style: AppTextStyles.leagueSpartan(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Criar e gerenciar organizações (casas de repouso, clínicas)',
-                                        style: AppTextStyles.leagueSpartan(
-                                          fontSize: 14,
-                                          color: Colors.white
-                                              .withValues(alpha: 0.8),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.chevron_right,
-                                  color: Colors.white,
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
 
                   // Seção: Integrações
                   _buildSection(
