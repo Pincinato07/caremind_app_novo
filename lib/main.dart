@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -116,7 +117,11 @@ void main() async {
   // Re-agendar todas as notificações de medicamentos após inicialização
   await rescheduleAllMedications();
 
-  runApp(const CareMindApp());
+  runApp(
+    const ProviderScope(
+      child: CareMindApp(),
+    ),
+  );
 }
 
 Future<void> _syncDailyCacheIfNeeded() async {

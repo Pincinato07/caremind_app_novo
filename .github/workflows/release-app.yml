@@ -1,0 +1,103 @@
+name: 🚀 CareMind App - Versionamento
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Configurar Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Calcular Versão
+        id: version
+        run: |
+          python -c "
+import subprocess, re
+
+# Última tag
+last_tag = subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], 
+                         capture_output=True, text=True).stdout.strip() or 'v1.0.0.0'
+
+# Parse versão
+v = last_tag.lstrip('v').split('.')
+major, minor, revision, fix = map(int, v) if len(v) == 4 else (1, 0, 0, 0)
+
+# Commits
+commits = subprocess.run(['git', 'log', f'{last_tag}..HEAD', '--oneline'],
+                        capture_output=True, text=True).stdout.strip().split('\n')
+
+# Analisa
+has_major = any('BREAKING' in c.upper() or 'arch:' in c.lower() for c in commits if c)
+has_minor = any('feat:' in c.lower() for c in commits if c)
+has_revision = any('refactor:' in c.lower() or 'improve:' in c.lower() for c in commits if c)
+has_fix = any('fix:' in c.lower() for c in commits if c)
+
+# Incrementa
+if has_major: major, minor, revision, fix = major+1, 0, 0, 0
+elif has_minor: minor, revision, fix = minor+1, 0, 0
+elif has_revision: revision, fix = revision+1, 0
+elif has_fix: fix += 1
+
+new_version = f'{major}.{minor}.{revision}.{fix}'
+build_number = '${{ github.run_number }}'
+
+# Atualiza pubspec.yaml
+with open('pubspec.yaml', 'r') as f: content = f.read()
+content = re.sub(r\"version:\s*[\d\.]+\+\d+\", f\"version: {new_version}+{build_number}\", content)
+with open('pubspec.yaml', 'w') as f: f.write(content)
+
+print(f'VERSION={new_version}')
+          "
+          
+          echo "version=$(python -c "
+import subprocess
+result = subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], capture_output=True, text=True)
+last_tag = result.stdout.strip() or 'v1.0.0.0'
+version_str = last_tag.lstrip('v')
+parts = version_str.split('.')
+major, minor, revision, fix = map(int, parts) if len(parts) == 4 else (1, 0, 0, 0)
+commits = subprocess.run(['git', 'log', f'{last_tag}..HEAD', '--oneline'], capture_output=True, text=True).stdout.strip().split('\n')
+has_major = any('BREAKING' in c.upper() or 'arch:' in c.lower() for c in commits if c)
+has_minor = any('feat:' in c.lower() for c in commits if c)
+has_revision = any('refactor:' in c.lower() or 'improve:' in c.lower() for c in commits if c)
+has_fix = any('fix:' in c.lower() for c in commits if c)
+if has_major: major, minor, revision, fix = major+1, 0, 0, 0
+elif has_minor: minor, revision, fix = minor+1, 0, 0
+elif has_revision: revision, fix = revision+1, 0
+elif has_fix: fix += 1
+print(f'{major}.{minor}.{revision}.{fix}')
+          ") >> $GITHUB_OUTPUT
+      
+      - name: Criar Commit e Tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git add pubspec.yaml
+          git commit -m "chore(release): version $VERSION [skip ci]" || echo "Nada a commitar"
+          git tag "v$VERSION"
+          git push origin main
+          git push origin "v$VERSION"
+      
+      - name: Criar Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          release_name: Release v${{ steps.version.outputs.version }}
+          body: "Versão ${{ steps.version.outputs.version }}"
+          draft: false
+          prerelease: false
+

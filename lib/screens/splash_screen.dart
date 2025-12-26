@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_scaffold_with_waves.dart';
 import '../services/supabase_service.dart';
 import '../core/injection/injection.dart';
+import '../providers/version_check_provider.dart';
+import '../widgets/update_required_dialog.dart';
 import 'shared/main_navigator_screen.dart';
 import 'auth/onboarding_screen.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -75,6 +78,27 @@ class _SplashScreenState extends State<SplashScreen>
       // Nota: configureDependencies já foi chamado no main.dart
       // Aqui apenas verificamos se está tudo certo
       await Future.delayed(const Duration(milliseconds: 300));
+
+      // Progresso: 15% - Verificando versão do app
+      await _updateProgress('Verificando versão...', 0.15);
+      
+      // Verificar se a versão está bloqueada
+      final versionState = ref.read(versionCheckProvider);
+      if (!versionState.isLoading) {
+        await ref.read(versionCheckProvider.notifier).checkVersion();
+      }
+      
+      final updatedVersionState = ref.read(versionCheckProvider);
+      if (updatedVersionState.shouldShowBlocker) {
+        // Se estiver bloqueado, mostrar diálogo bonito e parar inicialização
+        if (mounted) {
+          await UpdateRequiredDialog.show(
+            context,
+            latestVersion: updatedVersionState.latestVersion!,
+          );
+        }
+        return;
+      }
 
       // Progresso: 30% - Verificando autenticação
       await _updateProgress('Verificando autenticação...', 0.3);
