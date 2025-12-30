@@ -3,11 +3,13 @@ import 'package:vibration/vibration.dart';
 import '../services/voice_service.dart';
 import '../services/medicamento_service.dart';
 import '../services/rotina_service.dart';
+import '../services/review_trigger_service.dart';
 import '../core/injection/injection.dart';
 import '../screens/medication/gestao_medicamentos_screen.dart';
 import '../screens/idoso/compromissos_screen.dart';
 import '../screens/shared/configuracoes_screen.dart';
 import '../screens/idoso/dashboard_screen.dart';
+import '../widgets/review_modal.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Widget de interface de voz (Voice-First)
@@ -172,6 +174,19 @@ class _VoiceInterfaceWidgetState extends State<VoiceInterfaceWidget>
     try {
       if (result.success && mounted) {
         await _handleNavigationAction(result.action);
+        
+        // ✅ VERIFICAR TRIGGER DE AVALIAÇÃO (via voz)
+        // Verifica se foi uma ação de medicamento confirmado
+        if (result.action == VoiceAction.medicationConfirmed) {
+          final shouldShowReview = await ReviewTriggerService.shouldShowReviewPrompt();
+          if (shouldShowReview && mounted) {
+            // Aguarda um pouco para o usuário ouvir a resposta primeiro
+            await Future.delayed(const Duration(milliseconds: 2000));
+            if (mounted) {
+              await ReviewModal.show(context);
+            }
+          }
+        }
       } else if (!result.success && mounted) {
         // WCAG: Mostrar modal amigável quando comando não é reconhecido
         await _showErrorModal(result.message);

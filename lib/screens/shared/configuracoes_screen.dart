@@ -15,6 +15,7 @@ import '../../core/injection/injection.dart';
 import '../../core/feedback/feedback_service.dart';
 import '../../core/errors/error_handler.dart';
 import '../../core/accessibility/accessibility_helper.dart';
+import '../../core/config/app_config.dart';
 import '../organizacao/organizacao_lista_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -679,6 +680,72 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                       ),
                                     ),
                                   ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Seção: Suporte e Status
+                  _buildSection(
+                    context,
+                    title: '🛠️ Suporte e Status',
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+                        child: AnimatedCard(
+                          index: 1,
+                          child: CareMindCard(
+                            variant: CardVariant.glass,
+                            padding: AppSpacing.paddingLarge,
+                            onTap: () {
+                              // Abrir página de status no navegador
+                              FeedbackService.launchURL(AppConfig.STATUS_URL);
+                            },
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(AppSpacing.small + 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.shade100.withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.health_and_safety,
+                                    color: Colors.white,
+                                    size: 32,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Status do Sistema',
+                                        style: AppTextStyles.leagueSpartan(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Verificar status dos serviços em tempo real',
+                                        style: AppTextStyles.leagueSpartan(
+                                          fontSize: 14,
+                                          color: Colors.white.withValues(alpha: 0.8),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.open_in_new,
+                                  color: Colors.white,
                                 ),
                               ],
                             ),

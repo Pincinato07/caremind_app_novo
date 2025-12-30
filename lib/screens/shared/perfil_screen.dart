@@ -25,6 +25,7 @@ import '../../widgets/animated_card.dart';
 import '../../widgets/nav_item.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'trocar_conta_screen.dart';
+import '../../utils/timezone_utils.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -124,6 +125,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
           _isLoading = false;
         });
+
+        // Verificar se o timezone do dispositivo mudou e atualizar automaticamente
+        _checkAndUpdateTimezone(perfil);
       } else {
         if (mounted) {
           setState(() {
@@ -138,6 +142,39 @@ class _PerfilScreenState extends State<PerfilScreen> {
         });
         _showError('Erro ao carregar perfil: $e');
       }
+    }
+  }
+
+  /// Verifica se o timezone do dispositivo é diferente do perfil
+  /// Se for diferente, atualiza automaticamente
+  Future<void> _checkAndUpdateTimezone(Perfil perfil) async {
+    try {
+      final deviceTimezone = TimezoneUtils.getCurrentTimezone();
+      final profileTimezone = perfil.timezone ?? 'America/Sao_Paulo';
+
+      if (deviceTimezone != profileTimezone) {
+        debugPrint('⏳ Timezone do dispositivo ($deviceTimezone) diferente do perfil ($profileTimezone). Atualizando...');
+
+        final user = _supabaseService.currentUser;
+        if (user == null) return;
+
+        await _supabaseService.updateProfile(
+          userId: user.id,
+          timezone: deviceTimezone,
+        );
+
+        if (mounted) {
+          setState(() {
+            _selectedTimezone = deviceTimezone;
+          });
+          _showSuccess('Fuso horário atualizado automaticamente para: ${TimezoneUtils.formatTimezoneLabel(deviceTimezone)}');
+        }
+
+        debugPrint('✅ Timezone atualizado com sucesso!');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Falha ao atualizar timezone automaticamente: $e');
+      // Não mostra erro ao usuário, apenas loga
     }
   }
 
@@ -1239,5 +1276,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
   void _showError(String message) {
     FeedbackService.showError(
         context, ErrorHandler.toAppException(Exception(message)));
+  }
+
+  void _showSuccess(String message) {
+    FeedbackService.showSuccess(context, message);
   }
 }

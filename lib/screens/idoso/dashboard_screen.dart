@@ -22,6 +22,8 @@ import '../../widgets/skeleton_loader.dart';
 import '../../widgets/critical_mode_timer.dart';
 import '../../services/shake_detector_service.dart';
 import '../../widgets/wellbeing_checkin.dart';
+import '../../services/review_trigger_service.dart';
+import '../../widgets/review_modal.dart';
 
 /// Dashboard do IDOSO - Foco em Acessibilidade Extrema (WCAG AAA)
 /// Objetivo: Autonomia. O idoso não "gerencia"; ele "executa" e "consulta".
@@ -332,6 +334,19 @@ class _IdosoDashboardScreenState extends State<IdosoDashboardScreen>
           'Medicamento marcado como tomado!',
           duration: const Duration(seconds: 2),
         );
+
+        // ✅ VERIFICAR TRIGGER DE AVALIAÇÃO
+        // Incrementa o streak e verifica se deve mostrar o modal
+        await ReviewTriggerService.incrementStreak();
+        
+        final shouldShowReview = await ReviewTriggerService.shouldShowReviewPrompt();
+        if (shouldShowReview && mounted) {
+          // Aguarda um pouco para o usuário ver a mensagem de sucesso primeiro
+          await Future.delayed(const Duration(milliseconds: 1500));
+          if (mounted) {
+            await ReviewModal.show(context);
+          }
+        }
       }
     } catch (e) {
       // WCAG: Feedback de erro acessível

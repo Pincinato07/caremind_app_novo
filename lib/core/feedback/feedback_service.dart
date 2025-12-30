@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../errors/app_exception.dart';
 
 /// Serviço centralizado para feedback ao usuário (SnackBars, Dialogs, etc)
@@ -268,6 +269,16 @@ class FeedbackService {
   /// Remove todos os SnackBars da fila
   static void clearSnackBars(BuildContext context) {
     ScaffoldMessenger.of(context).clearSnackBars();
+  }
+
+  /// Abre uma URL no navegador externo
+  static Future<void> launchURL(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      throw Exception('Não foi possível abrir a URL: $url');
+    }
   }
 
   /// Mostra dialog de confirmação

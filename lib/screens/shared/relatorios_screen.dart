@@ -34,6 +34,7 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
   DateTime _dataInicio = DateTime.now().subtract(const Duration(days: 30));
   DateTime _dataFim = DateTime.now();
   String? _perfilId;
+  String _filtroSelecionado = 'todos'; // todos, medicamento, rotina, ocorrencia
 
   @override
   void initState() {
@@ -269,6 +270,22 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
                   ],
                 ),
               ),
+            SizedBox(height: AppSpacing.medium),
+
+            // Seletor de Filtro
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildFilterChip('Todos', 'todos'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Medicamentos', 'medicamento'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Rotinas', 'rotina'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Ocorrências', 'ocorrencia'),
+                ],
+              ),
             ),
 
             SizedBox(height: AppSpacing.large),
@@ -307,6 +324,30 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
         isFamiliar: isFamiliar,
       ),
       body: content,
+    );
+  }
+
+  Widget _buildFilterChip(String label, String value) {
+    final isSelected = _filtroSelecionado == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (selected) {
+          setState(() => _filtroSelecionado = value);
+        }
+      },
+      selectedColor: Colors.white.withValues(alpha: 0.3),
+      backgroundColor: Colors.white.withValues(alpha: 0.1),
+      labelStyle: AppTextStyles.leagueSpartan(
+        fontSize: 14,
+        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        color: Colors.white,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      side: BorderSide(
+        color: isSelected ? Colors.white : Colors.white24,
+      ),
     );
   }
 
@@ -780,7 +821,18 @@ class _RelatoriosScreenState extends State<RelatoriosScreen> {
             variant: CardVariant.glass,
             padding: EdgeInsets.zero,
             child: Column(
-              children: eventos.take(20).map((evento) {
+              children: [
+                ...(_eventosList ?? []).where((evento) {
+                  if (_filtroSelecionado == 'todos') return true;
+                  final tipo = (evento['tipo_evento'] as String? ?? '').toLowerCase();
+                  if (_filtroSelecionado == 'medicamento') {
+                    return tipo.contains('medicamento');
+                  }
+                  if (_filtroSelecionado == 'rotina') {
+                    return tipo.contains('rotina');
+                  }
+                  return tipo == _filtroSelecionado;
+                }).take(20).map((evento) {
                 final data = evento as Map<String, dynamic>;
                 final dataPrevista = data['data_prevista'] as String?;
                 final status = data['status'] as String? ?? 'pendente';

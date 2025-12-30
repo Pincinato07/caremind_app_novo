@@ -326,6 +326,7 @@ class ConviteData {
   final String token;
   final String linkCompleto;
   final String linkWeb;
+  final String? linkApp;
   final String expiraEm;
   final String nomeIdoso;
   final String criadoPor;
@@ -340,6 +341,7 @@ class ConviteData {
     required this.token,
     required this.linkCompleto,
     required this.linkWeb,
+    this.linkApp,
     required this.expiraEm,
     required this.nomeIdoso,
     required this.criadoPor,
@@ -385,10 +387,10 @@ class ConviteData {
             'Campo "link_completo" deve ser uma String não vazia');
       }
 
-      // Validar formato do link
+      // Validar formato do link (aceita caremind:// ou https://)
       final linkCompleto = json['link_completo'] as String;
-      if (!linkCompleto.startsWith('caremind://')) {
-        throw FormatException('Link do convite deve começar com "caremind://"');
+      if (!linkCompleto.startsWith('caremind://') && !linkCompleto.startsWith('https://')) {
+        throw FormatException('Link do convite deve começar com "caremind://" ou "https://"');
       }
 
       // Validar formato da data de expiração
@@ -406,6 +408,7 @@ class ConviteData {
         token: json['token'] as String,
         linkCompleto: linkCompleto,
         linkWeb: json['link_web'] as String? ?? linkCompleto,
+        linkApp: json['link_app'] as String?,
         expiraEm: json['expira_em'] as String,
         nomeIdoso: json['nome_idoso'] as String? ?? 'Idoso',
         criadoPor: json['criado_por'] as String? ?? '',

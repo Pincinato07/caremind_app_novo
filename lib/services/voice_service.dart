@@ -3,6 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'medicamento_service.dart';
 import 'rotina_service.dart';
 import 'accessibility_service.dart';
+import 'review_trigger_service.dart';
 import '../models/medicamento.dart';
 import '../core/errors/result.dart';
 
@@ -330,6 +331,9 @@ class VoiceService {
         true,
         DateTime.now(),
       );
+
+      // ✅ VERIFICAR TRIGGER DE AVALIAÇÃO (via voz)
+      await ReviewTriggerService.incrementStreak();
 
       return VoiceCommandResult(
         success: true,

@@ -14,7 +14,7 @@ import '../../widgets/wave_background.dart';
 import '../shared/main_navigator_screen.dart';
 import '../onboarding/onboarding_contextual_screen.dart';
 import '../../core/injection/injection.dart';
-import '../../main.dart';
+import '../../app.dart';
 
 enum AuthMode { login, register }
 

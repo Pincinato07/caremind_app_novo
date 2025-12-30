@@ -59,6 +59,27 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="caremind" android:host="auth-callback"/>
             </intent-filter>
+
+            <!-- App Link para convites de idosos (Deep Link universal) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <!-- Suporta ambos: caremind:// e https://caremind.com.br/convite -->
+                <data android:scheme="caremind" android:host="convite"/>
+                <data android:scheme="https" android:host="caremind.com.br" android:pathPrefix="/convite"/>
+                <data android:scheme="https" android:host="www.caremind.com.br" android:pathPrefix="/convite"/>
+            </intent-filter>
+
+            <!-- App Link para medicamentos (Deep Link universal) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="caremind" android:host="medicamento"/>
+                <data android:scheme="https" android:host="caremind.com.br" android:pathPrefix="/medicamento"/>
+                <data android:scheme="https" android:host="www.caremind.com.br" android:pathPrefix="/medicamento"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

@@ -3,6 +3,7 @@ import '../models/perfil.dart';
 import '../core/errors/app_exception.dart';
 import '../core/errors/error_handler.dart';
 import '../core/utils/data_cleaner.dart';
+import '../utils/timezone_utils.dart';
 
 class SupabaseService {
   final SupabaseClient _client;
@@ -37,6 +38,9 @@ class SupabaseService {
       if (response.user != null) {
         final userId = response.user!.id;
 
+        // Capturar timezone do dispositivo
+        final timezone = TimezoneUtils.getCurrentTimezone();
+
         // Criar perfil na tabela perfis
         try {
           await _client.from('perfis').upsert({
@@ -46,6 +50,7 @@ class SupabaseService {
             'telefone': telefone,
             'data_sharing_consent': lgpdConsent,
             'terms_accepted_at': DateTime.now().toIso8601String(),
+            'timezone': timezone, // ← CAPTURA AUTOMÁTICA DO DISPOSITIVO
           }, onConflict: 'user_id');
         } catch (profileError) {
           // Log do erro mas não bloqueia o registro
@@ -76,12 +81,36 @@ class SupabaseService {
     required String password,
   }) async {
     try {
-      return await _client.auth.signInWithPassword(
+      final response = await _client.auth.signInWithPassword(
         email: email,
         password: password,
       );
+
+      // Após login bem-sucedido, atualizar timezone do perfil
+      if (response.user != null) {
+        await _updateProfileTimezone(response.user!.id);
+      }
+
+      return response;
     } catch (error) {
       throw ErrorHandler.toAppException(error);
+    }
+  }
+
+  /// Atualiza o timezone do perfil com o valor do dispositivo
+  /// Chamado automaticamente no login e pode ser chamado manualmente
+  Future<void> _updateProfileTimezone(String userId) async {
+    try {
+      final timezone = TimezoneUtils.getCurrentTimezone();
+      
+      await _client.from('perfis').update({
+        'timezone': timezone,
+      }).eq('user_id', userId);
+      
+      print('✅ Timezone atualizado automaticamente: $timezone');
+    } catch (error) {
+      // Não bloqueia o login se falhar
+      print('⚠️ Falha ao atualizar timezone (não bloqueante): $error');
     }
   }
 
@@ -94,6 +123,21 @@ class SupabaseService {
       );
       // OAuth abre o navegador, então retornamos true para indicar que iniciou
       return true;
+    } catch (error) {
+      throw ErrorHandler.toAppException(error);
+    }
+  }
+
+  /// Atualiza o timezone do perfil atual com o valor do dispositivo
+  /// Útil para chamadas manuais ou quando o usuário muda de localidade
+  Future<void> updateTimezoneFromDevice() async {
+    try {
+      final user = _client.auth.currentUser;
+      if (user == null) {
+        throw Exception('Usuário não autenticado');
+      }
+
+      await _updateProfileTimezone(user.id);
     } catch (error) {
       throw ErrorHandler.toAppException(error);
     }

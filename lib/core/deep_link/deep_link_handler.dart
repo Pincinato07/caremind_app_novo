@@ -87,7 +87,10 @@ class DeepLinkHandler {
 
   /// Extrai o token do convite de um URI
   static String? extractConviteToken(Uri uri) {
-    if (uri.scheme != 'caremind' || uri.host != 'convite') {
+    if (uri.scheme != 'caremind' && uri.scheme != 'https') {
+      return null;
+    }
+    if (uri.host != 'convite' && uri.host != 'caremind.com.br' && uri.host != 'www.caremind.com.br') {
       return null;
     }
     return uri.queryParameters['token'];
@@ -95,10 +98,20 @@ class DeepLinkHandler {
 
   /// Extrai o código do convite de um URI
   static String? extractConviteCodigo(Uri uri) {
-    if (uri.scheme != 'caremind' || uri.host != 'convite') {
+    if (uri.scheme != 'caremind' && uri.scheme != 'https') {
+      return null;
+    }
+    if (uri.host != 'convite' && uri.host != 'caremind.com.br' && uri.host != 'www.caremind.com.br') {
       return null;
     }
     return uri.queryParameters['codigo'];
+  }
+
+  /// Verifica se a URI é um link de convite válido
+  static bool isConviteLink(Uri uri) {
+    final token = extractConviteToken(uri);
+    final codigo = extractConviteCodigo(uri);
+    return token != null || codigo != null;
   }
 
   void dispose() {

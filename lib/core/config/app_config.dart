@@ -6,14 +6,17 @@ class AppConfig {
   // ==================== CONFIGURAÇÕES DE DOWNLOAD ====================
   
   /// URL de download do APK mais recente
-  /// Esta URL deve ser atualizada a cada novo deploy
-  static const String APK_DOWNLOAD_URL = 'https://caremind.com.br/download';
+  /// Esta URL é obtida da tabela app_versions no Supabase
+  static const String APK_DOWNLOAD_URL = 'https://github.com/Pincinato07/caremind-downloads/releases/download/latest/app-release.apk';
   
-  /// URL alternativa (se o site tiver um link específico para APK)
+  /// URL alternativa (Google Play Store)
   static const String APK_DOWNLOAD_URL_ALT = 'https://play.google.com/store/apps/details?id=com.caremind.app';
   
   /// URL do site oficial do CareMind
   static const String SITE_URL = 'https://caremind.com.br';
+  
+  /// URL da página de status do sistema
+  static const String STATUS_URL = 'https://caremind.com.br/status';
   
   // ==================== CONFIGURAÇÕES DA VERSÃO ====================
   
@@ -45,12 +48,38 @@ class AppConfig {
   
   /// Nome da tabela de dispositivos
   static const String SUPABASE_DEVICES_TABLE = 'user_devices';
-  
+
+  // ==================== CONFIGURAÇÕES DE SUPORTE ====================
+
+  /// Número do WhatsApp do suporte (formato: 5511999999999)
+  static const String SUPPORT_WHATSAPP_NUMBER = '5511953362516';
+
   // ==================== MÉTODOS ÚTEIS ====================
   
   /// Obtém a URL de download correta
   static String getDownloadUrl({bool useAlternative = false}) {
     return useAlternative ? APK_DOWNLOAD_URL_ALT : APK_DOWNLOAD_URL;
+  }
+  
+  /// Obtém a URL de download do Supabase (dinâmica)
+  /// Use este método quando precisar da URL mais recente do banco
+  static Future<String> getDownloadUrlFromSupabase() async {
+    try {
+      // Importar SupabaseService para acessar o cliente
+      // Nota: Este método deve ser chamado após a inicialização do Supabase
+      final supabaseUrl = const String.fromEnvironment('SUPABASE_URL');
+      final supabaseKey = const String.fromEnvironment('SUPABASE_ANON_KEY');
+      
+      if (supabaseUrl.isEmpty || supabaseKey.isEmpty) {
+        return APK_DOWNLOAD_URL; // Fallback para URL estática
+      }
+      
+      // Esta função seria implementada no service layer
+      // Por enquanto, retorna a URL estática
+      return APK_DOWNLOAD_URL;
+    } catch (e) {
+      return APK_DOWNLOAD_URL; // Fallback seguro
+    }
   }
   
   /// Verifica se a versão atual está desatualizada

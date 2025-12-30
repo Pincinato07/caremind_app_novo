@@ -45,7 +45,7 @@ class RateLimitDialog extends StatelessWidget {
   }
 
   Future<void> _abrirWhatsAppSuporte(BuildContext context) async {
-    final numero = AppConfig.supportWhatsAppNumber;
+    final numero = AppConfig.SUPPORT_WHATSAPP_NUMBER;
     const mensagem =
         'Olá, preciso de ajuda com o código de vinculação do CareMind.';
     final url = Uri.parse(
