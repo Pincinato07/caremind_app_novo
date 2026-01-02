@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'historico_eventos_service.dart';
 import '../models/medicamento.dart';
 import 'idoso_organizacao_service.dart';
 
@@ -197,6 +198,22 @@ class ConsolidadoOrganizacaoService {
           'Erro de conexão. Verifique sua internet e tente novamente.');
     } catch (e) {
       throw Exception('Erro ao obter compromissos consolidados: $e');
+    }
+  }
+
+  /// Verificar quais medicamentos já foram tomados hoje
+  Future<Map<int, bool>> checkMedicamentosConcluidosHoje(
+    String perfilId,
+    List<int> medicamentoIds,
+  ) async {
+    try {
+      return await HistoricoEventosService.checkMedicamentosConcluidosHoje(
+        perfilId,
+        medicamentoIds,
+      );
+    } catch (e) {
+      debugPrint('Erro no ConsolidadoOrganizacaoService: $e');
+      return {};
     }
   }
 }

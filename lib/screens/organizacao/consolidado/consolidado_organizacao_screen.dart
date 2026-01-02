@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../services/consolidado_organizacao_service.dart';
+import '../../../services/medicamento_service.dart';
 import '../../../core/feedback/feedback_service.dart';
 import '../../../core/errors/error_handler.dart';
+import '../../../core/injection/injection.dart';
 
 /// Tela de Visão Consolidada da Organização
 class ConsolidadoOrganizacaoScreen extends StatefulWidget {
@@ -22,9 +24,11 @@ class _ConsolidadoOrganizacaoScreenState
     with SingleTickerProviderStateMixin {
   final ConsolidadoOrganizacaoService _consolidadoService =
       ConsolidadoOrganizacaoService();
+  final MedicamentoService _medicamentoService = getIt<MedicamentoService>();
   late TabController _tabController;
 
   List<MedicamentoConsolidado> _medicamentos = [];
+  Map<int, bool> _statusMedicamentos = {};
   List<RotinaConsolidada> _rotinas = [];
   List<CompromissoConsolidado> _compromissos = [];
 
@@ -64,6 +68,9 @@ class _ConsolidadoOrganizacaoScreenState
         _compromissos = results[2] as List<CompromissoConsolidado>;
         _loading = false;
       });
+
+      // Carregar status dos medicamentos para hoje
+      _carregarStatusMedicamentos();
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -72,6 +79,75 @@ class _ConsolidadoOrganizacaoScreenState
       if (mounted) {
         FeedbackService.showError(
             context, ErrorHandler.toAppException(e));
+      }
+    }
+  }
+
+  Future<void> _carregarStatusMedicamentos() async {
+    if (_medicamentos.isEmpty) return;
+
+    try {
+      // Agrupar IDs por perfil para verificar status
+      final perfilIds = _medicamentos.map((m) => m.idosoId).toSet();
+      final Map<int, bool> novoStatus = {};
+
+      for (final perfilId in perfilIds) {
+        final medIdsDoPerfil = _medicamentos
+            .where((m) => m.idosoId == perfilId)
+            .map((m) => m.medicamento.id!)
+            .toList();
+
+        if (medIdsDoPerfil.isNotEmpty) {
+          final statusMap = await _consolidadoService.checkMedicamentosConcluidosHoje(
+            perfilId,
+            medIdsDoPerfil,
+          );
+          novoStatus.addAll(statusMap);
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _statusMedicamentos = novoStatus;
+        });
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar status dos medicamentos: $e');
+    }
+  }
+
+  Future<void> _toggleMedicamento(MedicamentoConsolidado item) async {
+    final med = item.medicamento;
+    if (med.id == null) return;
+
+    final bool atual = _statusMedicamentos[med.id!] ?? false;
+    final bool novo = !atual;
+
+    // Feedback tátil/visual imediato (otimista)
+    setState(() {
+      _statusMedicamentos[med.id!] = novo;
+    });
+
+    try {
+      await _medicamentoService.toggleConcluido(
+        med.id!,
+        novo,
+        DateTime.now(),
+      );
+      
+      if (mounted) {
+        FeedbackService.showSuccess(
+          context, 
+          '${med.nome} marcado como ${novo ? 'tomado' : 'pendente'} para ${item.idosoNome}'
+        );
+      }
+    } catch (e) {
+      // Reverter em caso de erro
+      setState(() {
+        _statusMedicamentos[med.id!] = atual;
+      });
+      if (mounted) {
+        FeedbackService.showError(context, ErrorHandler.toAppException(e));
       }
     }
   }
@@ -186,19 +262,32 @@ class _ConsolidadoOrganizacaoScreenState
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Idoso: ${item.idosoNome}'),
+                Text('Idoso: ${item.idosoNome}', style: const TextStyle(fontWeight: FontWeight.bold)),
                 if (item.quarto != null) Text('Quarto: ${item.quarto}'),
                 if (item.setor != null) Text('Setor: ${item.setor}'),
                 if (item.medicamento.dosagem != null)
                   Text('Dosagem: ${item.medicamento.dosagem}'),
-                if (item.medicamento.quantidade != null)
-                  Text('Quantidade: ${item.medicamento.quantidade}'),
               ],
             ),
+            trailing: _buildQuickActionButton(item),
             isThreeLine: true,
           ),
         );
       },
+    );
+  }
+
+  Widget _buildQuickActionButton(MedicamentoConsolidado item) {
+    final concluido = _statusMedicamentos[item.medicamento.id] ?? false;
+    
+    return IconButton(
+      icon: Icon(
+        concluido ? Icons.check_circle : Icons.circle_outlined,
+        color: concluido ? Colors.green : Colors.grey,
+        size: 32,
+      ),
+      onPressed: () => _toggleMedicamento(item),
+      tooltip: concluido ? 'Marcar como pendente' : 'Marcar como tomado',
     );
   }
 

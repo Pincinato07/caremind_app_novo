@@ -309,21 +309,56 @@ class EmergenciaService {
     String? mensagem,
   ) async {
     try {
-      // Buscar vínculos familiares do idoso
-      final vinculos = await _vinculoService.getVinculosByIdoso(idosoId);
-
-      if (vinculos.isEmpty) {
-        // Sem contatos, acionar alarme local diretamente (VULN-002)
-        await _acionarAlarmeLocal();
-        return {
-          'sucesso': false,
-          'familiares_notificados': 0,
-          'erro': 'Nenhum familiar cadastrado',
-        };
+      // 1. Verificar se o idoso pertence a uma organização (SOS Institucional)
+      String? organizacaoId;
+      try {
+        final idosoOrgResponse = await _supabase
+            .from('idosos_organizacao')
+            .select('organizacao_id')
+            .eq('perfil_id', idosoId)
+            .maybeSingle();
+            
+        if (idosoOrgResponse != null) {
+          organizacaoId = idosoOrgResponse['organizacao_id'] as String?;
+        }
+      } catch (e) {
+        debugPrint('Erro ao buscar organização do idoso: $e');
       }
 
-      // Buscar perfis dos familiares com telefone
-      final familiaresComTelefone = <Map<String, dynamic>>[];
+      final contatosNotificar = <Map<String, dynamic>>[];
+
+      // 2. Se houver organização, buscar enfermeiros e admins
+      if (organizacaoId != null) {
+        try {
+          final membrosResponse = await _supabase
+              .from('membros_organizacao')
+              .select('role, perfil:perfis(nome, telefone)')
+              .eq('organizacao_id', organizacaoId)
+              .eq('ativo', true)
+              .inFilter('role', ['enfermeiro', 'admin', 'cuidador']);
+
+          for (final m in membrosResponse as List) {
+            final perfil = m['perfil'] as Map<String, dynamic>?;
+            final role = m['role'] as String;
+            if (perfil != null) {
+              final telefone = perfil['telefone'] as String?;
+              if (telefone != null && telefone.isNotEmpty) {
+                contatosNotificar.add({
+                  'nome': '${perfil['nome']} ($role)',
+                  'telefone': telefone,
+                  'prioritario': true,
+                });
+              }
+            }
+          }
+          debugPrint('🏥 Encontrados ${contatosNotificar.length} membros da organização para SOS');
+        } catch (e) {
+          debugPrint('Erro ao buscar membros da organização: $e');
+        }
+      }
+
+      // 3. Buscar vínculos familiares
+      final vinculos = await _vinculoService.getVinculosByIdoso(idosoId);
       for (final vinculo in vinculos) {
         try {
           final perfilResponse = await _supabase
@@ -335,27 +370,28 @@ class EmergenciaService {
           if (perfilResponse != null) {
             final telefone = perfilResponse['telefone'] as String?;
             if (telefone != null && telefone.isNotEmpty) {
-              familiaresComTelefone.add({
-                'nome': perfilResponse['nome'] as String? ?? 'Familiar',
-                'telefone': telefone,
-              });
+              // Evitar duplicidade se o familiar também for membro da org
+              if (!contatosNotificar.any((c) => c['telefone'] == telefone)) {
+                contatosNotificar.add({
+                  'nome': perfilResponse['nome'] as String? ?? 'Familiar',
+                  'telefone': telefone,
+                  'prioritario': false,
+                });
+              }
             }
           }
         } catch (e) {
-          // Erro ao buscar perfil deste familiar, continuar com próximo
-          debugPrint(
-              'Erro ao buscar perfil do familiar ${vinculo.idFamiliar}: $e');
-          continue;
+          debugPrint('Erro ao buscar perfil do familiar: $e');
         }
       }
 
-      if (familiaresComTelefone.isEmpty) {
-        // Nenhum familiar com telefone, acionar alarme local (VULN-002)
+      if (contatosNotificar.isEmpty) {
+        // Sem contatos, acionar alarme local diretamente (VULN-002)
         await _acionarAlarmeLocal();
         return {
           'sucesso': false,
-          'familiares_notificados': 0,
-          'erro': 'Nenhum familiar com telefone cadastrado',
+          'contatos_notificados': 0,
+          'erro': 'Nenhum contato (org ou família) encontrado',
         };
       }
 
@@ -364,56 +400,54 @@ class EmergenciaService {
       final mensagemSMS = mensagem ??
           '🚨 EMERGÊNCIA: $tipoTexto - CareMind\n'
               'O idoso precisa de ajuda imediata!\n'
-              'Verifique o aplicativo para mais detalhes.';
+              'Local: ${organizacaoId != null ? 'Unidade Institucional' : 'Residência'}\n'
+              'Verifique o aplicativo agora.';
 
-      // Tentar enviar SMS para cada familiar com telefone
-      bool algumSMSEviado = false;
-      for (final familiar in familiaresComTelefone) {
-        final telefone = familiar['telefone'] as String;
+      // Tentar enviar SMS (prioritários primeiro)
+      int smsEnviadosSucesso = 0;
+      // Ordenar: prioritários (org) primeiro
+      contatosNotificar.sort((a, b) => (b['prioritario'] as bool ? 1 : 0).compareTo(a['prioritario'] as bool ? 1 : 0));
+
+      for (final contato in contatosNotificar) {
+        final telefone = contato['telefone'] as String;
         try {
-          // Limpar telefone (remover caracteres não numéricos, exceto +)
           final telefoneLimpo = telefone.replaceAll(RegExp(r'[^\d+]'), '');
           final uri = Uri.parse(
               'sms:$telefoneLimpo?body=${Uri.encodeComponent(mensagemSMS)}');
 
           if (await canLaunchUrl(uri)) {
             await launchUrl(uri);
-            algumSMSEviado = true;
-            debugPrint('✅ SMS de emergência enviado para ${familiar['nome']}');
-            // Pequeno delay entre envios
+            smsEnviadosSucesso++;
+            debugPrint('✅ SMS enviado para ${contato['nome']}');
             await Future.delayed(const Duration(milliseconds: 500));
           }
         } catch (e) {
-          // Falha ao enviar SMS para este contato, continuar com próximo
-          debugPrint('Erro ao enviar SMS para ${familiar['nome']}: $e');
-          continue;
+          debugPrint('Erro ao enviar SMS para ${contato['nome']}: $e');
         }
       }
 
-      if (!algumSMSEviado) {
-        // Nenhum SMS foi enviado, acionar alarme local (VULN-002)
+      if (smsEnviadosSucesso == 0) {
         await _acionarAlarmeLocal();
         return {
           'sucesso': false,
-          'familiares_notificados': 0,
-          'erro': 'Falha ao enviar SMS para todos os familiares',
+          'contatos_notificados': 0,
+          'erro': 'Falha ao enviar SMS para todos os contatos',
         };
       }
       
-      // Sucesso - pelo menos um SMS foi enviado
       return {
         'sucesso': true,
-        'familiares_notificados': algumSMSEviado ? familiaresComTelefone.length : 0,
-        'sms_enviados': algumSMSEviado ? 1 : 0,
+        'familiares_notificados': smsEnviadosSucesso,
+        'contatos_totais': contatosNotificar.length,
+        'institucional': organizacaoId != null,
       };
     } catch (e) {
-      // Erro ao tentar enviar SMS, acionar alarme local (VULN-002)
       debugPrint('Erro ao tentar fallback SMS: $e');
       await _acionarAlarmeLocal();
       return {
         'sucesso': false,
-        'familiares_notificados': 0,
-        'erro': 'Erro ao tentar enviar SMS: ${e.toString()}',
+        'contatos_notificados': 0,
+        'erro': 'Erro crítico no SOS: ${e.toString()}',
       };
     }
   }

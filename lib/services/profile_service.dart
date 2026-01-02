@@ -34,9 +34,23 @@ class ProfileService extends ChangeNotifier {
       final profile = await _supabaseService.getProfile(user.id);
       _currentProfile = profile;
 
-      // Anuncia carregamento do perfil com TTS
+      // Sincronizar timezone se estiver ausente ou desatualizado
       if (profile != null) {
-        await AccessibilityService.speak('Perfil carregado: ${profile.nome}.');
+        final deviceTimezone = TimezoneUtils.getCurrentTimezone();
+        if (profile.timezone != deviceTimezone) {
+          debugPrint('🕒 Atualizando timezone do perfil para: $deviceTimezone');
+          await _supabaseService.updateProfile(
+            userId: user.id,
+            timezone: deviceTimezone,
+          );
+          // Recarregar perfil com novo timezone
+          _currentProfile = profile.copyWith(timezone: deviceTimezone);
+        }
+      }
+
+      // Anuncia carregamento do perfil com TTS
+      if (_currentProfile != null) {
+        await AccessibilityService.speak('Perfil carregado: ${_currentProfile!.nome}.');
       } else {
         await AccessibilityService.speak('Nenhum perfil encontrado.');
       }

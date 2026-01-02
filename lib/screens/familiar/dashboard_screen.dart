@@ -400,9 +400,8 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
         isFamiliar: true,
         isIdoso: false,
       ),
-      useSolidBackground: true,
-      showWaves: false,
-      backgroundColor: AppColors.background,
+      useSolidBackground: false,
+      showWaves: true,
       body: SafeArea(
         child: _isLoading
             ? const SingleChildScrollView(

@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
-import '../../widgets/caremind_card.dart';
 import '../../widgets/animated_card.dart';
+import '../../widgets/caremind_card.dart';
+import '../../models/ocr_medicamento.dart';
 import '../../core/injection/injection.dart';
 import '../../services/ocr_service.dart';
 import '../../services/supabase_service.dart';
+import '../../services/profile_service.dart';
+import '../../utils/timezone_utils.dart';
 import '../../core/errors/app_exception.dart';
 import '../../core/feedback/feedback_service.dart';
 
@@ -36,6 +39,9 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
   bool _isPolling = false;
   String? _currentStatus;
   String? _error;
+  List<OcrMedicamento> _extractedMeds = [];
+  bool _isValidating = false;
+  String? _currentOcrId;
 
   @override
   void initState() {
@@ -102,8 +108,12 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
               ),
             ),
 
-            // Card principal de instruções
-            SliverToBoxAdapter(
+            
+            if (_isValidating) _buildValidationList(),
+            
+            if (!_isValidating) ...[
+              // Card principal de instruções
+              SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: AnimatedCard(
@@ -144,67 +154,10 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                   ),
                 ),
               ),
-            ),
 
-            SliverToBoxAdapter(child: SizedBox(height: AppSpacing.large)),
-
-            // Botão de captura de imagem
-            if (_selectedImage == null && !_isProcessing)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Column(
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: _pickImage,
-                        icon: const Icon(Icons.camera_alt, size: 28),
-                        label: Text(
-                          'Tirar Foto',
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF0400BA),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 20,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 4,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextButton.icon(
-                        onPressed: _pickImageFromGallery,
-                        icon: const Icon(Icons.photo_library, size: 24),
-                        label: Text(
-                          'Escolher da Galeria',
-                          style: AppTextStyles.leagueSpartan(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 16,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-            // Preview da imagem selecionada
-            if (_selectedImage != null && !_isProcessing)
-              SliverToBoxAdapter(
+              // Preview da imagem selecionada
+              if (_selectedImage != null && !_isProcessing)
+                SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: AnimatedCard(
@@ -362,59 +315,174 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
                 ),
               ),
 
-            // Erro
-            if (_error != null)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: AnimatedCard(
-                    index: 4,
-                    child: CareMindCard(
-                      variant: CardVariant.glass,
-                      padding: AppSpacing.paddingLarge,
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 48,
-                            color: Colors.red.shade300,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Erro ao processar imagem',
-                            style: AppTextStyles.leagueSpartan(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                ),
+              ),
+            ],
+            
+            if (!_isValidating) SliverToBoxAdapter(child: SizedBox(height: AppSpacing.large)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildValidationList() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Column(
+          children: [
+            CareMindCard(
+              variant: CardVariant.glass,
+              padding: AppSpacing.paddingSmall,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'REVISÃO OBRIGATÓRIA: Verifique as dosagens e nomes antes de confirmar.',
+                        style: AppTextStyles.leagueSpartan(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ..._extractedMeds.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final med = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: CareMindCard(
+                  variant: CardVariant.white,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: const Color(0xFF0400BA),
+                              child: Text('${idx + 1}', style: const TextStyle(color: Colors.white)),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _error!,
-                            textAlign: TextAlign.center,
-                            style: AppTextStyles.leagueSpartan(
-                              fontSize: 16,
-                              color: Colors.white.withValues(alpha: 0.8),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _processImage,
-                            child: Text(
-                              'Tentar Novamente',
-                              style: AppTextStyles.leagueSpartan(
-                                fontWeight: FontWeight.w700,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextFormField(
+                                initialValue: med.nome,
+                                decoration: const InputDecoration(labelText: 'Nome do Remédio'),
+                                onChanged: (val) => med.nome = val,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.red),
+                              onPressed: () => setState(() => _extractedMeds.removeAt(idx)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: TextFormField(
+                                initialValue: med.dosagem,
+                                decoration: const InputDecoration(labelText: 'Dosagem (ex: 500mg)'),
+                                onChanged: (val) => med.dosagem = val,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 3,
+                              child: TextFormField(
+                                initialValue: med.frequencia,
+                                decoration: const InputDecoration(labelText: 'Frequência (ex: 8/8h)'),
+                                onChanged: (val) => med.frequencia = val,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ),
+              );
+            }).toList(),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _finalizarConfirmacao,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: Text(
+                  'CONFIRMAR E SALVAR',
+                  style: AppTextStyles.leagueSpartan(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
               ),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () => setState(() => _isValidating = false),
+              child: const Text('Cancelar e voltar', style: TextStyle(color: Colors.white70)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-            SliverToBoxAdapter(child: SizedBox(height: AppSpacing.large)),
+  Future<void> _finalizarConfirmacao() async {
+    if (_extractedMeds.isEmpty) {
+      FeedbackService.showErrorMessage(context, 'Nenhum medicamento para salvar.');
+      return;
+    }
+
+    setState(() => _isProcessing = true);
+    final ocrService = getIt<OcrService>();
+    final supabaseService = getIt<SupabaseService>();
+    final user = supabaseService.currentUser;
+    final targetId = widget.idosoId ?? user!.id;
+    
+    // Buscar perfil_id real
+    final perfil = await supabaseService.getProfile(targetId);
+    if (perfil == null) return;
+
+    try {
+      await ocrService.salvarMedicamentosValidados(
+        medicamentos: _extractedMeds,
+        perfilId: perfil.id,
+        userId: targetId,
+      );
+
+      if (_currentOcrId != null) {
+        await ocrService.marcarComoValidado(_currentOcrId!);
+      }
+
+      if (mounted) {
+        _showSuccessMessage('Medicamentos salvos com sucesso!');
+        widget.onMedicamentosUpdated?.call();
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        FeedbackService.showErrorMessage(context, 'Erro ao salvar: $e');
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
           ],
         ),
       ),
@@ -474,6 +542,8 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
       _currentStatus = null;
       _isProcessing = false;
       _isPolling = false;
+      _isValidating = false;
+      _extractedMeds = [];
     });
   }
 
@@ -528,6 +598,7 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
 
       // 2. Iniciar polling para verificar status
       debugPrint('🔄 Iniciando polling para OCR ID: $ocrId');
+      _currentOcrId = ocrId;
       final resultado = await ocrService.pollStatus(
         ocrId: ocrId,
         onStatusUpdate: (status) {
@@ -543,34 +614,19 @@ class _IntegracoesScreenState extends State<IntegracoesScreen> {
 
       if (mounted) {
         if (resultado['success'] == true) {
-          // Sucesso: medicamentos foram inseridos automaticamente
-          final count = resultado['medicamentos_count'] as int? ?? 0;
+          // Extrair medicamentos para validação obrigatória
+          final meds = ocrService.parseMedicamentosFromResult(resultado['result_json']);
 
           setState(() {
             _isPolling = false;
+            _extractedMeds = meds;
+            _isValidating = true;
             _currentStatus = resultado['status'] as String;
           });
 
-          // Mostrar mensagem de sucesso
-          _showSuccessMessage(
-            count > 0
-                ? 'Receita processada! $count medicamento(s) adicionado(s).'
-                : 'Receita processada com sucesso!',
-          );
-
-          // Limpar imagem após sucesso
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              _clearImage();
-            }
-          });
-
-          // Chamar callback para atualizar lista de medicamentos
-          widget.onMedicamentosUpdated?.call();
-
-          // Retornar true para indicar sucesso
-          if (mounted) {
-            Navigator.pop(context, true);
+          // Anunciar para acessibilidade
+          if (meds.isNotEmpty) {
+            FeedbackService.showSuccess(context, 'Receita lida! Por favor, revise os ${meds.length} medicamentos encontrados.');
           }
         } else {
           // Erro no processamento

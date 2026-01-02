@@ -27,6 +27,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool isIdoso; // Se true, oculta algumas opções do menu
   final VoidCallback? onSearchTap;
   final VoidCallback? onVoiceTap;
+  final Color? backgroundColor;
 
   const CareMindAppBar({
     super.key,
@@ -40,6 +41,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.isIdoso = false,
     this.onSearchTap,
     this.onVoiceTap,
+    this.backgroundColor,
   });
 
   @override
@@ -135,7 +137,7 @@ class CareMindAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 )
               : null),
-      backgroundColor: AppColors.surface,
+      backgroundColor: backgroundColor ?? AppColors.surface,
       foregroundColor: iconColor,
       elevation: 0,
       shadowColor: Colors.black.withValues(alpha: 0.04),
