@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../services/consolidado_organizacao_service.dart';
 import '../../../services/medicamento_service.dart';
 import '../../../core/feedback/feedback_service.dart';
@@ -123,7 +124,10 @@ class _ConsolidadoOrganizacaoScreenState
     final bool atual = _statusMedicamentos[med.id!] ?? false;
     final bool novo = !atual;
 
-    // Feedback tátil/visual imediato (otimista)
+    // Feedback tátil
+    HapticFeedback.mediumImpact();
+
+    // Feedback visual otimista
     setState(() {
       _statusMedicamentos[med.id!] = novo;
     });
@@ -136,9 +140,22 @@ class _ConsolidadoOrganizacaoScreenState
       );
       
       if (mounted) {
-        FeedbackService.showSuccess(
-          context, 
-          '${med.nome} marcado como ${novo ? 'tomado' : 'pendente'} para ${item.idosoNome}'
+        // Remover SnackBars anteriores para evitar empilhamento
+        ScaffoldMessenger.of(context).clearSnackBars();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${med.nome} marcado como ${novo ? 'tomado' : 'pendente'}',
+            ),
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Desfazer',
+              onPressed: () {
+                _toggleMedicamento(item); // Reverte a ação recursivamente
+              },
+            ),
+          ),
         );
       }
     } catch (e) {

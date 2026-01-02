@@ -7,6 +7,8 @@ import '../../core/errors/app_exception.dart';
 import '../../core/feedback/feedback_service.dart';
 import '../../core/errors/error_handler.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
+import '../../widgets/caremind_app_bar.dart';
+import '../../widgets/app_button.dart';
 
 // Tipos de frequência
 enum TipoFrequencia { diario, intervalo, diasAlternados, semanal }
@@ -266,7 +268,7 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: const Color(0xFF0400B9),
+              primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black87,
@@ -293,7 +295,7 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: const Color(0xFF0400B9),
+              primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black87,
@@ -346,60 +348,41 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
   @override
   Widget build(BuildContext context) {
     return AppScaffoldWithWaves(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: Text(
-          _isEditing ? 'Editar Rotina' : 'Nova Rotina',
-          style: AppTextStyles.leagueSpartan(
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _saveRotina,
-            child: Text(
-              'Salvar',
-              style: AppTextStyles.leagueSpartan(
-                color: _isLoading ? Colors.white54 : Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
+      appBar: CareMindAppBar(
+        title: _isEditing ? 'Editar Rotina' : 'Nova Rotina',
+        showBackButton: true,
       ),
       body: SafeArea(
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.large, vertical: AppSpacing.medium),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(AppSpacing.medium),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
                         Colors.white.withValues(alpha: 0.1),
-                        const Color(0xFF0400B9).withValues(alpha: 0.05),
+                        AppColors.primary.withValues(alpha: 0.05),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(AppBorderRadius.large),
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0400B9),
-                          borderRadius: BorderRadius.circular(12),
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(AppBorderRadius.medium),
                         ),
                         child: const Icon(Icons.schedule,
                             color: Colors.white, size: 24),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: AppSpacing.medium),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -410,18 +393,14 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                                   : (_isEditing
                                       ? 'Editar Rotina'
                                       : 'Nova Rotina'),
-                              style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87),
+                              style: AppTextStyles.headlineSmall,
                             ),
                             const SizedBox(height: 4),
                             Text(
                               _isEditing
                                   ? 'Atualize as informações da rotina'
                                   : 'Preencha os dados da rotina',
-                              style: TextStyle(
-                                  fontSize: 14, color: Colors.grey.shade600),
+                              style: AppTextStyles.bodyMedium,
                             ),
                           ],
                         ),
@@ -429,7 +408,7 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.large),
                 TextFormField(
                   controller: _tituloController,
                   decoration: InputDecoration(
@@ -437,7 +416,7 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                     hintText: 'ex: Exercícios matinais, Hidratação',
                     prefixIcon: const Icon(Icons.title),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(AppBorderRadius.medium)),
                     filled: true,
                     fillColor: Colors.white,
                   ),
@@ -448,7 +427,7 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.medium),
                 TextFormField(
                   controller: _descricaoController,
                   decoration: InputDecoration(
@@ -456,13 +435,13 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                     hintText: 'Detalhes adicionais sobre a rotina',
                     prefixIcon: const Icon(Icons.description),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(AppBorderRadius.medium)),
                     filled: true,
                     fillColor: Colors.white,
                   ),
                   maxLines: 4,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.large),
                 // Seletor de tipo de frequência
                 DropdownButtonFormField<TipoFrequencia>(
                   value: _tipoFrequencia,
@@ -470,7 +449,7 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                     labelText: 'Frequência',
                     prefixIcon: const Icon(Icons.repeat),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(AppBorderRadius.medium)),
                     filled: true,
                     fillColor: Colors.white,
                   ),
@@ -500,60 +479,17 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                     }
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.large),
                 // Campos condicionais baseados no tipo de frequência
                 _buildFrequenciaFields(),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.large),
                 // Botão Salvar
-                Container(
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.white.withValues(alpha: 0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ElevatedButton(
+                AppPrimaryButton(
                     onPressed: _isLoading ? null : _saveRotina,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                _isEditing ? Icons.update : Icons.add,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _isEditing
-                                    ? 'Atualizar Rotina'
-                                    : 'Adicionar Rotina',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
+                    isLoading: _isLoading,
+                    label: _isEditing ? 'Atualizar Rotina' : 'Adicionar Rotina',
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.large),
               ],
             ),
           ),
@@ -589,7 +525,7 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppBorderRadius.medium),
               border: Border.all(color: Colors.grey.shade300),
             ),
             child: const Text(
@@ -603,12 +539,12 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppBorderRadius.medium),
                   border: Border.all(color: Colors.grey.shade300),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.access_time, color: Color(0xFF0400B9)),
+                    const Icon(Icons.access_time, color: AppColors.primary),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -618,7 +554,7 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.red),
+                      icon: const Icon(Icons.close, color: AppColors.error),
                       onPressed: () => _removeHorario(horario),
                     ),
                   ],
@@ -630,11 +566,11 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
           icon: const Icon(Icons.add),
           label: const Text('Adicionar Horário'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF0400B9),
+            backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppBorderRadius.medium),
             ),
           ),
         ),
@@ -655,7 +591,7 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                   labelText: 'A cada quantas horas?',
                   prefixIcon: const Icon(Icons.timer),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(AppBorderRadius.medium)),
                   filled: true,
                   fillColor: Colors.white,
                 ),
@@ -679,12 +615,12 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppBorderRadius.medium),
               border: Border.all(color: Colors.grey.shade300),
             ),
             child: Row(
               children: [
-                const Icon(Icons.access_time, color: Color(0xFF0400B9)),
+                const Icon(Icons.access_time, color: AppColors.primary),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -733,7 +669,7 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                   labelText: 'A cada quantos dias?',
                   prefixIcon: const Icon(Icons.calendar_today),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(AppBorderRadius.medium)),
                   filled: true,
                   fillColor: Colors.white,
                 ),
@@ -757,12 +693,12 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppBorderRadius.medium),
               border: Border.all(color: Colors.grey.shade300),
             ),
             child: Row(
               children: [
-                const Icon(Icons.access_time, color: Color(0xFF0400B9)),
+                const Icon(Icons.access_time, color: AppColors.primary),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -811,9 +747,9 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
           spacing: 8,
           runSpacing: 8,
           children: _diasDaSemana.map((dia) {
-            final isSelected = _diasSemana.contains(dia['id'] as int);
+            final isSelected = _diasSemana.contains(dia['id']);
             return FilterChip(
-              label: Text(dia['label'] as String),
+              label: Text(dia['label']),
               selected: isSelected,
               onSelected: (selected) {
                 setState(() {
@@ -824,8 +760,8 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
                   }
                 });
               },
-              selectedColor: const Color(0xFF0400B9).withValues(alpha: 0.2),
-              checkmarkColor: const Color(0xFF0400B9),
+              selectedColor: AppColors.primary.withValues(alpha: 0.2),
+              checkmarkColor: AppColors.primary,
             );
           }).toList(),
         ),
@@ -836,12 +772,12 @@ class _AddEditRotinaFormState extends State<AddEditRotinaForm> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppBorderRadius.medium),
               border: Border.all(color: Colors.grey.shade300),
             ),
             child: Row(
               children: [
-                const Icon(Icons.access_time, color: Color(0xFF0400B9)),
+                const Icon(Icons.access_time, color: AppColors.primary),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(

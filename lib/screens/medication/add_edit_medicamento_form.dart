@@ -4,11 +4,15 @@ import '../../models/medicamento.dart';
 import '../../services/medicamento_service.dart';
 import '../../services/supabase_service.dart';
 import '../../services/notification_service.dart';
+import 'package:flutter/services.dart';
+import '../../core/errors/result.dart';
 import '../../core/injection/injection.dart';
 import '../../core/errors/app_exception.dart';
 import '../../core/feedback/feedback_service.dart';
 import '../../core/errors/error_handler.dart';
 import '../../widgets/app_scaffold_with_waves.dart';
+import '../../widgets/caremind_app_bar.dart';
+import '../../widgets/app_button.dart';
 
 class AddEditMedicamentoForm extends StatefulWidget {
   final Medicamento? medicamento;
@@ -32,6 +36,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
   String _descricaoPersonalizada = '';
 
   bool _isLoading = false;
+  bool _isAnalyzing = false;
   bool get _isEditing => widget.medicamento != null;
 
   final List<String> _diasDaSemana = [
@@ -107,7 +112,47 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
     }
   }
 
-  Future<void> _saveMedicamento() async {
+  Future<Map<String, dynamic>> _checkSafety(String nome, String dosagem) async {
+    try {
+      final supabaseService = getIt<SupabaseService>();
+      final medicamentoService = getIt<MedicamentoService>();
+      final user = supabaseService.currentUser;
+
+      if (user == null) return {'status': 'safe', 'bypass': true};
+
+      final targetUserId = widget.idosoId ?? user.id;
+
+      // Get history
+      final result = await medicamentoService.getMedicamentos(targetUserId);
+      List<String> historico = [];
+      
+      // Handle Result type manually since generics might be tricky with `is`
+      result.fold(
+          (success) => historico = success.map((m) => m.nome).toList(),
+          (failure) => historico = []
+      );
+
+      final response = await supabaseService.client.functions.invoke(
+        'caremind-ai-analyst',
+        body: {
+          'medicamento': nome,
+          'dosagem': dosagem.isNotEmpty ? dosagem : 'Não informada',
+          'historico': historico,
+        },
+      );
+
+      final data = response.data;
+      if (data == null) return {'status': 'safe', 'bypass': true};
+
+      return Map<String, dynamic>.from(data as Map);
+
+    } catch (e) {
+      debugPrint('AI Analysis failed: $e');
+      return {'status': 'safe', 'bypass': true};
+    }
+  }
+
+  Future<void> _saveMedicamento({bool forceSave = false}) async {
     if (!_formKey.currentState!.validate()) return;
 
     // Validação adicional para frequência
@@ -120,6 +165,74 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
         _descricaoPersonalizada.trim().isEmpty) {
       _showError('Descreva a frequência personalizada');
       return;
+    }
+
+    if (!forceSave) {
+        setState(() => _isAnalyzing = true);
+        
+        // AI Check logic
+        try {
+            final safetyResult = await _checkSafety(
+                _nomeController.text.trim(), 
+                _dosagemController.text.trim()
+            );
+            
+            setState(() => _isAnalyzing = false);
+
+            if (safetyResult['status'] == 'danger') {
+                HapticFeedback.vibrate(); // Vibrate on danger
+                if (!mounted) return;
+                
+                final shouldSave = await showDialog<bool>(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => AlertDialog(
+                        title: Row(
+                            children: const [
+                                Icon(Icons.warning_amber_rounded, color: AppColors.error),
+                                SizedBox(width: 8),
+                                Text('Alerta de Segurança'),
+                            ],
+                        ),
+                        content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                                Text(safetyResult['message'] ?? 'Risco detectado.', style: AppTextStyles.labelMedium),
+                                const SizedBox(height: 8),
+                                Text(safetyResult['details'] ?? 'Verifique as interações medicamentosas.', style: AppTextStyles.bodyMedium),
+                            ],
+                        ),
+                        actions: [
+                            TextButton(
+                                onPressed: () => Navigator.pop(context, false), 
+                                child: Text('Voltar e Corrigir', style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary))
+                            ),
+                            TextButton(
+                                onPressed: () => Navigator.pop(context, true), 
+                                child: Text('Ignorar e Salvar', style: AppTextStyles.labelSmall.copyWith(color: AppColors.error))
+                            ),
+                        ],
+                    ),
+                );
+
+                if (shouldSave != true) {
+                    return; // Stop if user chose to correct
+                }
+            } else if (safetyResult['status'] == 'warning') {
+                 if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text("Nota de Segurança: ${safetyResult['message']}"),
+                            backgroundColor: AppColors.warning,
+                        )
+                    );
+                 }
+            }
+        } catch (e) {
+             print("AI Check Error ignored: $e");
+             setState(() => _isAnalyzing = false);
+        }
     }
 
     setState(() => _isLoading = true);
@@ -202,56 +315,40 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
   @override
   Widget build(BuildContext context) {
     return AppScaffoldWithWaves(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: Text(
-          _isEditing ? 'Editar Medicamento' : 'Novo Medicamento',
-          style: AppTextStyles.leagueSpartan(
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _saveMedicamento,
-            child: Text(
-              'Salvar',
-              style: AppTextStyles.leagueSpartan(
-                color: _isLoading ? Colors.white54 : Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
+      appBar: CareMindAppBar(
+        title: _isEditing ? 'Editar Medicamento' : 'Novo Medicamento',
+        showBackButton: true,
       ),
       body: SafeArea(
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.large, vertical: AppSpacing.medium),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Header com ícone
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(AppSpacing.medium),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        const Color(0xFF0400B9).withValues(alpha: 0.1),
-                        const Color(0xFF0400B9).withValues(alpha: 0.05),
+                        AppColors.primary.withValues(alpha: 0.1),
+                        AppColors.primary.withValues(alpha: 0.05),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius:
+                        BorderRadius.circular(AppBorderRadius.large),
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0400B9),
-                          borderRadius: BorderRadius.circular(12),
+                          color: AppColors.primary,
+                          borderRadius:
+                              BorderRadius.circular(AppBorderRadius.medium),
                         ),
                         child: const Icon(
                           Icons.medication,
@@ -259,7 +356,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                           size: 24,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: AppSpacing.medium),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,11 +365,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                               _isEditing
                                   ? 'Editar Medicamento'
                                   : 'Novo Medicamento',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
+                              style: AppTextStyles.headlineSmall,
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -281,10 +374,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                                   : (_isEditing
                                       ? 'Atualize as informações do medicamento'
                                       : 'Preencha os dados do medicamento'),
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey.shade600,
-                              ),
+                              style: AppTextStyles.bodyMedium,
                             ),
                           ],
                         ),
@@ -293,7 +383,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.large),
 
                 // Campo Nome
                 _buildTextField(
@@ -308,7 +398,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                   },
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.medium),
 
                 // Campo Dosagem
                 _buildTextField(
@@ -324,7 +414,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                   },
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.medium),
 
                 // Campo Quantidade
                 _buildTextField(
@@ -344,14 +434,14 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                   },
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: AppSpacing.xlarge),
 
                 // Seção Frequência
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(AppSpacing.medium),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(AppBorderRadius.large),
                     border: Border.all(color: Colors.grey.shade200),
                   ),
                   child: Column(
@@ -362,8 +452,9 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0400B9),
-                              borderRadius: BorderRadius.circular(8),
+                              color: AppColors.primary,
+                              borderRadius:
+                                  BorderRadius.circular(AppBorderRadius.small),
                             ),
                             child: const Icon(
                               Icons.schedule,
@@ -371,25 +462,22 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                               size: 20,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          const Text(
+                          const SizedBox(width: AppSpacing.medium),
+                          Text(
                             'Frequência de Uso',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
+                            style: AppTextStyles.titleLarge,
                           ),
                         ],
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.medium),
 
                       // Seletor de tipo de frequência
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius:
+                              BorderRadius.circular(AppBorderRadius.medium),
                           border: Border.all(color: Colors.grey.shade300),
                         ),
                         child: Column(
@@ -405,7 +493,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                         ),
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.medium),
 
                       // Configurações específicas da frequência
                       _buildFrequenciaConfig(),
@@ -413,59 +501,20 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: AppSpacing.xlarge),
 
                 // Botão Salvar
-                Container(
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF0400B9), Color(0xFF0600E0)],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF0400B9).withValues(alpha: 0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _saveMedicamento,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                _isEditing ? Icons.update : Icons.add,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _isEditing
-                                    ? 'Atualizar Medicamento'
-                                    : 'Adicionar Medicamento',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
+                AppPrimaryButton(
+                  onPressed: _isLoading ? null : _saveMedicamento,
+                  isLoading: _isLoading || _isAnalyzing,
+                  label: _isAnalyzing
+                      ? 'Analisando...'
+                      : (_isEditing
+                          ? 'Atualizar Medicamento'
+                          : 'Adicionar Medicamento'),
                 ),
 
-                const SizedBox(height: 24), // Espaço extra antes do botão
+                const SizedBox(height: AppSpacing.large), // Espaço extra antes do botão
               ],
             ),
           ),
@@ -485,14 +534,8 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.white.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(AppBorderRadius.medium),
+        boxShadow: AppShadows.small,
       ),
       child: TextFormField(
         controller: controller,
@@ -504,26 +547,26 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
             margin: const EdgeInsets.all(12),
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF0400B9).withValues(alpha: 0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               icon,
-              color: const Color(0xFF0400B9),
+              color: AppColors.primary,
               size: 20,
             ),
           ),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppBorderRadius.medium),
             borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF0400B9), width: 2),
+            borderRadius: BorderRadius.circular(AppBorderRadius.medium),
+            borderSide: const BorderSide(color: AppColors.primary, width: 2),
           ),
           errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.red, width: 2),
+            borderRadius: BorderRadius.circular(AppBorderRadius.medium),
+            borderSide: const BorderSide(color: AppColors.error, width: 2),
           ),
           filled: true,
           fillColor: Colors.white,
@@ -538,7 +581,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
     return Container(
       decoration: BoxDecoration(
         color: isSelected
-            ? const Color(0xFF0400B9).withValues(alpha: 0.05)
+            ? AppColors.primary.withValues(alpha: 0.05)
             : Colors.transparent,
       ),
       child: RadioListTile<String>(
@@ -547,14 +590,14 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
             Icon(
               icon,
               size: 20,
-              color: isSelected ? const Color(0xFF0400B9) : Colors.grey,
+              color: isSelected ? AppColors.primary : Colors.grey,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.medium),
             Text(
               title,
               style: TextStyle(
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                color: isSelected ? const Color(0xFF0400B9) : Colors.black87,
+                color: isSelected ? AppColors.primary : AppColors.textPrimary,
               ),
             ),
           ],
@@ -568,7 +611,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
             _tipoFrequencia = newValue!;
           });
         },
-        activeColor: const Color(0xFF0400B9),
+        activeColor: AppColors.primary,
       ),
     );
   }
@@ -577,10 +620,10 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
     switch (_tipoFrequencia) {
       case 'diario':
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.medium),
           decoration: BoxDecoration(
-            color: const Color(0xFF0400B9).withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
+            color: AppColors.primary.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(AppBorderRadius.medium),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -592,7 +635,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.medium),
               Row(
                 children: [
                   IconButton(
@@ -635,10 +678,10 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
 
       case 'semanal':
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.medium),
           decoration: BoxDecoration(
-            color: const Color(0xFF0400B9).withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
+            color: AppColors.primary.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(AppBorderRadius.medium),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -650,7 +693,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.medium),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -669,8 +712,8 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                       });
                     },
                     selectedColor:
-                        const Color(0xFF0400B9).withValues(alpha: 0.2),
-                    checkmarkColor: const Color(0xFF0400B9),
+                        AppColors.primary.withValues(alpha: 0.2),
+                    checkmarkColor: AppColors.primary,
                   );
                 }).toList(),
               ),
@@ -680,10 +723,10 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
 
       case 'personalizado':
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.medium),
           decoration: BoxDecoration(
-            color: const Color(0xFF0400B9).withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
+            color: AppColors.primary.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(AppBorderRadius.medium),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -695,7 +738,7 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.medium),
               TextFormField(
                 initialValue: _descricaoPersonalizada,
                 onChanged: (value) {
@@ -706,11 +749,12 @@ class _AddEditMedicamentoFormState extends State<AddEditMedicamentoForm> {
                   hintText:
                       'Ex: A cada 8 horas, Apenas quando necessário, etc.',
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppBorderRadius.small),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF0400B9)),
+                    borderRadius:
+                        BorderRadius.circular(AppBorderRadius.small),
+                    borderSide: const BorderSide(color: AppColors.primary),
                   ),
                 ),
               ),

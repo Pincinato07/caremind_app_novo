@@ -17,6 +17,7 @@ import '../../core/feedback/feedback_service.dart';
 import '../../widgets/offline_indicator.dart';
 import '../../widgets/rotina_frequencia_widget.dart';
 import '../../services/rotina_notification_service.dart';
+import '../../widgets/caremind_app_bar.dart'; // Import CareMindAppBar
 import 'add_edit_rotina_form.dart';
 
 class GestaoRotinasScreen extends StatefulWidget {
@@ -262,7 +263,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Excluir'),
           ),
         ],
@@ -302,59 +303,15 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
       onRefresh: _loadRotinas,
       color: Colors.white,
       backgroundColor: AppColors.primary,
-      child: CustomScrollView(
+      child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          if (isFamiliar)
-            SliverToBoxAdapter(
-              child: const BannerContextoFamiliar(),
-            ),
-          if (!widget.embedded)
-            SliverAppBar(
-              expandedHeight: 120,
-              floating: false,
-              pinned: true,
-              backgroundColor: Colors.transparent,
-              foregroundColor: Colors.white,
-              flexibleSpace: FlexibleSpaceBar(
-                title: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Rotinas',
-                      style: AppTextStyles.leagueSpartan(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                    if (_isOffline) ...[
-                      const SizedBox(width: 8),
-                      const OfflineBadge(),
-                    ],
-                  ],
-                ),
-                background: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFFA8B8FF), Color(0xFF9B7EFF)],
-                    ),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.schedule, size: 48, color: Colors.white),
-                  ),
-                ),
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: _loadRotinas,
-                ),
-              ],
-            ),
-          SliverToBoxAdapter(child: _buildBody()),
-        ],
+        child: Column(
+          children: [
+            if (isFamiliar)
+              const BannerContextoFamiliar(),
+            _buildBody(),
+          ],
+        ),
       ),
     );
 
@@ -368,6 +325,18 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
 
     return OfflineIndicator(
       child: AppScaffoldWithWaves(
+        appBar: CareMindAppBar(
+          title: 'Rotinas',
+          showBackButton: !_isIdoso, // Back button only if not main persistent tab (usually Idoso treats this as a main tab/screen? No context, assuming yes if not embedded)
+          // Adjust logic based on navigation flow. If it's a main tab, no back. 
+          // Assuming GestaoRotinasScreen can be pushed.
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _loadRotinas,
+            ),
+          ],
+        ),
         body: Stack(
           children: [
             content,
@@ -416,14 +385,14 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
   Widget _buildBody() {
     if (_isLoading) {
       return const Padding(
-        padding: EdgeInsets.all(24),
+        padding: EdgeInsets.all(AppSpacing.large),
         child: ListSkeletonLoader(itemCount: 4, itemHeight: 140),
       );
     }
 
     if (_error != null) {
       return Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.large),
         child: ErrorWidgetWithRetry(
           message: _error!,
           onRetry: _loadRotinas,
@@ -433,7 +402,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
 
     if (_rotinas.isEmpty) {
       return Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.large),
         child: Center(
           child: Column(
             children: [
@@ -473,7 +442,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                       style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF0400B9)),
+                          color: AppColors.primary),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
@@ -483,7 +452,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                           : 'Toque no botão "+" para adicionar sua primeira rotina',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                          color: Colors.grey.shade600,
+                          color: AppColors.textSecondary,
                           fontSize: 16,
                           height: 1.5),
                     ),
@@ -500,7 +469,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.large),
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -509,16 +478,16 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                 end: Alignment.bottomRight,
                 colors: [
                   Colors.white,
-                  const Color(0xFF0400B9).withValues(alpha: 0.02)
+                  AppColors.primary.withValues(alpha: 0.02)
                 ],
               ),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(AppBorderRadius.xlarge),
               border: Border.all(
-                  color: const Color(0xFF0400B9).withValues(alpha: 0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF0400B9).withValues(alpha: 0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -529,14 +498,13 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                        colors: [Color(0xFF0400B9), Color(0xFF0600E0)]),
-                    borderRadius: BorderRadius.circular(12),
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(AppBorderRadius.medium),
                   ),
                   child: const Icon(Icons.analytics_outlined,
                       color: Colors.white, size: 24),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: AppSpacing.medium),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -545,11 +513,11 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                           style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87)),
+                              color: AppColors.textPrimary)),
                       const SizedBox(height: 4),
                       Text('${_rotinas.length} rotina(s)',
                           style: const TextStyle(
-                              fontSize: 14, color: Colors.grey)),
+                              fontSize: 14, color: AppColors.textSecondary)),
                     ],
                   ),
                 ),
@@ -557,20 +525,20 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: const Text('Suas Rotinas',
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
+          child: Text('Suas Rotinas',
               style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87)),
+                  color: AppColors.textPrimary)),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.medium),
         ...(_rotinas.asMap().entries.map((entry) {
           final index = entry.key;
           final rotina = entry.value;
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.large, vertical: 8),
             child: _buildRotinaCard(rotina)
                 .animate()
                 .fadeIn(
@@ -586,7 +554,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                 ),
           );
         })),
-        SizedBox(height: AppSpacing.bottomNavBarPadding),
+        const SizedBox(height: AppSpacing.bottomNavBarPadding),
       ],
     );
   }
@@ -595,44 +563,6 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
   String _formatarFrequencia(Map<String, dynamic>? frequencia) {
     // Delegar para o widget (mantido para compatibilidade)
     return RotinaFrequenciaWidget.formatarFrequencia(frequencia);
-  }
-
-  String _formatarFrequenciaLegacy(Map<String, dynamic>? frequencia) {
-    if (frequencia == null) return '';
-    
-    final tipo = frequencia['tipo'] as String?;
-    if (tipo == null) return '';
-
-    switch (tipo) {
-      case 'diario':
-        final horarios = frequencia['horarios'] as List?;
-        if (horarios != null && horarios.isNotEmpty) {
-          final horariosStr = horarios.map((h) => h.toString()).join(', ');
-          return 'Diário - $horariosStr';
-        }
-        return 'Diário';
-      case 'intervalo':
-        final intervaloHoras = frequencia['intervalo_horas'] as int? ?? 8;
-        final inicio = frequencia['inicio'] as String? ?? '';
-        return 'A cada ${intervaloHoras}h (início: $inicio)';
-      case 'dias_alternados':
-        final intervaloDias = frequencia['intervalo_dias'] as int? ?? 2;
-        final horario = frequencia['horario'] as String? ?? '';
-        return 'A cada $intervaloDias dias ($horario)';
-      case 'semanal':
-        final diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-        final dias = frequencia['dias_da_semana'] as List?;
-        final horario = frequencia['horario'] as String? ?? '';
-        if (dias != null && dias.isNotEmpty) {
-          final diasStr = dias
-              .map((d) => diasSemana[(d as int) - 1])
-              .join(', ');
-          return 'Toda $diasStr ($horario)';
-        }
-        return 'Semanal ($horario)';
-      default:
-        return 'Frequência personalizada';
-    }
   }
 
   Widget _buildRotinaCard(Map<String, dynamic> rotina) {
@@ -663,24 +593,17 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            const Color(0xFF0400B9).withValues(alpha: 0.02),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppBorderRadius.xlarge),
         border: Border.all(
           color: concluida
-              ? Colors.green.shade300
-              : const Color(0xFF0400B9).withValues(alpha: 0.1),
+              ? AppColors.success.withValues(alpha: 0.5)
+              : AppColors.primary.withValues(alpha: 0.1),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0400B9).withValues(alpha: 0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -689,7 +612,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppBorderRadius.xlarge),
           onTap: _isIdoso
               ? () => _toggleConcluida(rotina)
               : () async {
@@ -722,15 +645,10 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: concluida
-                              ? [Colors.green.shade400, Colors.green.shade600]
-                              : [
-                                  const Color(0xFF0400B9),
-                                  const Color(0xFF0600E0)
-                                ],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
+                        color: concluida
+                              ? AppColors.success
+                              : AppColors.primary,
+                        borderRadius: BorderRadius.circular(AppBorderRadius.medium),
                       ),
                       child: Icon(
                         concluida ? Icons.check_circle : Icons.schedule,
@@ -738,7 +656,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                         size: 24,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: AppSpacing.medium),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -749,8 +667,8 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: concluida
-                                  ? Colors.grey.shade600
-                                  : Colors.black87,
+                                  ? AppColors.textSecondary
+                                  : AppColors.textPrimary,
                               decoration:
                                   concluida ? TextDecoration.lineThrough : null,
                             ),
@@ -762,8 +680,8 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                             textStyle: TextStyle(
                               fontSize: 14,
                               color: concluida
-                                  ? Colors.grey.shade500
-                                  : Colors.grey.shade700,
+                                  ? AppColors.textSecondary
+                                  : AppColors.textSecondary,
                             ),
                           ),
                           if (frequenciaTexto.isEmpty && horario != null) ...[
@@ -773,8 +691,8 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                               style: TextStyle(
                                 fontSize: 14,
                                 color: concluida
-                                    ? Colors.grey.shade500
-                                    : Colors.grey.shade700,
+                                    ? AppColors.textSecondary
+                                    : AppColors.textSecondary,
                               ),
                             ),
                           ],
@@ -811,7 +729,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                                   concluida ? Icons.undo : Icons.check,
                                   size: 20,
                                   color:
-                                      concluida ? Colors.orange : Colors.green,
+                                      concluida ? AppColors.warning : AppColors.success,
                                 ),
                                 const SizedBox(width: 12),
                                 Text(concluida
@@ -825,10 +743,10 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                             child: Row(
                               children: [
                                 Icon(Icons.delete_outline,
-                                    size: 20, color: Colors.red),
+                                    size: 20, color: AppColors.error),
                                 SizedBox(width: 12),
                                 Text('Excluir',
-                                    style: TextStyle(color: Colors.red)),
+                                    style: TextStyle(color: AppColors.error)),
                               ],
                             ),
                           ),
@@ -842,13 +760,13 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppBorderRadius.medium),
                       border: Border.all(color: Colors.grey.shade200),
                     ),
                     child: Text(
                       descricao,
                       style:
-                          TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                          const TextStyle(fontSize: 14, color: AppColors.textSecondary),
                     ),
                   ),
                 ],
@@ -859,13 +777,11 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                   Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.green.shade400, Colors.green.shade600],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
+                      color: AppColors.success,
+                      borderRadius: BorderRadius.circular(AppBorderRadius.medium),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.green.withValues(alpha: 0.3),
+                          color: AppColors.success.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -875,7 +791,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () => _toggleConcluida(rotina),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppBorderRadius.medium),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                               vertical: 14, horizontal: 16),
@@ -907,11 +823,11 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                   Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.orange.shade400,
-                      borderRadius: BorderRadius.circular(12),
+                      color: AppColors.warning,
+                      borderRadius: BorderRadius.circular(AppBorderRadius.medium),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.orange.withValues(alpha: 0.3),
+                          color: AppColors.warning.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -921,7 +837,7 @@ class _GestaoRotinasScreenState extends State<GestaoRotinasScreen> {
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () => _toggleConcluida(rotina),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppBorderRadius.medium),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                               vertical: 14, horizontal: 16),
