@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../services/medicamento_service.dart';
+import '../../services/subscription_service.dart';
 import '../../services/historico_eventos_service.dart';
 import '../../core/injection/injection.dart';
 import '../../core/feedback/feedback_service.dart';
@@ -101,6 +102,9 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
         debugPrint('⚠️ Perfil não encontrado');
         return;
       }
+
+      // Atualizar permissões de assinatura
+      await getIt<SubscriptionService>().getPermissions(forceRefresh: true);
 
       if (!mounted) return;
 
@@ -436,6 +440,36 @@ class _FamiliarDashboardScreenState extends State<FamiliarDashboardScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Banner de Pagamento Pendente
+                            if (getIt<SubscriptionService>().isPending)
+                              Container(
+                                width: double.infinity,
+                                margin: const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border:
+                                      Border.all(color: Colors.amber.shade300),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.timer_outlined,
+                                        color: Colors.amber),
+                                    const SizedBox(width: 12),
+                                    const Expanded(
+                                      child: Text(
+                                        'Pagamento em processamento! Seu acesso Premium será liberado em breve.',
+                                        style: TextStyle(
+                                          color: Colors.brown,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             Text(
                               'Olá, $_userName!',
                               style: AppTextStyles.leagueSpartan(

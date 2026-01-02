@@ -9,6 +9,7 @@ class UserPermissions {
   final bool permiteRelatorios;
   final int limiteMedicamentos;
   final int limiteDependentes;
+  final String statusAssinatura;
 
   const UserPermissions({
     required this.nomePlano,
@@ -18,6 +19,7 @@ class UserPermissions {
     required this.permiteRelatorios,
     required this.limiteMedicamentos,
     required this.limiteDependentes,
+    required this.statusAssinatura,
   });
 
   factory UserPermissions.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class UserPermissions {
       permiteRelatorios: json['permite_relatorios'] as bool? ?? false,
       limiteMedicamentos: json['limite_medicamentos'] as int? ?? 5,
       limiteDependentes: json['limite_dependentes'] as int? ?? 1,
+      statusAssinatura: json['status_assinatura'] as String? ?? 'none',
     );
   }
 
@@ -41,6 +44,7 @@ class UserPermissions {
       permiteRelatorios: false,
       limiteMedicamentos: 5,
       limiteDependentes: 1,
+      statusAssinatura: 'none',
     );
   }
 }
@@ -113,4 +117,6 @@ class SubscriptionService {
   String get nomePlano => _cachedPermissions?.nomePlano ?? 'Gratuito';
 
   bool get isPremium => _cachedPermissions?.nomePlano != 'Gratuito';
+
+  bool get isPending => _cachedPermissions?.statusAssinatura == 'pending';
 }
