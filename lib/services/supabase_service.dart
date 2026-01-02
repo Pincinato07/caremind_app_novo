@@ -4,6 +4,8 @@ import '../core/errors/app_exception.dart';
 import '../core/errors/error_handler.dart';
 import '../core/utils/data_cleaner.dart';
 import '../utils/timezone_utils.dart';
+import '../core/utils/app_logger.dart';
+
 
 class SupabaseService {
   final SupabaseClient _client;
@@ -54,7 +56,7 @@ class SupabaseService {
           }, onConflict: 'user_id');
         } catch (profileError) {
           // Log do erro mas não bloqueia o registro
-          print('Erro ao criar perfil (não bloqueante): $profileError');
+          AppLogger.error('Erro ao criar perfil (não bloqueante): $profileError');
         }
 
         // Enviar email de boas-vindas (não bloqueante)
@@ -65,8 +67,7 @@ class SupabaseService {
           });
         } catch (emailError) {
           // Log do erro mas não bloqueia o registro
-          print(
-              'Erro ao enviar email de boas-vindas (não bloqueante): $emailError');
+          AppLogger.error('Erro ao enviar email de boas-vindas (não bloqueante): $emailError');
         }
       }
 
@@ -107,10 +108,10 @@ class SupabaseService {
         'timezone': timezone,
       }).eq('user_id', userId);
       
-      print('✅ Timezone atualizado automaticamente: $timezone');
+      AppLogger.info('✅ Timezone atualizado automaticamente: $timezone');
     } catch (error) {
       // Não bloqueia o login se falhar
-      print('⚠️ Falha ao atualizar timezone (não bloqueante): $error');
+      AppLogger.warn('⚠️ Falha ao atualizar timezone (não bloqueante): $error');
     }
   }
 

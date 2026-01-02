@@ -1,4 +1,6 @@
 import 'package:timezone/timezone.dart' as tz;
+import '../core/utils/app_logger.dart';
+
 
 /// Utilitários para manipulação de timezone
 class TimezoneUtils {
@@ -53,7 +55,7 @@ class TimezoneUtils {
       // Último fallback
       return 'America/Sao_Paulo';
     } catch (e) {
-      print('Erro ao detectar timezone: $e');
+      AppLogger.error('Erro ao detectar timezone: $e');
       return 'America/Sao_Paulo';
     }
   }

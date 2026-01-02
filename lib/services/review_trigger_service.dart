@@ -1,5 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../core/utils/app_logger.dart';
+
 
 /// Serviço responsável por gerenciar o trigger de avaliação
 /// Após 10 medicamentos tomados consecutivos, mostra o popup de avaliação
@@ -23,7 +25,7 @@ class ReviewTriggerService {
       
       return currentStreak >= STREAK_THRESHOLD;
     } catch (e) {
-      print('Erro ao verificar review trigger: $e');
+      AppLogger.error('Erro ao verificar review trigger: $e');
       return false;
     }
   }
@@ -36,15 +38,15 @@ class ReviewTriggerService {
       final newStreak = currentStreak + 1;
       
       await prefs.setInt(_keyStreakCount, newStreak);
-      print('✅ ReviewTrigger: Streak incrementado para $newStreak');
+      AppLogger.info('✅ ReviewTrigger: Streak incrementado para $newStreak');
       
       // Se atingiu o threshold, marca como "já mostrado" para não repetir
       if (newStreak >= STREAK_THRESHOLD) {
         await prefs.setBool(_keyHasShownReview, true);
-        print('✅ ReviewTrigger: Threshold atingido, marcado como já mostrado');
+        AppLogger.info('✅ ReviewTrigger: Threshold atingido, marcado como já mostrado');
       }
     } catch (e) {
-      print('Erro ao incrementar streak: $e');
+      AppLogger.error('Erro ao incrementar streak: $e');
     }
   }
 
@@ -53,9 +55,9 @@ class ReviewTriggerService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_keyStreakCount, 0);
-      print('✅ ReviewTrigger: Streak resetado');
+      AppLogger.info('✅ ReviewTrigger: Streak resetado');
     } catch (e) {
-      print('Erro ao resetar streak: $e');
+      AppLogger.error('Erro ao resetar streak: $e');
     }
   }
 
@@ -64,9 +66,9 @@ class ReviewTriggerService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_keyHasShownReview, true);
-      print('✅ ReviewTrigger: Marcado como já mostrado');
+      AppLogger.info('✅ ReviewTrigger: Marcado como já mostrado');
     } catch (e) {
-      print('Erro ao marcar como mostrado: $e');
+      AppLogger.error('Erro ao marcar como mostrado: $e');
     }
   }
 
@@ -89,7 +91,7 @@ class ReviewTriggerService {
         await launchUrl(Uri.parse('https://www.google.com/search?q=Caremind+Coment%C3%A1rios'));
       }
     } catch (e) {
-      print('Erro ao abrir Google Search para review: $e');
+      AppLogger.error('Erro ao abrir Google Search para review: $e');
       rethrow;
     }
   }
@@ -100,7 +102,7 @@ class ReviewTriggerService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getInt(_keyStreakCount) ?? 0;
     } catch (e) {
-      print('Erro ao obter streak: $e');
+      AppLogger.error('Erro ao obter streak: $e');
       return 0;
     }
   }
@@ -111,7 +113,7 @@ class ReviewTriggerService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getBool(_keyHasShownReview) ?? false;
     } catch (e) {
-      print('Erro ao verificar se já foi promptado: $e');
+      AppLogger.error('Erro ao verificar se já foi promptado: $e');
       return false;
     }
   }

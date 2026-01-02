@@ -6,6 +6,7 @@ import 'accessibility_service.dart';
 import 'review_trigger_service.dart';
 import '../models/medicamento.dart';
 import '../core/errors/result.dart';
+import '../core/utils/app_logger.dart';
 
 /// Serviço completo de interface de voz (Voice-First)
 /// Integra Speech-to-Text (STT) e Text-to-Speech (TTS)
@@ -42,11 +43,11 @@ class VoiceService {
       // Verificar disponibilidade do STT
       _isAvailable = await _speech.initialize(
         onError: (error) {
-          print('Erro STT: $error');
+          AppLogger.error('Erro STT: $error');
           _onError?.call(error.errorMsg);
         },
         onStatus: (status) {
-          print('Status STT: $status');
+          AppLogger.info('Status STT: $status');
           if (status == 'done' || status == 'notListening') {
             _isListening = false;
           }
@@ -59,7 +60,7 @@ class VoiceService {
       _isInitialized = true;
       return _isAvailable;
     } catch (e) {
-      print('Erro ao inicializar VoiceService: $e');
+      AppLogger.error('Erro ao inicializar VoiceService: $e');
       _isAvailable = false;
       _isInitialized = true;
       return false;

@@ -2,6 +2,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_version.dart';
+import '../core/utils/app_logger.dart';
+
 
 /// Serviço responsável por verificar e gerenciar versões do aplicativo
 class VersionCheckService {
@@ -30,7 +32,7 @@ class VersionCheckService {
 
       return AppVersion.fromJson(response);
     } catch (e) {
-      print('❌ Erro ao buscar versão do app: $e');
+      AppLogger.error('❌ Erro ao buscar versão do app: $e');
       return null;
     }
   }
@@ -46,7 +48,7 @@ class VersionCheckService {
 
       return lastSeenVersion != latestVersion.buildNumber;
     } catch (e) {
-      print('❌ Erro ao verificar nova versão: $e');
+      AppLogger.error('❌ Erro ao verificar nova versão: $e');
       return false;
     }
   }
@@ -61,7 +63,7 @@ class VersionCheckService {
       return latestVersion.isMandatory == true && 
              latestVersion.buildNumber > CURRENT_APP_BUILD;
     } catch (e) {
-      print('❌ Erro ao verificar bloqueio: $e');
+      AppLogger.error('❌ Erro ao verificar bloqueio: $e');
       return false;
     }
   }
@@ -82,7 +84,7 @@ class VersionCheckService {
 
       return null;
     } catch (e) {
-      print('❌ Erro ao obter motivo do bloqueio: $e');
+      AppLogger.error('❌ Erro ao obter motivo do bloqueio: $e');
       return null;
     }
   }
@@ -96,7 +98,7 @@ class VersionCheckService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_lastSeenVersionKey, latestVersion.buildNumber);
     } catch (e) {
-      print('❌ Erro ao marcar versão como vista: $e');
+      AppLogger.error('❌ Erro ao marcar versão como vista: $e');
     }
   }
 
@@ -111,7 +113,7 @@ class VersionCheckService {
 
       return remindLaterVersion == latestVersion.buildNumber;
     } catch (e) {
-      print('❌ Erro ao verificar lembrar depois: $e');
+      AppLogger.error('❌ Erro ao verificar lembrar depois: $e');
       return false;
     }
   }
@@ -125,7 +127,7 @@ class VersionCheckService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_remindLaterKey, latestVersion.buildNumber);
     } catch (e) {
-      print('❌ Erro ao salvar lembrar depois: $e');
+      AppLogger.error('❌ Erro ao salvar lembrar depois: $e');
     }
   }
 
@@ -135,7 +137,7 @@ class VersionCheckService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_remindLaterKey);
     } catch (e) {
-      print('❌ Erro ao limpar lembrar depois: $e');
+      AppLogger.error('❌ Erro ao limpar lembrar depois: $e');
     }
   }
 

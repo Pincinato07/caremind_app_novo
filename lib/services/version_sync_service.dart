@@ -5,6 +5,8 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io' show Platform;
 import '../models/app_version.dart';
 import '../core/config/app_config.dart';
+import '../core/utils/app_logger.dart';
+
 
 /// Serviço de sincronização avançada do sistema de versões
 /// Gerencia a comunicação completa com a tabela app_versions_control
@@ -45,7 +47,7 @@ class VersionSyncService {
 
       return AppVersion.fromJson(response);
     } catch (e) {
-      print('❌ Erro ao buscar versão do app: $e');
+      AppLogger.error('❌ Erro ao buscar versão do app: $e');
       return null;
     }
   }
@@ -64,7 +66,7 @@ class VersionSyncService {
           .map((version) => AppVersion.fromJson(version))
           .toList();
     } catch (e) {
-      print('❌ Erro ao buscar todas as versões: $e');
+      AppLogger.error('❌ Erro ao buscar todas as versões: $e');
       return [];
     }
   }
@@ -80,7 +82,7 @@ class VersionSyncService {
 
       return lastSeenVersion != latestVersion.buildNumber;
     } catch (e) {
-      print('❌ Erro ao verificar nova versão: $e');
+      AppLogger.error('❌ Erro ao verificar nova versão: $e');
       return false;
     }
   }
@@ -95,7 +97,7 @@ class VersionSyncService {
       return latestVersion.isMandatory == true && 
              latestVersion.buildNumber > CURRENT_APP_BUILD;
     } catch (e) {
-      print('❌ Erro ao verificar bloqueio: $e');
+      AppLogger.error('❌ Erro ao verificar bloqueio: $e');
       return false;
     }
   }
@@ -116,7 +118,7 @@ class VersionSyncService {
 
       return null;
     } catch (e) {
-      print('❌ Erro ao obter motivo do bloqueio: $e');
+      AppLogger.error('❌ Erro ao obter motivo do bloqueio: $e');
       return null;
     }
   }
@@ -130,7 +132,7 @@ class VersionSyncService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_lastSeenVersionKey, latestVersion.buildNumber);
     } catch (e) {
-      print('❌ Erro ao marcar versão como vista: $e');
+      AppLogger.error('❌ Erro ao marcar versão como vista: $e');
     }
   }
 
@@ -143,7 +145,7 @@ class VersionSyncService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_remindLaterKey, latestVersion.buildNumber);
     } catch (e) {
-      print('❌ Erro ao salvar lembrar depois: $e');
+      AppLogger.error('❌ Erro ao salvar lembrar depois: $e');
     }
   }
 
@@ -158,7 +160,7 @@ class VersionSyncService {
 
       return remindLaterVersion == latestVersion.buildNumber;
     } catch (e) {
-      print('❌ Erro ao verificar lembrar depois: $e');
+      AppLogger.error('❌ Erro ao verificar lembrar depois: $e');
       return false;
     }
   }
@@ -169,7 +171,7 @@ class VersionSyncService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_remindLaterKey);
     } catch (e) {
-      print('❌ Erro ao limpar lembrar depois: $e');
+      AppLogger.error('❌ Erro ao limpar lembrar depois: $e');
     }
   }
 
@@ -212,7 +214,7 @@ class VersionSyncService {
       });
     } catch (e) {
       // Não bloqueia o app se falhar
-      print('⚠️ Não foi registrar acesso à versão: $e');
+      AppLogger.warn('⚠️ Não foi registrar acesso à versão: $e');
     }
   }
 
@@ -260,7 +262,7 @@ class VersionSyncService {
         'last_sync': DateTime.now().toIso8601String(),
       }, onConflict: 'user_id,device_id');
     } catch (e) {
-      print('⚠️ Não foi sincronizarDeviceInfo: $e');
+      AppLogger.warn('⚠️ Não foi sincronizarDeviceInfo: $e');
     }
   }
 
@@ -299,7 +301,7 @@ class VersionSyncService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_lastSyncKey, DateTime.now().millisecondsSinceEpoch);
     } catch (e) {
-      print('❌ Erro ao atualizar timestamp de sincronização: $e');
+      AppLogger.error('❌ Erro ao atualizar timestamp de sincronização: $e');
     }
   }
 }
